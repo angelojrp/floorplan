@@ -423,9 +423,17 @@ rooms:
       - wall: east; offset: 60; width: 60; height: 80; sill: 160`
 };
 
-// Parse inline YAML (semicolon-separated flow style for compact storage)
+// Parse inline YAML (semicolon-separated compact format → proper indentation)
 function expandExample(yaml) {
-  return yaml.replace(/;\s*/g, '\n        ');
+  return yaml.split('\n').map(line => {
+    const semiIdx = line.indexOf(';');
+    if (semiIdx < 0) return line;
+    const leading = line.match(/^(\s*)/)[1];
+    const isListItem = /^\s*- /.test(line);
+    const extraIndent = isListItem ? '  ' : '';
+    const parts = line.split(/;\s*/);
+    return parts[0] + '\n' + parts.slice(1).map(p => leading + extraIndent + '  ' + p).join('\n');
+  }).join('\n');
 }
 
 function parseInput(yamlStr) {
