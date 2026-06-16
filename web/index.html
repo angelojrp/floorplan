@@ -804,6 +804,9 @@ function doRender() {
         const ln = parseInt(lineMatch[1]) - 1;
         if (ln >= 0 && ln < editor.lineCount()) editor.addLineClass(ln, 'background', 'line-error');
       }
+      // mostra erro também no preview
+      const wrap = document.getElementById('preview-pane');
+      wrap.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div style="color:var(--text);max-width:400px;word-break:break-word">${esc(e.message)}</div></div>` + document.getElementById('zoom-controls').outerHTML;
       editorValid = false;
       const validEl = document.querySelector('#status-line .status-valid');
       const errEl = document.querySelector('#status-line .status-error');
@@ -1007,7 +1010,6 @@ function insertRoomTemplate(idx) {
   toast(`➕ ${t.name} adicionado! Arraste no preview para reposicionar`);
   clearTimeout(renderTimeout);
   origDoRender();
-  setTimeout(setupDragHandlers, 200);
 }
 renderRoomLibrary();
 
