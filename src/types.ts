@@ -32,6 +32,7 @@ export interface Room {
     x: number; // posição relativa ao canto superior esquerdo do cômodo (cm)
     y: number;
   };
+  hatch?: 'solid' | 'diagonal' | 'cross' | 'dots' | 'horizontal' | 'vertical';
 }
 
 export interface FreeWall {
@@ -94,6 +95,7 @@ export interface ResolvedRoom {
   doors: ResolvedDoor[];
   windows: ResolvedWindow[];
   labelPos: Point;
+  hatch?: Room['hatch'];
 }
 
 export interface WallSegment {
@@ -112,6 +114,7 @@ export interface ResolvedFreeWall {
 
 export interface ResolvedFloorPlan {
   title?: string;
+  scale: number;
   rooms: ResolvedRoom[];
   freeWalls: ResolvedFreeWall[];
   wallThicknessPx: number;  // espessura da parede em px

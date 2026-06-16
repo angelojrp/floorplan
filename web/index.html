@@ -68,8 +68,9 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 #editor-pane .cm-header{display:none}
 #editor-wrap{flex:1;overflow:hidden}
 #editor-wrap .CodeMirror{height:100%!important;font-size:13px;line-height:1.6;font-family:'JetBrains Mono','Cascadia Code','Fira Code','Consolas',monospace}
-#error-bar{display:none;padding:8px 14px;background:#441;color:#f88;font-size:11px;font-family:monospace;border-top:1px solid #552;white-space:pre-wrap;max-height:80px;overflow-y:auto}
+#error-bar{display:none;padding:8px 14px;background:#441;color:#f88;font-size:11px;font-family:monospace;border-top:1px solid #552;white-space:pre-wrap;max-height:200px;overflow-y:auto}
 #error-bar.show{display:block}
+#error-bar.warning{background:#3e3500;color:#ffd54f;border-top-color:#6d5b00}
 #resize-handle{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background var(--transition)}
 #resize-handle:hover{background:var(--accent)}
 #preview-pane{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px;background:var(--bg);position:relative}
@@ -243,12 +244,27 @@ rooms:
     width: 550
     height: 420
     doors:
-      - wall: south; offset: 200; width: 80; type: pivot; swing: left
-      - wall: north; offset: 250; width: 80; type: pivot; swing: left
+      - wall: south
+        offset: 200
+        width: 80
+        type: pivot
+        swing: left
+      - wall: north
+        offset: 250
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: west; offset: 60; width: 200; height: 120; sill: 110
-      - wall: north; offset: 100; width: 180; height: 120; sill: 110
-
+      - wall: west
+        offset: 60
+        width: 200
+        height: 120
+        sill: 110
+      - wall: north
+        offset: 100
+        width: 180
+        height: 120
+        sill: 110
   - id: cozinha
     name: Cozinha
     x: 550
@@ -256,22 +272,41 @@ rooms:
     width: 300
     height: 420
     doors:
-      - wall: west; offset: 150; width: 80; type: pivot; swing: right
-      - wall: south; offset: 100; width: 80; type: pivot; swing: left
+      - wall: west
+        offset: 150
+        width: 80
+        type: pivot
+        swing: right
+      - wall: south
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: east; offset: 100; width: 150; height: 120; sill: 110
-
+      - wall: east
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
   - id: banheiro
     name: Banheiro
     x: 550
     y: 420
     width: 300
     height: 220
+    hatch: diagonal
     doors:
-      - wall: north; offset: 100; width: 70; type: pivot; swing: left
+      - wall: north
+        offset: 100
+        width: 70
+        type: pivot
+        swing: left
     windows:
-      - wall: east; offset: 60; width: 80; height: 80; sill: 160
-
+      - wall: east
+        offset: 60
+        width: 80
+        height: 80
+        sill: 160
   - id: quarto1
     name: Quarto 1
     x: 0
@@ -279,10 +314,17 @@ rooms:
     width: 280
     height: 380
     doors:
-      - wall: east; offset: 160; width: 80; type: pivot; swing: right
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: south; offset: 80; width: 180; height: 120; sill: 110
-
+      - wall: south
+        offset: 80
+        width: 180
+        height: 120
+        sill: 110
   - id: quarto2
     name: Quarto 2
     x: 280
@@ -290,9 +332,17 @@ rooms:
     width: 270
     height: 380
     doors:
-      - wall: east; offset: 160; width: 80; type: pivot; swing: right
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: south; offset: 60; width: 150; height: 120; sill: 110`,
+      - wall: south
+        offset: 60
+        width: 150
+        height: 120
+        sill: 110`,
 
   studio: `version: 1
 title: "Studio Compacto"
@@ -302,20 +352,47 @@ grid: 100
 
 rooms:
   - id: living
-    name: Sala/Cozinha
-    x: 0; y: 0; width: 415; height: 550
+    name: Sala/Cozinha Integrada
+    x: 0
+    y: 0
+    width: 450
+    height: 550
     doors:
-      - wall: south; offset: 200; width: 80; type: pivot; swing: left
+      - wall: south
+        offset: 180
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: north; offset: 80; width: 200; height: 120; sill: 110
-      - wall: west; offset: 150; width: 120; height: 120; sill: 110
+      - wall: north
+        offset: 80
+        width: 200
+        height: 120
+        sill: 110
+      - wall: west
+        offset: 150
+        width: 120
+        height: 120
+        sill: 110
   - id: banheiro
     name: Banheiro
-    x: 0; y: 550; width: 220; height: 220
+    x: 450
+    y: 0
+    width: 220
+    height: 220
+    hatch: diagonal
     doors:
-      - wall: north; offset: 70; width: 70; type: sliding; swing: none
+      - wall: west
+        offset: 70
+        width: 70
+        type: sliding
+        swing: none
     windows:
-      - wall: east; offset: 60; width: 60; height: 80; sill: 160`,
+      - wall: east
+        offset: 60
+        width: 60
+        height: 80
+        sill: 160`,
 
   casa: `version: 1
 title: "Casa Pequena"
@@ -325,44 +402,134 @@ grid: 100
 
 rooms:
   - id: sala
-    name: Sala de Estar; x: 0; y: 0; width: 500; height: 400
+    name: Sala de Estar
+    x: 0
+    y: 0
+    width: 500
+    height: 400
     doors:
-      - wall: south; offset: 200; width: 80; type: pivot; swing: left
-      - wall: east; offset: 160; width: 100; type: double; swing: left
+      - wall: south
+        offset: 200
+        width: 100
+        type: double
+        swing: left
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: north; offset: 80; width: 250; height: 120; sill: 110
-      - wall: west; offset: 100; width: 150; height: 120; sill: 110
+      - wall: north
+        offset: 80
+        width: 250
+        height: 120
+        sill: 110
+      - wall: west
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
   - id: cozinha
-    name: Cozinha; x: 500; y: 0; width: 300; height: 400
+    name: Cozinha
+    x: 500
+    y: 0
+    width: 300
+    height: 400
     doors:
-      - wall: west; offset: 120; width: 100; type: double; swing: right
-      - wall: south; offset: 100; width: 80; type: pivot; swing: left
+      - wall: west
+        offset: 100
+        width: 80
+        type: pivot
+        swing: right
+      - wall: south
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: east; offset: 80; width: 120; height: 120; sill: 110
+      - wall: east
+        offset: 80
+        width: 120
+        height: 120
+        sill: 110
   - id: corredor
-    name: Corredor; x: 200; y: 400; width: 600; height: 120
+    name: Corredor
+    x: 200
+    y: 400
+    width: 600
+    height: 120
+    hatch: dots
     doors:
-      - wall: north; offset: 60; width: 80; type: pivot; swing: left
-      - wall: south; offset: 160; width: 80; type: pivot; swing: right
-      - wall: south; offset: 360; width: 80; type: pivot; swing: right
+      - wall: north
+        offset: 60
+        width: 80
+        type: pivot
+        swing: left
+      - wall: south
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+      - wall: south
+        offset: 360
+        width: 80
+        type: pivot
+        swing: right
   - id: quarto1
-    name: Quarto 1; x: 0; y: 520; width: 350; height: 350
+    name: Quarto 1
+    x: 0
+    y: 520
+    width: 350
+    height: 350
     doors:
-      - wall: north; offset: 120; width: 80; type: pivot; swing: right
+      - wall: north
+        offset: 120
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: south; offset: 80; width: 180; height: 120; sill: 110
+      - wall: south
+        offset: 80
+        width: 180
+        height: 120
+        sill: 110
   - id: quarto2
-    name: Quarto 2; x: 350; y: 520; width: 300; height: 350
+    name: Quarto 2
+    x: 350
+    y: 520
+    width: 300
+    height: 350
     doors:
-      - wall: north; offset: 100; width: 80; type: pivot; swing: right
+      - wall: north
+        offset: 100
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: south; offset: 60; width: 150; height: 120; sill: 110
+      - wall: south
+        offset: 60
+        width: 150
+        height: 120
+        sill: 110
   - id: banheiro
-    name: Banheiro; x: 650; y: 520; width: 150; height: 350
+    name: Banheiro
+    x: 650
+    y: 520
+    width: 150
+    height: 350
+    hatch: diagonal
     doors:
-      - wall: north; offset: 40; width: 70; type: pivot; swing: left
+      - wall: north
+        offset: 40
+        width: 70
+        type: pivot
+        swing: left
     windows:
-      - wall: east; offset: 80; width: 60; height: 80; sill: 160`,
+      - wall: east
+        offset: 80
+        width: 60
+        height: 80
+        sill: 160`,
 
   comercial: `version: 1
 title: "Escritório Comercial"
@@ -372,46 +539,131 @@ grid: 100
 
 rooms:
   - id: recepcao
-    name: Recepção; x: 0; y: 0; width: 400; height: 500
+    name: Recepção
+    x: 0
+    y: 0
+    width: 400
+    height: 500
     doors:
-      - wall: south; offset: 140; width: 100; type: double; swing: left
-      - wall: east; offset: 200; width: 80; type: pivot; swing: right
+      - wall: south
+        offset: 140
+        width: 100
+        type: double
+        swing: left
+      - wall: east
+        offset: 200
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: south; offset: 60; width: 250; height: 120; sill: 110
+      - wall: south
+        offset: 60
+        width: 250
+        height: 120
+        sill: 110
   - id: reuniao
-    name: Sala de Reunião; x: 400; y: 0; width: 350; height: 350
+    name: Sala de Reunião
+    x: 400
+    y: 0
+    width: 350
+    height: 350
     doors:
-      - wall: west; offset: 120; width: 100; type: double; swing: right
+      - wall: west
+        offset: 120
+        width: 100
+        type: double
+        swing: right
     windows:
-      - wall: north; offset: 80; width: 180; height: 120; sill: 110
+      - wall: north
+        offset: 80
+        width: 180
+        height: 120
+        sill: 110
   - id: banheiro
-    name: Banheiro; x: 400; y: 350; width: 200; height: 150
+    name: Banheiro
+    x: 400
+    y: 350
+    width: 200
+    height: 150
+    hatch: diagonal
     doors:
-      - wall: west; offset: 60; width: 70; type: pivot; swing: left
+      - wall: west
+        offset: 60
+        width: 70
+        type: pivot
+        swing: left
     windows:
-      - wall: east; offset: 50; width: 60; height: 80; sill: 160
+      - wall: east
+        offset: 50
+        width: 60
+        height: 80
+        sill: 160
   - id: openplan
-    name: Open Plan; x: 600; y: 350; width: 250; height: 300
+    name: Open Plan
+    x: 600
+    y: 350
+    width: 250
+    height: 300
     doors:
-      - wall: west; offset: 100; width: 80; type: pivot; swing: right
+      - wall: west
+        offset: 100
+        width: 80
+        type: pivot
+        swing: right
   - id: sala1
-    name: Sala Privativa 1; x: 0; y: 500; width: 250; height: 300
+    name: Sala Privativa 1
+    x: 0
+    y: 500
+    width: 250
+    height: 300
     doors:
-      - wall: east; offset: 100; width: 80; type: pivot; swing: right
+      - wall: east
+        offset: 100
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: south; offset: 60; width: 120; height: 120; sill: 110
+      - wall: south
+        offset: 60
+        width: 120
+        height: 120
+        sill: 110
   - id: sala2
-    name: Sala Privativa 2; x: 250; y: 500; width: 250; height: 300
+    name: Sala Privativa 2
+    x: 250
+    y: 500
+    width: 250
+    height: 300
     doors:
-      - wall: east; offset: 100; width: 80; type: pivot; swing: left
+      - wall: east
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: south; offset: 60; width: 120; height: 120; sill: 110
+      - wall: south
+        offset: 60
+        width: 120
+        height: 120
+        sill: 110
   - id: sala3
-    name: Sala Privativa 3; x: 500; y: 650; width: 350; height: 250
+    name: Sala Privativa 3
+    x: 500
+    y: 650
+    width: 350
+    height: 250
     doors:
-      - wall: west; offset: 120; width: 80; type: pivot; swing: right
+      - wall: west
+        offset: 120
+        width: 80
+        type: pivot
+        swing: right
     windows:
-      - wall: east; offset: 80; width: 150; height: 120; sill: 110`,
+      - wall: east
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110`,
 
   galpao: `version: 1
 title: "Galpão Industrial"
@@ -421,29 +673,82 @@ grid: 100
 
 rooms:
   - id: armazenagem
-    name: Área de Armazenagem; x: 0; y: 0; width: 1300; height: 900
+    name: Área de Armazenagem
+    x: 0
+    y: 0
+    width: 1300
+    height: 900
     doors:
-      - wall: south; offset: 400; width: 500; type: sliding; swing: none
-      - wall: south; offset: 950; width: 400; type: sliding; swing: none
+      - wall: south
+        offset: 400
+        width: 500
+        type: sliding
+        swing: none
+      - wall: south
+        offset: 950
+        width: 400
+        type: sliding
+        swing: none
     windows:
-      - wall: north; offset: 300; width: 600; height: 150; sill: 200
+      - wall: north
+        offset: 300
+        width: 600
+        height: 120
+        sill: 110
   - id: doca
-    name: Doca de Carga; x: 880; y: 0; width: 420; height: 900
+    name: Doca de Carga
+    x: 880
+    y: 0
+    width: 420
+    height: 900
     doors:
-      - wall: east; offset: 300; width: 400; type: sliding; swing: none
+      - wall: east
+        offset: 300
+        width: 400
+        type: sliding
+        swing: none
   - id: escritorio
-    name: Escritório Admin; x: 0; y: 900; width: 350; height: 250
+    name: Escritório Admin
+    x: 0
+    y: 900
+    width: 350
+    height: 250
     doors:
-      - wall: north; offset: 100; width: 80; type: pivot; swing: left
+      - wall: north
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
     windows:
-      - wall: south; offset: 100; width: 150; height: 120; sill: 110
-      - wall: west; offset: 60; width: 100; height: 120; sill: 110
+      - wall: south
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
+      - wall: west
+        offset: 60
+        width: 100
+        height: 120
+        sill: 110
   - id: banheiro_galpao
-    name: Banheiro; x: 350; y: 900; width: 200; height: 250
+    name: Banheiro
+    x: 350
+    y: 900
+    width: 200
+    height: 250
+    hatch: diagonal
     doors:
-      - wall: west; offset: 60; width: 70; type: pivot; swing: left
+      - wall: west
+        offset: 60
+        width: 70
+        type: pivot
+        swing: left
     windows:
-      - wall: east; offset: 60; width: 60; height: 80; sill: 160`
+      - wall: east
+        offset: 60
+        width: 60
+        height: 80
+        sill: 160`
 };
 
 // Parse inline YAML (semicolon-separated compact format → proper indentation)
@@ -471,7 +776,8 @@ function parseInput(yamlStr) {
       id: r.id || 'r' + i, name: r.name || 'Cômodo', x: r.x, y: r.y,
       width: r.width, height: r.height,
       doors: (r.doors || []).map(d => ({ wall: d.wall, offset: d.offset, width: d.width, type: d.type || 'pivot', swing: d.swing || 'left' })),
-      windows: (r.windows || []).map(w => ({ wall: w.wall, offset: w.offset, width: w.width, height: w.height || 120, sill: w.sill || 110 }))
+      windows: (r.windows || []).map(w => ({ wall: w.wall, offset: w.offset, width: w.width, height: w.height || 120, sill: w.sill || 110 })),
+      hatch: r.hatch
     })),
     walls: raw.walls || [],
     lot: raw.lot || null
@@ -493,7 +799,7 @@ function resolveLayout(input) {
       const op = openingOnWall(w.wall, r, w.offset * sc, w.width * sc);
       return { wall: w.wall, start: op.start, end: op.end };
     });
-    return { id: room.id, name: room.name, rect: r, wallSegs: wallSegments(r, doors, windows), doors, windows, labelPos: { x: r.x + r.w / 2, y: r.y + r.h / 2 } };
+    return { id: room.id, name: room.name, rect: r, wallSegs: wallSegments(r, doors, windows), doors, windows, labelPos: { x: r.x + r.w / 2, y: r.y + r.h / 2 }, hatch: room.hatch };
   });
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const r of rooms) { minX = Math.min(minX, r.rect.x); minY = Math.min(minY, r.rect.y); maxX = Math.max(maxX, r.rect.x + r.rect.w); maxY = Math.max(maxY, r.rect.y + r.rect.h); }
@@ -571,6 +877,7 @@ function renderSVG(input) {
   const C = { w: '#2d2d2d', ws: '#1a1a1a', rb: '#fafafa', dp: '#2d2d2d', da: '#555', wf: '#4a90d9', dl: '#b71c1c', dt: '#b71c1c', gd: '#e0e0e0', lb: '#1a1a1a', tt: '#1a1a1a' };
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%">`;
   s += `<style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style>`;
+  s += `<defs><pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern></defs>`;
   s += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
 
   // lot (terreno)
@@ -578,7 +885,7 @@ function renderSVG(input) {
 
   if (grid !== false) for (let cx = Math.ceil(vbX / grid) * grid; cx <= vbX + vbW; cx += grid) for (let cy = Math.ceil(vbY / grid) * grid; cy <= vbY + vbH; cy += grid) s += `<circle cx="${cx}" cy="${cy}" r="0.6" class="gd"/>`;
   if (title) s += `<text x="${(minX + maxX) / 2}" y="${minY - 45}" class="ttl">${esc(title)}</text>`;
-  for (const r of rooms) s += `<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb" data-room-id="${esc(r.id)}"/>`;
+  for (const r of rooms) { if (r.hatch && r.hatch !== 'solid') s += `<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" fill="url(#hatch-${r.hatch})" data-room-id="${esc(r.id)}"/>`; else s += `<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb" data-room-id="${esc(r.id)}"/>`; }
 
   // walls dedup
   const hS = new Map(), hO = new Map(), vS = new Map(), vO = new Map();
@@ -766,10 +1073,105 @@ function loadExample(name) {
   currentExample = name;
   document.querySelectorAll('.example-card').forEach(c => c.classList.toggle('active', c.dataset.example === name));
   const yaml = EXAMPLES[name];
-  if (yaml) editor.setValue(expandExample(yaml));
+  if (yaml) editor.setValue(yaml);
   document.getElementById('file-name').textContent = document.querySelector(`[data-example="${name}"] .ex-title`).textContent;
   saveHash();
   doRender();
+}
+
+function validateFloorplan(input) {
+  const warnings = [];
+  const rooms = input.rooms;
+
+  // 1. Porta fora da parede
+  for (const room of rooms) {
+    for (const door of (room.doors || [])) {
+      const wallLen = (door.wall === 'north' || door.wall === 'south') ? room.width : room.height;
+      if (door.offset + door.width > wallLen) {
+        warnings.push(`🚪 Porta no cômodo '${room.name}' parede ${door.wall}: offset+width (${door.offset + door.width}cm) excede a parede (${wallLen}cm). Sugestão: reduzir offset ou width.`);
+      }
+    }
+  }
+
+  // 2. Cômodos sobrepostos
+  for (let i = 0; i < rooms.length; i++) {
+    for (let j = i + 1; j < rooms.length; j++) {
+      const a = rooms[i], b = rooms[j];
+      if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y) {
+        warnings.push(`⚠️ Cômodos '${a.name}' e '${b.name}' estão sobrepostos. Ajuste x/y.`);
+      }
+    }
+  }
+
+  // Build adjacency map: shared walls between rooms
+  const adj = {};
+  for (const r of rooms) adj[r.id] = { internalWalls: new Set(), sharedWith: [] };
+
+  const tol = 1;
+  for (let i = 0; i < rooms.length; i++) {
+    for (let j = i + 1; j < rooms.length; j++) {
+      const a = rooms[i], b = rooms[j];
+      // East of A with West of B
+      if (Math.abs(a.x + a.width - b.x) < tol) {
+        const oS = Math.max(a.y, b.y), oE = Math.min(a.y + a.height, b.y + b.height);
+        if (oE > oS) {
+          adj[a.id].internalWalls.add('east'); adj[a.id].sharedWith.push({ wall: 'east', roomId: b.id, otherWall: 'west' });
+          adj[b.id].internalWalls.add('west'); adj[b.id].sharedWith.push({ wall: 'west', roomId: a.id, otherWall: 'east' });
+        }
+      }
+      // West of A with East of B
+      if (Math.abs(a.x - (b.x + b.width)) < tol) {
+        const oS = Math.max(a.y, b.y), oE = Math.min(a.y + a.height, b.y + b.height);
+        if (oE > oS) {
+          adj[a.id].internalWalls.add('west'); adj[a.id].sharedWith.push({ wall: 'west', roomId: b.id, otherWall: 'east' });
+          adj[b.id].internalWalls.add('east'); adj[b.id].sharedWith.push({ wall: 'east', roomId: a.id, otherWall: 'west' });
+        }
+      }
+      // South of A with North of B
+      if (Math.abs(a.y + a.height - b.y) < tol) {
+        const oS = Math.max(a.x, b.x), oE = Math.min(a.x + a.width, b.x + b.width);
+        if (oE > oS) {
+          adj[a.id].internalWalls.add('south'); adj[a.id].sharedWith.push({ wall: 'south', roomId: b.id, otherWall: 'north' });
+          adj[b.id].internalWalls.add('north'); adj[b.id].sharedWith.push({ wall: 'north', roomId: a.id, otherWall: 'south' });
+        }
+      }
+      // North of A with South of B
+      if (Math.abs(a.y - (b.y + b.height)) < tol) {
+        const oS = Math.max(a.x, b.x), oE = Math.min(a.x + a.width, b.x + b.width);
+        if (oE > oS) {
+          adj[a.id].internalWalls.add('north'); adj[a.id].sharedWith.push({ wall: 'north', roomId: b.id, otherWall: 'south' });
+          adj[b.id].internalWalls.add('south'); adj[b.id].sharedWith.push({ wall: 'south', roomId: a.id, otherWall: 'north' });
+        }
+      }
+    }
+  }
+
+  // 3. Janela em parede interna
+  for (const room of rooms) {
+    const roomAdj = adj[room.id];
+    for (const win of (room.windows || [])) {
+      if (roomAdj.internalWalls.has(win.wall)) {
+        warnings.push(`🪟 Janela no cômodo '${room.name}' parede ${win.wall} está em parede interna.`);
+      }
+    }
+  }
+
+  // 4. Porta sem correspondência
+  for (const room of rooms) {
+    const roomAdj = adj[room.id];
+    for (const door of (room.doors || [])) {
+      for (const sw of roomAdj.sharedWith) {
+        if (sw.wall === door.wall) {
+          const otherRoom = rooms.find(r => r.id === sw.roomId);
+          if (otherRoom && !(otherRoom.doors || []).some(d => d.wall === sw.otherWall)) {
+            warnings.push(`🚪 Porta no cômodo '${room.name}' parede ${door.wall} sem correspondência em '${otherRoom.name}' (parede ${sw.otherWall}).`);
+          }
+        }
+      }
+    }
+  }
+
+  return warnings;
 }
 
 function doRender() {
@@ -786,11 +1188,18 @@ function doRender() {
         if (idx >= 0) lines[idx] = 'grid: false'; else lines.splice(1, 0, 'grid: false');
         yaml = lines.join('\n');
       }
-      const svg = renderFloorplan(yaml);
+      const input = parseInput(expandExample(yaml));
+      const warnings = validateFloorplan(input);
+      const svg = renderSVG(resolveLayout(input));
       const wrap = document.getElementById('preview-pane');
       wrap.innerHTML = svg + document.getElementById('zoom-controls').outerHTML;
       applyZoom();
-      document.getElementById('error-bar').classList.remove('show');
+      const errorBar = document.getElementById('error-bar');
+      errorBar.classList.remove('show', 'warning');
+      if (warnings.length > 0) {
+        errorBar.textContent = warnings.join('\n');
+        errorBar.classList.add('show', 'warning');
+      }
       editorValid = true;
       const validEl = document.querySelector('#status-line .status-valid');
       const errEl = document.querySelector('#status-line .status-error');

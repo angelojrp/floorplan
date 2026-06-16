@@ -1,6 +1,9 @@
 # 🏠 Floorplan
 
+[![npm version](https://img.shields.io/npm/v/@angelojrp/floorplan)](https://www.npmjs.com/package/@angelojrp/floorplan)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> **AI-ready**: use via `npx @angelojrp/floorplan input.yaml -o output.svg` — zero install.
 
 **Renderizador de plantas baixas YAML → SVG**. Descreva cômodos, portas e janelas em YAML e obtenha um desenho arquitetônico profissional em SVG.
 
@@ -23,12 +26,13 @@
 
 ## 🚀 Uso rápido
 
-### CLI
-
 ```bash
-npm install
-npm run build
-node dist/cli.js examples/apartamento.yaml -o saida.svg
+# Via npx (zero instalação)
+npx @angelojrp/floorplan examples/apartamento.yaml -o saida.svg
+
+# Via npm global
+npm install -g @angelojrp/floorplan
+floorplan input.yaml -o output.svg
 ```
 
 ### Web App

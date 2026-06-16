@@ -36,6 +36,7 @@ export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
 
   return {
     title: input.title,
+    scale,
     rooms,
     freeWalls,
     wallThicknessPx: wt,
@@ -92,6 +93,7 @@ function resolveRoom(
     doors,
     windows,
     labelPos,
+    hatch: room.hatch,
   };
 }
 

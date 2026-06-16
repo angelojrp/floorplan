@@ -1,0 +1,8 @@
+src/
+tests/
+web/
+examples/
+playground.html
+wrangler.toml
+node_modules/
+.gitignore

@@ -20,4 +20,5 @@ export function render(input: string, options: RenderOptions = {}): string {
 export { parseFloorPlan } from './parser';
 export { resolveLayout } from './layout';
 export { renderSvg } from './renderer';
+export { exportDXF } from './dxf';
 export * from './types';

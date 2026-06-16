@@ -8,6 +8,7 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 
 - [x] Engine TypeScript (parser YAML, layout, renderer SVG)
 - [x] CLI (linha de comando)
+- [ ] **CLI no npm**: publicar como `floorplan` — `npx floorplan input.yaml -o output.svg` para uso por chats IA
 - [x] App web com editor YAML + preview live
 - [x] Biblioteca de cômodos com inserção
 - [x] Drag-and-drop no preview SVG
@@ -34,48 +35,55 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 ## 🟡 Fase 2 — Polimento (curto prazo)
 
 ### Visual Editor
-- [ ] **Snap inteligente**: snap a paredes de outros cômodos (alinhamento automático)
+- [x] **Snap inteligente**: snap a paredes de outros cômodos (alinhamento automático)
 - [ ] **Paredes compartilhadas**: unir automaticamente cômodos adjacentes
 - [ ] **Rotação de cômodos**: girar cômodos em ângulos arbitrários
-- [ ] **Seleção múltipla**: selecionar vários cômodos com Shift+click ou arrastar área
-- [ ] **Copiar/Colar**: Ctrl+C / Ctrl+V para duplicar cômodos
-- [ ] **Alinhamento**: alinhar esquerda/direita/topo/base entre cômodos selecionados
-- [ ] **Mini-map**: visão geral da planta no canto
-- [ ] **Temas**: dark/light mode no editor visual
-- [ ] **Touch/mobile**: suporte a gestos touch para tablets
-- [ ] **Auto-save**: salvar no localStorage automaticamente
-- [ ] **Indicadores de distância**: mostrar medidas entre cômodos ao mover
-- [ ] **Tooltips**: ajuda contextual nas ferramentas
+- [x] **Seleção múltipla**: selecionar vários cômodos com Shift+click ou arrastar área
+- [x] **Copiar/Colar**: Ctrl+C / Ctrl+V para duplicar cômodos
+- [x] **Alinhamento**: alinhar esquerda/direita/topo/base entre cômodos selecionados
+- [x] **Mini-map**: visão geral da planta no canto
+- [x] **Temas**: dark/light mode no editor visual
+- [x] **Touch/mobile**: suporte a gestos touch para tablets
+- [x] **Auto-save**: salvar no localStorage automaticamente
+- [x] **Indicadores de distância**: mostrar medidas entre cômodos ao mover
+- [x] **Tooltips**: ajuda contextual nas ferramentas
 
 ### YAML Editor
-- [ ] Autocomplete/intellisense no CodeMirror (schema YAML)
-- [ ] Validação em tempo real com mensagens amigáveis
-- [ ] Quick-fix suggestions (ex: "porta fora da parede — corrigir offset?")
+- [x] Autocomplete/intellisense no CodeMirror (schema YAML)
+- [x] Validação em tempo real com mensagens amigáveis
+- [x] Quick-fix suggestions (ex: "porta fora da parede — corrigir offset?")
 
 ### Engine
 - [ ] Paredes em ângulo (não apenas 90°)
 - [ ] Paredes curvas
 - [ ] Espessura de parede variável por segmento
-- [ ] Hachuras personalizadas por tipo de cômodo
+- [x] Hachuras personalizadas por tipo de cômodo
 
 ---
 
 ## 🟠 Fase 3 — Profissional (médio prazo)
 
 ### Visual Builder Avançado
-- [ ] **Ferramenta de parede**: desenhar paredes livremente (linha contínua)
-- [ ] **Ferramenta de cômodo**: desenhar retângulo na área desejada
+- [x] **Ferramenta de parede**: desenhar paredes livremente (linha contínua)
+- [x] **Ferramenta de cômodo**: desenhar retângulo na área desejada
 - [ ] **Camadas (layers)**: paredes, portas, janelas, móveis, cotas, texto
 - [ ] **Estilos de parede**: alvenaria, drywall, vidro, divisória
 - [ ] **Níveis/pavimentos**: múltiplos andares (tabs)
 - [ ] **Escadas**: símbolo automático de escada entre pavimentos
 
 ### Exportação
-- [ ] **DXF**: exportar para AutoCAD/Revit
+- [x] **DXF**: exportar para AutoCAD/Revit
 - [ ] **PDF**: exportar com escala e margens de impressão
 - [ ] **Layout de impressão**: múltiplas folhas, carimbo, margens configuráveis
 - [ ] **PNG de alta resolução**: exportar imagens raster
 - [ ] **Compartilhamento**: gerar link público com preview (hospedagem efêmera)
+
+### IA & Ecossistema
+- [x] **CLI no npm**: `npx floorplan input.yaml -o output.svg`
+- [x] **JSON Schema**: validação para IAs (`docs/schema.json`)
+- [x] **AI Guide otimizado**: prompts, common mistakes, checklist
+- [x] **AGENTS.md**: instruções para coding assistants
+- [x] **API Worker**: Cloudflare Worker (POST YAML → SVG)
 
 ### Colaboração
 - [ ] Multi-usuário em tempo real (WebSocket/CRDT)

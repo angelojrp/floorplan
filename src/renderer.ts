@@ -64,7 +64,30 @@ export function renderSvg(input: ResolvedFloorPlan): string {
     `  .title-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 20px; font-weight: 700; fill: ${C.title}; text-anchor: middle; }`,
     `  .grid-dot { fill: ${C.gridDot}; }`,
     `  .free-wall-fill { fill: ${C.freeWall}; stroke: ${C.freeWallStroke}; stroke-width: ${WALL_STROKE}; }`,
-    '</style>'
+    '</style>',
+    '<defs>',
+    `  <pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8">
+       <rect width="8" height="8" fill="#fafafa"/>
+       <line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/>
+     </pattern>`,
+    `  <pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8">
+       <rect width="8" height="8" fill="#fafafa"/>
+       <line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/>
+       <line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/>
+     </pattern>`,
+    `  <pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6">
+       <rect width="6" height="6" fill="#fafafa"/>
+       <circle cx="3" cy="3" r="1" fill="#e0e0e0"/>
+     </pattern>`,
+    `  <pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6">
+       <rect width="6" height="6" fill="#fafafa"/>
+       <line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/>
+     </pattern>`,
+    `  <pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6">
+       <rect width="6" height="6" fill="#fafafa"/>
+       <line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/>
+     </pattern>`,
+    '</defs>'
   );
 
   // background
@@ -82,7 +105,11 @@ export function renderSvg(input: ResolvedFloorPlan): string {
 
   // fundo dos cômodos
   for (const room of rooms) {
-    out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" class="room-bg"/>`);
+    if (room.hatch && room.hatch !== 'solid') {
+      out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" fill="url(#hatch-${room.hatch})"/>`);
+    } else {
+      out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" class="room-bg"/>`);
+    }
   }
 
   // paredes preenchidas (deduplicadas para evitar sobreposição entre cômodos adjacentes)
