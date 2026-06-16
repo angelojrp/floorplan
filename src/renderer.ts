@@ -1,4 +1,4 @@
-import type { ResolvedFloorPlan, ResolvedRoom, ResolvedDoor, ResolvedWindow, ResolvedFreeWall, WallSegment, Dimension, Arc } from './types';
+import type { ResolvedFloorPlan, ResolvedRoom, ResolvedDoor, ResolvedWindow, ResolvedStair, ResolvedFreeWall, WallSegment, Dimension, Arc } from './types';
 
 // ── paleta arquitetônica ──
 
@@ -33,7 +33,7 @@ const GRID_R = 0.6;
  * Gera SVG arquitetônico da planta baixa.
  */
 export function renderSvg(input: ResolvedFloorPlan): string {
-  const { rooms, freeWalls, wallThicknessPx, grid, dimensions, title } = input;
+  const { rooms, stairs, freeWalls, wallThicknessPx, grid, dimensions, title } = input;
   const wt = wallThicknessPx;
 
   const { minX, minY, maxX, maxY } = computeBounds(rooms, freeWalls, dimensions);
@@ -64,6 +64,8 @@ export function renderSvg(input: ResolvedFloorPlan): string {
     `  .title-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 20px; font-weight: 700; fill: ${C.title}; text-anchor: middle; }`,
     `  .grid-dot { fill: ${C.gridDot}; }`,
     `  .free-wall-fill { fill: ${C.freeWall}; stroke: ${C.freeWallStroke}; stroke-width: ${WALL_STROKE}; }`,
+    `  .stair-fill { fill: #f5f0e8; stroke: #8a7b6b; stroke-width: 1.5; }`,
+    `  .stair-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; font-weight: 700; fill: #6d5d4b; text-anchor: middle; dominant-baseline: middle; }`,
     '</style>',
     '<defs>',
     `  <pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8">
@@ -87,6 +89,13 @@ export function renderSvg(input: ResolvedFloorPlan): string {
        <rect width="6" height="6" fill="#fafafa"/>
        <line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/>
      </pattern>`,
+    `  <pattern id="stair-hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+       <rect width="10" height="10" fill="#f5f0e8"/>
+       <line x1="0" y1="5" x2="10" y2="5" stroke="#d4c9b8" stroke-width="1.5"/>
+     </pattern>`,
+    `  <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+       <polygon points="0 0, 8 3, 0 6" fill="#6d5d4b"/>
+     </marker>`,
     '</defs>'
   );
 
@@ -147,6 +156,11 @@ export function renderSvg(input: ResolvedFloorPlan): string {
   // labels dos cômodos
   for (const room of rooms) {
     out.push(renderRoomLabel(room));
+  }
+
+  // stairs
+  if (stairs) for (const stair of stairs) {
+    out.push(renderStair(stair));
   }
 
   // cotas
@@ -460,6 +474,37 @@ function renderDimension(dim: Dimension): string {
 
   // fundo branco atrás do texto para legibilidade
   parts.push(`<text x="${tx}" y="${ty}" class="dim-text">${esc(dim.value)}</text>`);
+
+  return parts.join('\n');
+}
+
+// ── escada ──
+
+function renderStair(stair: ResolvedStair): string {
+  const dir = stair.direction || 'up';
+  const sx = stair.x, sy = stair.y, sw = stair.width, sh = stair.height;
+  const midX = sx + sw / 2, midY = sy + sh / 2;
+  const parts: string[] = [];
+
+  // fill with stair pattern
+  parts.push(`<rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" class="stair-fill" fill="url(#stair-hatch)"/>`);
+
+  // diagonal line
+  parts.push(`<line x1="${sx}" y1="${sy}" x2="${sx + sw}" y2="${sy + sh}" stroke="#c4b5a5" stroke-width="1"/>`);
+
+  // arrow
+  let ax1: number, ay1: number, ax2: number, ay2: number;
+  if (dir === 'up') {
+    ax1 = midX; ay1 = sy + sh * 0.75;
+    ax2 = midX; ay2 = sy + sh * 0.25;
+  } else {
+    ax1 = midX; ay1 = sy + sh * 0.25;
+    ax2 = midX; ay2 = sy + sh * 0.75;
+  }
+  parts.push(`<line x1="${ax1}" y1="${ay1}" x2="${ax2}" y2="${ay2}" stroke="#6d5d4b" stroke-width="2" marker-end="url(#arrowhead)"/>`);
+
+  // label
+  parts.push(`<text x="${midX}" y="${midY}" class="stair-label">${dir === 'up' ? 'UP' : 'DOWN'}</text>`);
 
   return parts.join('\n');
 }
