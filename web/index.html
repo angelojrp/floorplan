@@ -450,7 +450,8 @@ function parseInput(yamlStr) {
       doors: (r.doors || []).map(d => ({ wall: d.wall, offset: d.offset, width: d.width, type: d.type || 'pivot', swing: d.swing || 'left' })),
       windows: (r.windows || []).map(w => ({ wall: w.wall, offset: w.offset, width: w.width, height: w.height || 120, sill: w.sill || 110 }))
     })),
-    walls: raw.walls || []
+    walls: raw.walls || [],
+    lot: raw.lot || null
   };
 }
 
@@ -474,7 +475,17 @@ function resolveLayout(input) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const r of rooms) { minX = Math.min(minX, r.rect.x); minY = Math.min(minY, r.rect.y); maxX = Math.max(maxX, r.rect.x + r.rect.w); maxY = Math.max(maxY, r.rect.y + r.rect.h); }
   const off = 40;
+  // lot (terreno)
+  let lot = null;
+  if (input.lot) {
+    const lw = input.lot.width * sc, lh = input.lot.height * sc;
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    lot = { x: cx - lw / 2, y: cy - lh / 2, w: lw, h: lh };
+    minX = Math.min(minX, lot.x); minY = Math.min(minY, lot.y);
+    maxX = Math.max(maxX, lot.x + lw); maxY = Math.max(maxY, lot.y + lh);
+  }
   return { title: input.title, rooms, freeWalls: [], wallThicknessPx: wt, grid: input.grid === false ? false : (input.grid || 100) * sc,
+    lot,
     dimensions: [
       { x1: minX, y1: maxY + off, x2: maxX, y2: maxY + off, value: ((maxX - minX) / sc / 100).toFixed(2) + ' m' },
       { x1: maxX + off, y1: minY, x2: maxX + off, y2: maxY, value: ((maxY - minY) / sc / 100).toFixed(2) + ' m' }
@@ -536,10 +547,13 @@ function renderSVG(input) {
 
   const C = { w: '#2d2d2d', ws: '#1a1a1a', rb: '#fafafa', dp: '#2d2d2d', da: '#555', wf: '#4a90d9', dl: '#b71c1c', dt: '#b71c1c', gd: '#e0e0e0', lb: '#1a1a1a', tt: '#1a1a1a' };
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%">`;
-  s += `<style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}</style>`;
-  s += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
+  s += `<style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style>`;
+551:   s += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
 
-  if (grid !== false) for (let cx = Math.ceil(vbX / grid) * grid; cx <= vbX + vbW; cx += grid) for (let cy = Math.ceil(vbY / grid) * grid; cy <= vbY + vbH; cy += grid) s += `<circle cx="${cx}" cy="${cy}" r="0.6" class="gd"/>`;
+552:   // lot (terreno)
+553:   if (input.lot) s += `<rect x="${input.lot.x}" y="${input.lot.y}" width="${input.lot.w}" height="${input.lot.h}" class="lot"/>`;
+
+554:   if (grid !== false) for (let cx = Math.ceil(vbX / grid) * grid; cx <= vbX + vbW; cx += grid) for (let cy = Math.ceil(vbY / grid) * grid; cy <= vbY + vbH; cy += grid) s += `<circle cx="${cx}" cy="${cy}" r="0.6" class="gd"/>`;
   if (title) s += `<text x="${(minX + maxX) / 2}" y="${minY - 45}" class="ttl">${esc(title)}</text>`;
   for (const r of rooms) s += `<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb" data-room-id="${esc(r.id)}"/>`;
 
@@ -782,112 +796,104 @@ function insertRoomTemplate(idx) {
   const t = ROOM_TEMPLATES[idx];
   const yaml = editor.getValue();
   const lines = yaml.split('\n');
+
+  // find existing rooms to place new room at staggered position
+  const input = parseInput(expandExample(yaml));
+  let maxX = 0, maxY = 0;
+  for (const r of input.rooms) {
+    maxX = Math.max(maxX, r.x + r.width);
+    maxY = Math.max(maxY, r.y + r.height);
+  }
+  // place new room to the right, wrapping to next row if too wide
+  const newX = maxX;
+  const newY = 0;
   
-  // find last room id to generate next
   const ids = [...yaml.matchAll(/id:\s*(\S+)/g)].map(m => m[1]);
   let num = 1;
-  while (ids.includes(t.name.toLowerCase().replace(/\s+/g,'') + '_' + num)) num++;
-  const newId = t.name.toLowerCase().replace(/\s+/g,'') + '_' + num;
+  const baseId = t.name.toLowerCase().replace(/\s+/g, '');
+  while (ids.includes(baseId + '_' + num)) num++;
+  const newId = baseId + '_' + num;
 
   const winBlock = t.win ? `\n    windows:\n      - wall: north; offset: ${Math.round(t.w*0.3)}; width: ${Math.round(t.w*0.5)}; height: 120; sill: 110` : '';
   
   const roomYaml = `  - id: ${newId}
     name: ${t.name}
-    x: 0
-    y: 0
+    x: ${newX}
+    y: ${newY}
     width: ${t.w}
     height: ${t.h}
     doors:
       - wall: ${t.door}; offset: ${Math.round(t.w/2 - t.dw/2)}; width: ${t.dw}; type: pivot; swing: left${winBlock}`;
 
-  // find the rooms: section and insert after last room
+  // find insertion point after last room
   const roomsIdx = lines.findIndex(l => /^\s*rooms:/.test(l));
   if (roomsIdx < 0) { toast('Erro: seção rooms não encontrada'); return; }
   
-  // find last indented room entry
-  let insertAt = roomsIdx + 1;
+  let lastRoomEnd = roomsIdx + 1;
+  let inRooms = true;
   for (let i = roomsIdx + 1; i < lines.length; i++) {
-    if (/^\s{2}-\s+id:/.test(lines[i])) insertAt = i + 1;
-    if (/^\S/.test(lines[i]) && i > roomsIdx + 1) break;
-  }
-  // count lines of last room to insert after it
-  let lastRoomEnd = insertAt;
-  for (let i = insertAt; i < lines.length; i++) {
-    if (/^\s{2}-\s+id:/.test(lines[i])) { lastRoomEnd = i; break; }
-    if (/^\S/.test(lines[i])) { lastRoomEnd = i; break; }
+    if (/^\S/.test(lines[i])) { inRooms = false; lastRoomEnd = i; break; }
     lastRoomEnd = i + 1;
   }
   
   lines.splice(lastRoomEnd, 0, ...roomYaml.split('\n'));
   editor.setValue(lines.join('\n'));
-  toast(`➕ ${t.name} adicionado! Arraste no preview para posicionar`);
-  doRender();
+  toast(`➕ ${t.name} adicionado! Arraste no preview para reposicionar`);
+  clearTimeout(renderTimeout);
+  origDoRender();
+  setTimeout(setupDragHandlers, 200);
 }
 renderRoomLibrary();
 
-// ── drag rooms in SVG preview ──
+// ── drag rooms in SVG preview (event delegation) ──
 
 let dragState = null;
 
-function setupDragHandlers() {
-  const svg = document.querySelector('#preview-pane svg');
-  if (!svg) return;
-  
-  const rooms = svg.querySelectorAll('[data-room-id]');
-  rooms.forEach(rect => {
-    rect.style.cursor = 'grab';
-    rect.addEventListener('mousedown', onDragStart);
-  });
+function getSVGMouse(svg, ev) {
+  const pt = svg.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
 }
 
-function onDragStart(e) {
+document.getElementById('preview-pane').addEventListener('mousedown', e => {
   const rect = e.target.closest('[data-room-id]');
-  if (!rect) return;
-  const roomId = rect.dataset.roomId;
+  if (!rect || e.button !== 0) return;
   const svg = rect.closest('svg');
-  const pt = svg.createSVGPoint();
+  if (!svg) return;
   
-  const getMouse = (ev) => {
-    pt.x = ev.clientX; pt.y = ev.clientY;
-    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  const roomId = rect.getAttribute('data-room-id');
+  const startMouse = getSVGMouse(svg, e);
+  
+  dragState = {
+    roomId, svg, rect,
+    startMouse,
+    startX: parseFloat(rect.getAttribute('x')),
+    startY: parseFloat(rect.getAttribute('y')),
+    moved: false
   };
-  
-  const startMouse = getMouse(e);
-  const startX = parseFloat(rect.getAttribute('x'));
-  const startY = parseFloat(rect.getAttribute('y'));
-  
   rect.style.cursor = 'grabbing';
   e.preventDefault();
-  
-  dragState = { roomId, svg, rect, getMouse, startMouse, startX, startY, moved: false };
-}
+});
 
 document.addEventListener('mousemove', e => {
   if (!dragState) return;
-  const { roomId, getMouse, startMouse, startX, startY, rect } = dragState;
-  const mouse = getMouse(e);
-  const dx = mouse.x - startMouse.x;
-  const dy = mouse.y - startMouse.y;
-  
+  const { svg, startMouse, startX, startY, rect } = dragState;
+  const mouse = getSVGMouse(svg, e);
+  const dx = mouse.x - startMouse.x, dy = mouse.y - startMouse.y;
   if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
   dragState.moved = true;
-  
-  rect.setAttribute('x', startX + dx);
-  rect.setAttribute('y', startY + dy);
+  rect.setAttribute('x', Math.round(startX + dx));
+  rect.setAttribute('y', Math.round(startY + dy));
 });
 
 document.addEventListener('mouseup', e => {
   if (!dragState) return;
-  const { roomId, getMouse, startMouse, startX, startY, moved, rect } = dragState;
+  const { roomId, svg, startMouse, startX, startY, moved, rect } = dragState;
   rect.style.cursor = 'grab';
-  
   if (moved) {
-    const mouse = getMouse(e);
-    const dx = mouse.x - startMouse.x;
-    const dy = mouse.y - startMouse.y;
-    updateRoomPosition(roomId, startX + dx, startY + dy);
+    const mouse = getSVGMouse(svg, e);
+    updateRoomPosition(roomId, Math.round(startX + mouse.x - startMouse.x), Math.round(startY + mouse.y - startMouse.y));
   }
-  
   dragState = null;
 });
 
@@ -898,11 +904,11 @@ function updateRoomPosition(roomId, newXPx, newYPx) {
   const newXCm = Math.max(0, Math.round(newXPx / sc));
   const newYCm = Math.max(0, Math.round(newYPx / sc));
   
-  // find and update the room's x/y in YAML
   const lines = yaml.split('\n');
   let inTarget = false, foundX = false, foundY = false;
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes(`id: ${roomId}`)) inTarget = true;
+    const hasId = lines[i].includes(`id: ${roomId}`);
+    if (hasId && /^\s+-\s+id:/.test(lines[i])) inTarget = true;
     if (inTarget && /^\s+x:/.test(lines[i]) && !foundX) {
       lines[i] = lines[i].replace(/x:\s*\d+/, `x: ${newXCm}`);
       foundX = true;
@@ -912,23 +918,17 @@ function updateRoomPosition(roomId, newXPx, newYPx) {
       foundY = true;
     }
     if (foundX && foundY) break;
-    if (inTarget && /^\s+- id:/.test(lines[i]) && i > 0 && lines[i].includes(`id: ${roomId}`)) continue;
-    if (inTarget && /^\s+- id:/.test(lines[i]) && !lines[i].includes(`id: ${roomId}`)) break;
+    if (inTarget && /^\s+-\s+id:/.test(lines[i]) && !hasId) break;
   }
   
   editor.setValue(lines.join('\n'));
-  // render imediato sem debounce para drag
   clearTimeout(renderTimeout);
   origDoRender();
-  setTimeout(setupDragHandlers, 100);
 }
 
-// override doRender to setup drag after render
+// override doRender — sem necessidade de setupDragHandlers (event delegation resolve)
 const origDoRender = doRender;
-doRender = function() {
-  origDoRender();
-  setTimeout(setupDragHandlers, 350);
-};
+doRender = function() { origDoRender(); };
 
 // init
 function init() {
