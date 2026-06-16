@@ -114,6 +114,7 @@ export interface ResolvedFreeWall {
 
 export interface ResolvedFloorPlan {
   title?: string;
+  scale: number;
   rooms: ResolvedRoom[];
   freeWalls: ResolvedFreeWall[];
   wallThicknessPx: number;  // espessura da parede em px
