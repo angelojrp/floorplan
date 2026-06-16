@@ -8,6 +8,7 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 
 - [x] Engine TypeScript (parser YAML, layout, renderer SVG)
 - [x] CLI (linha de comando)
+- [ ] **CLI no npm**: publicar como `floorplan` — `npx floorplan input.yaml -o output.svg` para uso por chats IA
 - [x] App web com editor YAML + preview live
 - [x] Biblioteca de cômodos com inserção
 - [x] Drag-and-drop no preview SVG
