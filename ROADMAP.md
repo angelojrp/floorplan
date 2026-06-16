@@ -34,22 +34,22 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 ## 🟡 Fase 2 — Polimento (curto prazo)
 
 ### Visual Editor
-- [ ] **Snap inteligente**: snap a paredes de outros cômodos (alinhamento automático)
+- [x] **Snap inteligente**: snap a paredes de outros cômodos (alinhamento automático)
 - [ ] **Paredes compartilhadas**: unir automaticamente cômodos adjacentes
 - [ ] **Rotação de cômodos**: girar cômodos em ângulos arbitrários
-- [ ] **Seleção múltipla**: selecionar vários cômodos com Shift+click ou arrastar área
-- [ ] **Copiar/Colar**: Ctrl+C / Ctrl+V para duplicar cômodos
-- [ ] **Alinhamento**: alinhar esquerda/direita/topo/base entre cômodos selecionados
+- [x] **Seleção múltipla**: selecionar vários cômodos com Shift+click ou arrastar área
+- [x] **Copiar/Colar**: Ctrl+C / Ctrl+V para duplicar cômodos
+- [x] **Alinhamento**: alinhar esquerda/direita/topo/base entre cômodos selecionados
 - [ ] **Mini-map**: visão geral da planta no canto
 - [ ] **Temas**: dark/light mode no editor visual
 - [ ] **Touch/mobile**: suporte a gestos touch para tablets
-- [ ] **Auto-save**: salvar no localStorage automaticamente
+- [x] **Auto-save**: salvar no localStorage automaticamente
 - [ ] **Indicadores de distância**: mostrar medidas entre cômodos ao mover
 - [ ] **Tooltips**: ajuda contextual nas ferramentas
 
 ### YAML Editor
-- [ ] Autocomplete/intellisense no CodeMirror (schema YAML)
-- [ ] Validação em tempo real com mensagens amigáveis
+- [x] Autocomplete/intellisense no CodeMirror (schema YAML)
+- [x] Validação em tempo real com mensagens amigáveis
 - [ ] Quick-fix suggestions (ex: "porta fora da parede — corrigir offset?")
 
 ### Engine
