@@ -430,9 +430,10 @@ function expandExample(yaml) {
     if (semiIdx < 0) return line;
     const leading = line.match(/^(\s*)/)[1];
     const isListItem = /^\s*- /.test(line);
-    const extraIndent = isListItem ? '  ' : '';
+    // list items: children indent +2; regular props: same level (siblings)
+    const restIndent = isListItem ? leading + '  ' : leading;
     const parts = line.split(/;\s*/);
-    return parts[0] + '\n' + parts.slice(1).map(p => leading + extraIndent + '  ' + p).join('\n');
+    return parts[0] + '\n' + parts.slice(1).map(p => restIndent + p).join('\n');
   }).join('\n');
 }
 
