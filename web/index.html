@@ -1005,20 +1005,25 @@ function pt(x, y) { return { x, y }; }
 function resolveLayout(input) {
   const sc = input.scale, wt = input.wallThickness * sc;
   
-  // Flatten all rooms from all floors (for rendering, all rooms go in same SVG)
-  const allRooms = [];
-  const allStairs = [];
-  for (const floor of (input.floors || [])) {
+  // Flatten all rooms from all floors with Y offset to avoid overlap
+  const allRooms = [], allStairs = [];
+  let floorOffsetY = 0;
+  const floorMargin = 200; // px gap between floors
+
+  const floors = input.floors || [{ id: 'main', name: 'Térreo', rooms: input.rooms || [], stairs: [] }];
+
+  for (const floor of floors) {
     for (const room of (floor.rooms || [])) {
-      allRooms.push(room);
+      allRooms.push({ ...room, y: room.y + floorOffsetY / sc });
     }
     for (const stair of (floor.stairs || [])) {
-      allStairs.push(stair);
+      allStairs.push({ ...stair, y: stair.y + floorOffsetY / sc });
     }
-  }
-  // Backward compat: direct rooms array
-  if (!input.floors && input.rooms) {
-    for (const room of input.rooms) allRooms.push(room);
+    // Calc next offset
+    if (floor.rooms && floor.rooms.length > 0) {
+      const maxRY = Math.max(...floor.rooms.map(r => r.y + r.height));
+      floorOffsetY += (maxRY + floorMargin / sc) * sc;
+    }
   }
 
   const rooms = allRooms.map(room => {
