@@ -45,18 +45,18 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 - [x] **Touch/mobile**: suporte a gestos touch para tablets
 - [x] **Auto-save**: salvar no localStorage automaticamente
 - [x] **Indicadores de distância**: mostrar medidas entre cômodos ao mover
-- [ ] **Tooltips**: ajuda contextual nas ferramentas
+- [x] **Tooltips**: ajuda contextual nas ferramentas
 
 ### YAML Editor
 - [x] Autocomplete/intellisense no CodeMirror (schema YAML)
 - [x] Validação em tempo real com mensagens amigáveis
-- [ ] Quick-fix suggestions (ex: "porta fora da parede — corrigir offset?")
+- [x] Quick-fix suggestions (ex: "porta fora da parede — corrigir offset?")
 
 ### Engine
 - [ ] Paredes em ângulo (não apenas 90°)
 - [ ] Paredes curvas
 - [ ] Espessura de parede variável por segmento
-- [ ] Hachuras personalizadas por tipo de cômodo
+- [x] Hachuras personalizadas por tipo de cômodo
 
 ---
 

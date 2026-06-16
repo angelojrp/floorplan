@@ -92,6 +92,7 @@ function resolveRoom(
     doors,
     windows,
     labelPos,
+    hatch: room.hatch,
   };
 }
 

@@ -38,6 +38,7 @@ const roomSchema = z.object({
   windows: z.array(windowSchema).optional().default([]),
   area: z.string().optional(),
   label: labelSchema,
+  hatch: z.enum(['solid', 'diagonal', 'cross', 'dots', 'horizontal', 'vertical']).optional(),
 });
 
 const freeWallSchema = z.object({

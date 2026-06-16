@@ -196,7 +196,7 @@ const PALETTE = [
   { icon:'🛋️', name:'Sala Estar', w:500, h:400 },
   { icon:'🍳', name:'Cozinha', w:300, h:350 },
   { icon:'🛏️', name:'Quarto', w:350, h:350 },
-  { icon:'🚿', name:'Banheiro', w:200, h:220 },
+  { icon:'🚿', name:'Banheiro', w:200, h:220, hatch:'diagonal' },
   { icon:'🚪', name:'Corredor', w:400, h:120 },
   { icon:'💼', name:'Escritório', w:350, h:350 },
   { icon:'🍽️', name:'Sala Jantar', w:350, h:350 },
@@ -207,7 +207,7 @@ const PALETTE = [
 
 function initPalette() {
   document.getElementById('palette').innerHTML = PALETTE.map(p => `
-    <div class="palette-item" draggable="true" ondragstart="onPaletteDrag(event,'${p.name}',${p.w},${p.h})">
+    <div class="palette-item" draggable="true" ondragstart="onPaletteDrag(event,'${p.name}',${p.w},${p.h},'${p.hatch||''}')">
       <span class="pi-icon">${p.icon}</span>
       <span class="pi-name">${p.name}</span>
       <span class="pi-size">${p.w}×${p.h}cm</span>
@@ -226,6 +226,11 @@ function render() {
 
   svg.innerHTML = '';
   svg.setAttribute('viewBox', `${-state.panX/state.zoom} ${-state.panY/state.zoom} ${svg.clientWidth/state.zoom} ${svg.clientHeight/state.zoom}`);
+
+  // pattern defs for hatches
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = '<pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern>';
+  svg.appendChild(defs);
 
   const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     // viewBox already handles zoom + pan; group is identity
@@ -261,7 +266,7 @@ function render() {
     const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('x', rx); rect.setAttribute('y', ry);
     rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-    rect.setAttribute('fill', isSelected ? '#eff6ff' : '#fafafa');
+    rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
     rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
     rect.setAttribute('stroke-width', isSelected ? 2 : 1);
     group.appendChild(rect);
@@ -607,8 +612,8 @@ document.addEventListener('mouseup', e => {
 });
 
 // palette drag to canvas
-function onPaletteDrag(ev, name, w, h) {
-  ev.dataTransfer.setData('text/plain', JSON.stringify({name,w,h}));
+function onPaletteDrag(ev, name, w, h, hatch) {
+  ev.dataTransfer.setData('text/plain', JSON.stringify({name,w,h,hatch}));
 }
 canvasWrap.addEventListener('dragover', e => e.preventDefault());
 canvasWrap.addEventListener('drop', e => {
@@ -622,7 +627,7 @@ canvasWrap.addEventListener('drop', e => {
   const svgPt = pt.matrixTransform(ctm.inverse());
   const x = Math.round(Math.max(0, svgPt.x / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
   const y = Math.round(Math.max(0, svgPt.y / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
-  state.rooms.push({ id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [] });
+  state.rooms.push({ id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [], hatch: data.hatch || undefined });
   state.selectedId = state.rooms[state.rooms.length-1].id;
   render();
   toast(`➕ ${data.name} adicionado`);
@@ -773,6 +778,19 @@ function renderProperties() {
   });
   html += `<button class="add-btn" onclick="addWindow()">+ Adicionar Janela</button></div>`;
 
+  // hatch
+  const hatchOptions = [
+    { v:'',      l:'Nenhum (sólido)' },
+    { v:'diagonal', l:'Diagonal (45°)' },
+    { v:'cross', l:'Cruzado' },
+    { v:'dots',  l:'Pontilhado' },
+    { v:'horizontal', l:'Horizontal' },
+    { v:'vertical', l:'Vertical' }
+  ];
+  html += `<div class="prop-group"><label>🔲 Hachura</label><select onchange="updateProp('hatch',this.value)">
+    ${hatchOptions.map(o => `<option value="${o.v}" ${(room.hatch||'')===o.v?'selected':''}>${o.l}</option>`).join('')}
+  </select></div>`;
+
   html += `<div class="prop-group"><label>Área</label><strong>${(room.width*room.height/10000).toFixed(1)} m²</strong></div>`;
 
   el.innerHTML = html;
@@ -782,7 +800,7 @@ function updateProp(prop, val) {
   const room = state.rooms.find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
-  room[prop] = val;
+  room[prop] = (val === '' && prop === 'hatch') ? undefined : val;
   render();
 }
 
@@ -869,7 +887,8 @@ function importYAML() {
         id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
         width: r.width||300, height: r.height||300,
         doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
-        windows: r.windows || []
+        windows: r.windows || [],
+        hatch: r.hatch
       }));
       undoStack=[]; redoStack=[]; state.selectedId=null;
       document.getElementById('file-name').textContent = '📂 ' + (e.target.files[0].name);
@@ -888,6 +907,7 @@ function exportYAML() {
     grid: state.gridVisible ? state.gridSize : false,
     rooms: state.rooms.map(r => ({
       id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
+      hatch: r.hatch || undefined,
       doors: r.doors.length ? r.doors.map(d => ({wall:d.wall,offset:d.offset,width:d.width,type:d.type,swing:d.swing})) : undefined,
       windows: r.windows.length ? r.windows : undefined
     }))
@@ -902,6 +922,7 @@ function exportSVG() {
     wallThickness:state.wallThickness, grid:state.gridVisible?state.gridSize:false,
     rooms: state.rooms.map(r => ({
       id:r.id, name:r.name, x:r.x, y:r.y, width:r.width, height:r.height,
+      hatch: r.hatch || undefined,
       doors: r.doors.length ? r.doors : undefined,
       windows: r.windows.length ? r.windows : undefined
     }))
@@ -924,7 +945,8 @@ function parseFloorplanInput(yamlStr) {
     rooms: raw.rooms.map(r => ({
       id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
       doors: (r.doors||[]).map(d=>({wall:d.wall,offset:d.offset,width:d.width,type:d.type||'pivot',swing:d.swing||'left'})),
-      windows: (r.windows||[]).map(w=>({wall:w.wall,offset:w.offset,width:w.width,height:w.height||120,sill:w.sill||110}))
+      windows: (r.windows||[]).map(w=>({wall:w.wall,offset:w.offset,width:w.width,height:w.height||120,sill:w.sill||110})),
+      hatch: r.hatch
     })), walls: raw.walls || [], lot: raw.lot || null
   };
 }
@@ -939,7 +961,7 @@ function resolveFloorplanLayout(input) {
       return{wall:d.wall,s:op.s,e:op.e,swing:swingArc2(d,op.s,op.e,dw),type:d.type};
     });
     const windows=(room.windows||[]).map(w=>{const op=opWall(w.wall,r,w.offset*sc,w.width*sc);return{wall:w.wall,s:op.s,e:op.e};});
-    return{id:room.id,name:room.name,rect:r,wallSegs:wallSegments2(r,doors,windows),doors,windows,lp:{x:r.x+r.w/2,y:r.y+r.h/2}};
+    return{id:room.id,name:room.name,rect:r,wallSegs:wallSegments2(r,doors,windows),doors,windows,lp:{x:r.x+r.w/2,y:r.y+r.h/2},hatch:room.hatch};
   });
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   for(const r of rooms){minX=Math.min(minX,r.rect.x);minY=Math.min(minY,r.rect.y);maxX=Math.max(maxX,r.rect.x+r.rect.w);maxY=Math.max(maxY,r.rect.y+r.rect.h);}
@@ -960,10 +982,10 @@ function renderFloorplanSVG(input) {
   for(const d of dimensions){minX=Math.min(minX,d.x1,d.x2);minY=Math.min(minY,d.y1,d.y2);maxX=Math.max(maxX,d.x1,d.x2);maxY=Math.max(maxY,d.y1,d.y2);}
   const m=80,vbX=minX-m,vbY=minY-m,vbW=maxX-minX+m*2,vbH=maxY-minY+m*2;
   const C={w:'#2d2d2d',ws:'#1a1a1a',rb:'#fafafa',dp:'#2d2d2d',da:'#555',wf:'#4a90d9',dl:'#b71c1c',dt:'#b71c1c',gd:'#e0e0e0',lb:'#1a1a1a',tt:'#1a1a1a'};
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%"><style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style>`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%"><style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style><defs><pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern></defs>`;
   s+=`<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
   if(title)s+=`<text x="${(minX+maxX)/2}" y="${minY-45}" class="ttl">${esc(title)}</text>`;
-  for(const r of rooms)s+=`<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb"/>`;
+  for(const r of rooms){if(r.hatch&&r.hatch!=='solid')s+=`<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" fill="url(#hatch-${r.hatch})"/>`;else s+=`<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb"/>`;}
   const hS=new Map(),hO=new Map(),vS=new Map(),vO=new Map();
   for(const r of rooms){
     for(const seg of r.wallSegs){const isH=seg.dir==='north'||seg.dir==='south';if(isH){const m=hS.get(seg.y1)||[];m.push({a:Math.min(seg.x1,seg.x2),b:Math.max(seg.x1,seg.x2)});hS.set(seg.y1,m)}else{const m=vS.get(seg.x1)||[];m.push({a:Math.min(seg.y1,seg.y2),b:Math.max(seg.y1,seg.y2)});vS.set(seg.x1,m)}}
