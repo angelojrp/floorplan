@@ -40,11 +40,11 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 - [x] **Seleção múltipla**: selecionar vários cômodos com Shift+click ou arrastar área
 - [x] **Copiar/Colar**: Ctrl+C / Ctrl+V para duplicar cômodos
 - [x] **Alinhamento**: alinhar esquerda/direita/topo/base entre cômodos selecionados
-- [ ] **Mini-map**: visão geral da planta no canto
-- [ ] **Temas**: dark/light mode no editor visual
-- [ ] **Touch/mobile**: suporte a gestos touch para tablets
+- [x] **Mini-map**: visão geral da planta no canto
+- [x] **Temas**: dark/light mode no editor visual
+- [x] **Touch/mobile**: suporte a gestos touch para tablets
 - [x] **Auto-save**: salvar no localStorage automaticamente
-- [ ] **Indicadores de distância**: mostrar medidas entre cômodos ao mover
+- [x] **Indicadores de distância**: mostrar medidas entre cômodos ao mover
 - [ ] **Tooltips**: ajuda contextual nas ferramentas
 
 ### YAML Editor

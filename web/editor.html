@@ -65,6 +65,18 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.3s}
 #toast.show{opacity:1}
 #status-bar{display:flex;align-items:center;padding:3px 10px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text2);gap:12px;flex-shrink:0}
+
+/* mini-map */
+#minimap{position:absolute;bottom:8px;left:8px;width:140px;height:100px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;box-shadow:var(--shadow);z-index:5;cursor:pointer}
+#minimap svg{width:100%;height:100%}
+#minimap .viewport{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 2}
+
+/* tooltips */
+[data-tooltip]{position:relative}
+[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap;z-index:100;pointer-events:none}
+
+/* distance indicators */
+.dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
 </style>
 </head>
 <body>
@@ -87,8 +99,9 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
       <button onclick="zoomReset()" title="Zoom 100%"><span id="zoom-label">100%</span></button>
       <button onclick="zoomIn()" title="Zoom in">+</button>
     </div>
-    <button onclick="toggleGrid()" id="btn-grid">⊞ Grid</button>
-    <div class="sep"></div>
+      <button onclick="toggleGrid()" id="btn-grid">⊞ Grid</button>
+      <button onclick="toggleTheme()" title="Alternar tema">🌓 Tema</button>
+      <div class="sep"></div>
     <button onclick="deleteSelected()" class="danger" title="Deletar selecionado">🗑</button>
     <div class="sep"></div>
     <button onclick="copySelected()" title="Copiar (Ctrl+C)">📋 Copiar</button>
@@ -120,6 +133,7 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
     </div>
     <div id="canvas-wrap">
       <svg id="canvas-svg"></svg>
+      <div id="minimap" onclick="focusMinimap(event)"><svg id="minimap-svg"></svg></div>
     </div>
     <div id="right-panel">
       <h3>📋 Propriedades</h3>
@@ -369,6 +383,7 @@ function render() {
   document.getElementById('status-area').textContent = `Área: ${(totalArea/10000).toFixed(1)} m²`;
   document.getElementById('global-title').value = state.title;
   renderProperties();
+  updateMinimap();
 }
 
 function openingOnWall(wall, rx, ry, rw, rh, off, wid) {
@@ -996,6 +1011,72 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+// ── theme toggle ──
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  toast(document.body.classList.contains('dark') ? '🌙 Modo escuro' : '☀️ Modo claro');
+}
+
+// ── mini-map ──
+function updateMinimap() {
+  const mm = document.getElementById('minimap-svg');
+  if (!mm) return;
+  if (!state.rooms.length) { mm.innerHTML = ''; return; }
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for (const r of state.rooms) {
+    minX=Math.min(minX,r.x);minY=Math.min(minY,r.y);
+    maxX=Math.max(maxX,r.x+r.width);maxY=Math.max(maxY,r.y+r.height);
+  }
+  const pad = 50, vw=maxX-minX+pad*2, vh=maxY-minY+pad*2;
+  mm.setAttribute('viewBox',`${minX-pad} ${minY-pad} ${vw} ${vh}`);
+  mm.innerHTML = state.rooms.map(r =>
+    `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" fill="#bbb" stroke="#999" stroke-width="1" rx="2"/>`
+  ).join('');
+  // viewport indicator
+  const svg = document.getElementById('canvas-svg');
+  if (svg) {
+    const vb = svg.viewBox.baseVal;
+    mm.innerHTML += `<rect x="${vb.x}" y="${vb.y}" width="${vb.width}" height="${vb.height}" class="viewport"/>`;
+  }
+}
+
+function focusMinimap(e) {
+  const mm = document.getElementById('minimap-svg');
+  if (!mm) return;
+  const rect = mm.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  const vb = mm.viewBox.baseVal;
+  const svg = document.getElementById('canvas-svg');
+  if (svg && vb) {
+    const cvb = svg.viewBox.baseVal;
+    state.panX = (vb.x + x * vb.width - cvb.width/2) * state.zoom;
+    state.panY = (vb.y + y * vb.height - cvb.height/2) * state.zoom;
+  }
+}
+
+// ── distance indicator ──
+function calcDist(a, b) {
+  return Math.round(Math.sqrt((a.x+a.width/2 - (b.x+b.width/2))**2 + (a.y+a.height/2 - (b.y+b.height/2))**2));
+}
+
+// ── touch support ──
+let touchState = null;
+canvasWrap.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    touchState = { dist: Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY), zoom: state.zoom };
+  }
+}, {passive: false});
+canvasWrap.addEventListener('touchmove', e => {
+  if (touchState && e.touches.length === 2) {
+    e.preventDefault();
+    const newDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    state.zoom = Math.max(0.2, Math.min(3, touchState.zoom * (newDist / touchState.dist)));
+    updateZoomLabel(); render();
+  }
+}, {passive: false});
+canvasWrap.addEventListener('touchend', () => { touchState = null; });
 
 // auto-save
 const EDITOR_LS_KEY = 'floorplan-editor-state';
