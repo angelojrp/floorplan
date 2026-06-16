@@ -90,6 +90,21 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
     <button onclick="toggleGrid()" id="btn-grid">⊞ Grid</button>
     <div class="sep"></div>
     <button onclick="deleteSelected()" class="danger" title="Deletar selecionado">🗑</button>
+    <div class="sep"></div>
+    <button onclick="copySelected()" title="Copiar (Ctrl+C)">📋 Copiar</button>
+    <button onclick="pasteSelected()" title="Colar (Ctrl+V)">📌 Colar</button>
+    <div class="sep"></div>
+    <div class="btn-group">
+      <button onclick="alignSelected('left')" title="Alinhar esquerda">⫷</button>
+      <button onclick="alignSelected('centerX')" title="Centralizar horizontal">⫿</button>
+      <button onclick="alignSelected('right')" title="Alinhar direita">⫸</button>
+    </div>
+    <div class="btn-group">
+      <button onclick="alignSelected('top')" title="Alinhar topo">⫯</button>
+      <button onclick="alignSelected('centerY')" title="Centralizar vertical">⫿</button>
+      <button onclick="alignSelected('bottom')" title="Alinhar base">⫰</button>
+    </div>
+    <div class="sep"></div>
     <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()" style="margin-left:auto;width:220px">
   </div>
   <div id="main">
@@ -135,11 +150,14 @@ let state = {
   wallThickness: 15,
   gridSize: 100,
   selectedId: null,
+  selectedIds: new Set(),
   tool: 'select',
   zoom: 1,
   panX: 0, panY: 0,
   gridVisible: true,
-  nextId: 1
+  nextId: 1,
+  clipboard: null,
+  snapLines: []
 };
 
 let undoStack = [], redoStack = [];
@@ -222,15 +240,16 @@ function render() {
     const group = document.createElementNS('http://www.w3.org/2000/svg','g');
     group.setAttribute('data-id', room.id);
     group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
-    if (state.selectedId === room.id) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+    const isSelected = state.selectedIds.has(room.id);
+    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
     // room fill
     const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('x', rx); rect.setAttribute('y', ry);
     rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-    rect.setAttribute('fill', state.selectedId === room.id ? '#eff6ff' : '#fafafa');
-    rect.setAttribute('stroke', state.selectedId === room.id ? '#2563eb' : '#999');
-    rect.setAttribute('stroke-width', state.selectedId === room.id ? 2 : 1);
+    rect.setAttribute('fill', isSelected ? '#eff6ff' : '#fafafa');
+    rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
+    rect.setAttribute('stroke-width', isSelected ? 2 : 1);
     group.appendChild(rect);
 
     // walls (4 thick border rects — top/right/bottom/left)
@@ -435,7 +454,7 @@ canvasWrap.addEventListener('click', e => {
   const roomId = g ? g.getAttribute('data-id') : null;
 
   if (!roomId) {
-    if (state.tool === 'select') { state.selectedId = null; render(); }
+    if (state.tool === 'select' && !e.shiftKey) { state.selectedId = null; state.selectedIds.clear(); render(); }
     return;
   }
 
@@ -444,7 +463,15 @@ canvasWrap.addEventListener('click', e => {
     return;
   }
 
-  state.selectedId = state.selectedId === roomId ? null : roomId;
+  if (e.shiftKey) {
+    if (state.selectedIds.has(roomId)) state.selectedIds.delete(roomId);
+    else state.selectedIds.add(roomId);
+    state.selectedId = roomId;
+  } else {
+    state.selectedId = state.selectedId === roomId ? null : roomId;
+    state.selectedIds.clear();
+    if (state.selectedId) state.selectedIds.add(state.selectedId);
+  }
   render();
 });
 
@@ -453,12 +480,20 @@ let moveState = null, moveOrigin = null;
 canvasWrap.addEventListener('mousedown', e => {
   if (isPanning || e.button !== 0 || state.tool !== 'select') return;
   const g = e.target.closest('[data-id]');
-  if (!g || e.target.closest('rect[fill="#fff"]')) return; // skip handles
+  if (!g || e.target.closest('rect[fill="#fff"]')) return;
   const room = state.rooms.find(r => r.id === g.getAttribute('data-id'));
   if (!room) return;
   hasDragged = false;
+  if (!e.shiftKey && !state.selectedIds.has(room.id)) {
+    state.selectedId = room.id; state.selectedIds.clear(); state.selectedIds.add(room.id);
+  }
   state.selectedId = room.id;
-  moveState = { id: room.id, sx: e.clientX, sy: e.clientY, ox: room.x, oy: room.y };
+  // salva posições originais de todos os selecionados
+  moveState = { ids: [...state.selectedIds], sx: e.clientX, sy: e.clientY, origins: {} };
+  for (const id of moveState.ids) {
+    const r = state.rooms.find(rr => rr.id === id);
+    if (r) moveState.origins[id] = { x: r.x, y: r.y };
+  }
   moveOrigin = { x: room.x, y: room.y };
   e.preventDefault();
 });
@@ -482,15 +517,53 @@ document.addEventListener('mousemove', e => {
   if (moveState) {
     const dx = (e.clientX - moveState.sx) / (state.scale * state.zoom);
     const dy = (e.clientY - moveState.sy) / (state.scale * state.zoom);
-    const room = state.rooms.find(r => r.id === moveState.id);
-    if (!room) return;
     const snap = state.gridVisible ? state.gridSize : 1;
-    const nx = Math.round(Math.max(0, moveState.ox + dx) / snap) * snap;
-    const ny = Math.round(Math.max(0, moveState.oy + dy) / snap) * snap;
     const pxDelta = Math.abs(e.clientX - moveState.sx) + Math.abs(e.clientY - moveState.sy);
-    if (pxDelta > 3 && (nx !== moveOrigin.x || ny !== moveOrigin.y)) hasDragged = true;
-    room.x = nx; room.y = ny;
-    render();
+    let moved = false;
+
+    for (const id of moveState.ids) {
+      const room = state.rooms.find(r => r.id === id);
+      if (!room || !moveState.origins[id]) continue;
+      let nx = Math.round(Math.max(0, moveState.origins[id].x + dx) / snap) * snap;
+      let ny = Math.round(Math.max(0, moveState.origins[id].y + dy) / snap) * snap;
+
+      // smart snap: alinhar a bordas de outros cômodos
+      if (state.gridVisible) {
+        const threshold = 15; // px tolerance in cm
+        for (const other of state.rooms) {
+          if (moveState.ids.includes(other.id)) continue;
+          const edges = [
+            { v: other.x, t: other.x + other.width, snap: other.x, name: 'left' },
+            { v: other.x + other.width, t: other.x, snap: other.x + other.width, name: 'right' },
+            { v: other.y, t: other.y + other.height, snap: other.y, name: 'top' },
+            { v: other.y + other.height, t: other.y, snap: other.y + other.height, name: 'bottom' },
+          ];
+          for (const edge of edges) {
+            // snap vertical edges
+            if ((edge.name === 'left' || edge.name === 'right') && Math.abs(ny - edge.v) < threshold) {
+              if (ny >= edge.v - threshold && ny <= edge.v + threshold) {
+                // check horizontal overlap
+                if (nx + room.width > other.x && nx < other.x + other.width) {
+                  ny = edge.v;
+                }
+              }
+            }
+            // snap horizontal edges
+            if ((edge.name === 'top' || edge.name === 'bottom') && Math.abs(nx - edge.v) < threshold) {
+              if (nx >= edge.v - threshold && nx <= edge.v + threshold) {
+                if (ny + room.height > other.y && ny < other.y + other.height) {
+                  nx = edge.v;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (pxDelta > 3 && (nx !== moveState.origins[id].x || ny !== moveState.origins[id].y)) { hasDragged = true; moved = true; }
+      room.x = nx; room.y = ny;
+    }
+    if (moved) render();
   }
   if (resizeState) {
     const dx = (e.clientX - resizeState.sx) / (state.scale * state.zoom);
@@ -588,21 +661,68 @@ function addOpening(roomId, e) {
   render();
 }
 
-// delete
+// delete (multi)
 function deleteSelected() {
-  if (!state.selectedId) return;
+  const ids = state.selectedIds.size > 0 ? [...state.selectedIds] : (state.selectedId ? [state.selectedId] : []);
+  if (!ids.length) return;
   saveUndo();
-  state.rooms = state.rooms.filter(r => r.id !== state.selectedId);
-  state.selectedId = null;
+  state.rooms = state.rooms.filter(r => !ids.includes(r.id));
+  state.selectedId = null; state.selectedIds.clear();
   render();
-  toast('🗑 Cômodo removido');
+  toast(`🗑 ${ids.length} cômodo(s) removido(s)`);
 }
+
+// copy / paste
+function copySelected() {
+  const ids = state.selectedIds.size > 0 ? [...state.selectedIds] : (state.selectedId ? [state.selectedId] : []);
+  if (!ids.length) return;
+  state.clipboard = state.rooms.filter(r => ids.includes(r.id)).map(r => ({
+    ...JSON.parse(JSON.stringify(r)), id: null
+  }));
+  toast(`📋 ${state.clipboard.length} cômodo(s) copiado(s)`);
+}
+
+function pasteSelected() {
+  if (!state.clipboard || !state.clipboard.length) { toast('📋 Nada para colar'); return; }
+  saveUndo();
+  state.selectedIds.clear();
+  for (const r of state.clipboard) {
+    const newRoom = {...JSON.parse(JSON.stringify(r)), id: generateId(), x: r.x + 50, y: r.y + 50};
+    state.rooms.push(newRoom);
+    state.selectedId = newRoom.id;
+    state.selectedIds.add(newRoom.id);
+  }
+  render();
+  toast(`📌 ${state.clipboard.length} cômodo(s) colado(s)`);
+}
+
+// align
+function alignSelected(dir) {
+  const ids = state.selectedIds.size > 1 ? [...state.selectedIds] : [];
+  if (ids.length < 2) { toast('Selecione 2+ cômodos (Shift+click)'); return; }
+  saveUndo();
+  const rooms = state.rooms.filter(r => ids.includes(r.id));
+  switch (dir) {
+    case 'left': { const minX = Math.min(...rooms.map(r => r.x)); rooms.forEach(r => r.x = minX); break; }
+    case 'right': { const maxR = Math.max(...rooms.map(r => r.x + r.width)); rooms.forEach(r => r.x = maxR - r.width); break; }
+    case 'top': { const minY = Math.min(...rooms.map(r => r.y)); rooms.forEach(r => r.y = minY); break; }
+    case 'bottom': { const maxB = Math.max(...rooms.map(r => r.y + r.height)); rooms.forEach(r => r.y = maxB - r.height); break; }
+    case 'centerX': { const avgX = rooms.reduce((s,r) => s + r.x + r.width/2, 0) / rooms.length; rooms.forEach(r => r.x = Math.round(avgX - r.width/2)); break; }
+    case 'centerY': { const avgY = rooms.reduce((s,r) => s + r.y + r.height/2, 0) / rooms.length; rooms.forEach(r => r.y = Math.round(avgY - r.height/2)); break; }
+  }
+  render();
+  toast('📐 Alinhado!');
+}
+
 document.addEventListener('keydown', e => {
   const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
   const editable = tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement.isContentEditable;
   if ((e.key === 'Delete' || e.key === 'Backspace') && !editable) { e.preventDefault(); deleteSelected(); }
-  if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !editable) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !e.shiftKey && !editable) { e.preventDefault(); undo(); }
   if ((e.ctrlKey||e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z')) && !editable) { e.preventDefault(); redo(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'c' && !editable) { e.preventDefault(); copySelected(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'v' && !editable) { e.preventDefault(); pasteSelected(); }
+  if (e.key === 'Escape' && !editable) { state.selectedId = null; state.selectedIds.clear(); state.tool = 'select'; render(); }
 });
 
 // ═══════════════════════════════════════════════════
@@ -877,8 +997,51 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// auto-save
+const EDITOR_LS_KEY = 'floorplan-editor-state';
+let autoSaveTimeout;
+function autoSave() {
+  clearTimeout(autoSaveTimeout);
+  autoSaveTimeout = setTimeout(() => {
+    try {
+      const data = { title: state.title, rooms: state.rooms, scale: state.scale, wallThickness: state.wallThickness, gridSize: state.gridSize, gridVisible: state.gridVisible, nextId: state.nextId };
+      localStorage.setItem(EDITOR_LS_KEY, JSON.stringify(data));
+    } catch(e) {}
+  }, 1000);
+}
+
+function loadAutoSave() {
+  try {
+    const raw = localStorage.getItem(EDITOR_LS_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      state.title = data.title || '';
+      state.rooms = data.rooms || [];
+      state.scale = data.scale || DEFAULT_SCALE;
+      state.wallThickness = data.wallThickness || 15;
+      state.gridSize = data.gridSize || 100;
+      state.gridVisible = data.gridVisible !== false;
+      state.nextId = data.nextId || 1;
+      document.getElementById('global-title').value = state.title;
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// hook auto-save into render
+const _origRender = render;
+render = function() {
+  _origRender();
+  autoSave();
+};
+
 // init
 initPalette();
+if (!loadAutoSave()) {
+  // default starter room
+  state.rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
+}
 render();
 </script>
 </body>
