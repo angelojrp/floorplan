@@ -3,122 +3,330 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Floorplan Editor — Visual Builder</title>
+<title>Floorplan Editor</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f0f2f5;--surface:#fff;--text:#1a1a2e;--text2:#666;--border:#d4d4d8;--accent:#2563eb;--accent2:#1d4ed8;--danger:#dc2626;--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:6px}
-html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+:root{
+  --bg:#f1f5f9;
+  --surface:#ffffff;
+  --surface2:#f8fafc;
+  --border:#e2e8f0;
+  --border2:#cbd5e1;
+  --text:#0f172a;
+  --text2:#475569;
+  --text3:#94a3b8;
+  --accent:#3b82f6;
+  --accent2:#2563eb;
+  --accent-bg:#eff6ff;
+  --danger:#ef4444;
+  --danger-bg:#fef2f2;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.1),0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg:0 10px 30px rgba(0,0,0,0.12),0 4px 8px rgba(0,0,0,0.06);
+  --radius:6px;
+  --radius-sm:4px;
+  --radius-lg:10px;
+  --transition:0.15s ease;
+}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
 #app{display:flex;flex-direction:column;height:100%}
 
-/* toolbar */
-#toolbar{display:flex;align-items:center;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);gap:4px;flex-shrink:0;z-index:10}
-#toolbar button,#toolbar .btn-group button{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;cursor:pointer;white-space:nowrap;transition:all 0.15s}
-#toolbar button:hover{background:#f5f5f5;border-color:#aaa}
-#toolbar button.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
-#toolbar button.accent:hover{background:var(--accent2)}
-#toolbar button.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-#toolbar .sep{width:1px;height:22px;background:var(--border);margin:0 6px}
-#toolbar .btn-group{display:flex}
-#toolbar .btn-group button{border-radius:0;margin-left:-1px}
-#toolbar .btn-group button:first-child{border-radius:4px 0 0 4px;margin-left:0}
-#toolbar .btn-group button:last-child{border-radius:0 4px 4px 0}
-#toolbar input[type=text]{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;width:200px}
-#toolbar select{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface)}
-#file-name{font-size:13px;font-weight:600;margin:0 8px;color:var(--accent)}
+/* ── DARK MODE ── */
+body.dark{
+  --bg:#0f172a;
+  --surface:#1e293b;
+  --surface2:#162032;
+  --border:#334155;
+  --border2:#475569;
+  --text:#f1f5f9;
+  --text2:#94a3b8;
+  --text3:#475569;
+  --accent:#60a5fa;
+  --accent2:#3b82f6;
+  --accent-bg:#1e3a5f;
+  --danger:#f87171;
+  --danger-bg:#2d1515;
+  --shadow:0 1px 3px rgba(0,0,0,0.3),0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.4),0 2px 4px rgba(0,0,0,0.2);
+  --shadow-lg:0 10px 30px rgba(0,0,0,0.5),0 4px 8px rgba(0,0,0,0.3);
+}
 
-/* main area */
+/* ── TOOLBAR ── */
+#toolbar{
+  height:52px;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  gap:2px;
+  flex-shrink:0;
+  z-index:20;
+}
+.tb-logo{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding-right:12px;
+  border-right:1px solid var(--border);
+  margin-right:6px;
+  flex-shrink:0;
+}
+.tb-logo-icon{
+  width:28px;height:28px;
+  background:var(--accent);
+  border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.tb-logo-icon svg{color:#fff}
+#file-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.tb-sep{width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0}
+.tb-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:0 9px;height:32px;
+  font-size:12px;font-weight:500;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--text2);
+  border-radius:var(--radius);
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all var(--transition);
+  flex-shrink:0;
+}
+.tb-btn:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
+.tb-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.tb-btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tb-btn.accent:hover{background:var(--accent2)}
+.tb-btn.danger{background:var(--danger-bg);color:var(--danger);border-color:transparent}
+.tb-btn.danger:hover{border-color:var(--danger)}
+.tb-btn-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:32px;height:32px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--text2);
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:all var(--transition);
+  flex-shrink:0;
+}
+.tb-btn-icon:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
+.tb-btn-icon.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.tb-group{display:flex;align-items:center;gap:1px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:2px}
+.tb-group .tb-btn-icon{border:none;border-radius:4px;width:28px;height:28px}
+.tb-group .tb-btn-icon:hover{background:var(--surface);color:var(--text)}
+#global-title{
+  height:32px;padding:0 10px;
+  font-size:12px;font-family:inherit;font-weight:500;
+  border:1px solid var(--border);
+  background:var(--bg);
+  color:var(--text);
+  border-radius:var(--radius);
+  outline:none;
+  width:200px;
+  transition:border-color var(--transition);
+}
+#global-title:focus{border-color:var(--accent);background:var(--surface)}
+#global-title::placeholder{color:var(--text3)}
+#zoom-label{font-size:11px;font-weight:600;color:var(--text2);min-width:36px;text-align:center}
+
+/* ── FLOOR TABS ── */
+#floor-tabs{
+  height:36px;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  gap:4px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  z-index:15;
+}
+.ft-label{font-size:11px;color:var(--text3);margin-right:4px;flex-shrink:0}
+#floor-tab-list{display:flex;align-items:center;gap:3px;flex:1}
+.floor-tab{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:0 10px;height:26px;
+  font-size:11px;font-weight:500;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text2);
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all var(--transition);
+}
+.floor-tab:hover{background:var(--bg);color:var(--text)}
+.floor-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.floor-del{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:14px;height:14px;
+  font-size:13px;line-height:1;
+  opacity:0.6;cursor:pointer;border-radius:2px;
+  transition:all var(--transition);
+}
+.floor-del:hover{opacity:1;background:rgba(255,255,255,0.25)}
+.ft-add{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;
+  font-size:16px;font-weight:400;
+  border:1px dashed var(--border2);
+  background:transparent;
+  color:var(--accent);
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+  transition:all var(--transition);
+  flex-shrink:0;
+}
+.ft-add:hover{background:var(--accent-bg);border-color:var(--accent)}
+
+/* ── MAIN LAYOUT ── */
 #main{flex:1;display:flex;overflow:hidden}
 
-/* left panel - room palette */
-#left-panel{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
-#left-panel h3{padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);border-bottom:1px solid var(--border)}
-.palette-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}
-.palette-item{background:var(--bg);border:2px solid transparent;border-radius:6px;padding:8px;cursor:grab;text-align:center;transition:all 0.15s;user-select:none;font-size:11px}
-.palette-item:hover{border-color:var(--accent);background:#eff6ff}
-.palette-item:active{cursor:grabbing;transform:scale(0.95)}
-.palette-item .pi-icon{font-size:22px;display:block;margin-bottom:3px}
-.palette-item .pi-name{font-weight:600;font-size:11px}
-.palette-item .pi-size{color:var(--text2);font-size:9px;margin-top:1px}
+/* ── LEFT PANEL ── */
+#left-panel{
+  width:240px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.panel-section-label{
+  padding:10px 14px 6px;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--text3);
+}
+.panel-divider{height:1px;background:var(--border);margin:4px 0}
 
-/* canvas area */
-#canvas-wrap{flex:1;overflow:hidden;position:relative;background:#e8e8e8;background-image:radial-gradient(circle,#ccc 1px,transparent 1px);background-size:20px 20px}
+/* Tools grid */
+.tools-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:4px;
+  padding:4px 10px 8px;
+}
+.tool-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;
+  padding:8px 4px;
+  font-size:10px;font-weight:500;
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--text2);
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:all var(--transition);
+  user-select:none;
+  text-align:center;
+  line-height:1.2;
+}
+.tool-btn:hover{background:var(--bg);border-color:var(--border2);color:var(--text)}
+.tool-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.tool-btn svg{flex-shrink:0}
+
+/* Palette search */
+.palette-search-wrap{padding:6px 10px}
+#palette-search{
+  width:100%;
+  height:30px;
+  padding:0 10px 0 30px;
+  font-size:12px;font-family:inherit;
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  border-radius:var(--radius);
+  outline:none;
+  transition:border-color var(--transition);
+}
+#palette-search:focus{border-color:var(--accent);background:var(--surface)}
+#palette-search::placeholder{color:var(--text3)}
+.palette-search-icon{position:relative}
+.palette-search-icon svg{
+  position:absolute;left:18px;top:50%;transform:translateY(-50%);
+  color:var(--text3);pointer-events:none;
+}
+
+/* Palette grid */
+.palette-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px 10px 8px}
+.palette-item{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:8px 6px;
+  cursor:grab;
+  text-align:center;
+  transition:all var(--transition);
+  user-select:none;
+}
+.palette-item:hover{border-color:var(--accent);background:var(--accent-bg);transform:translateY(-1px);box-shadow:var(--shadow)}
+.palette-item:active{cursor:grabbing;transform:scale(0.97)}
+.pi-icon{font-size:18px;display:block;margin-bottom:3px;line-height:1}
+.pi-name{display:block;font-weight:600;font-size:10px;color:var(--text);line-height:1.2}
+.pi-size{display:block;color:var(--text3);font-size:9px;margin-top:2px}
+
+/* Collapsible symbol categories */
+.sym-details{border-top:1px solid var(--border)}
+.sym-details summary{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 14px;
+  font-size:11px;font-weight:600;
+  color:var(--text2);
+  cursor:pointer;
+  list-style:none;
+  transition:all var(--transition);
+  user-select:none;
+}
+.sym-details summary::-webkit-details-marker{display:none}
+.sym-details summary:hover{background:var(--bg);color:var(--text)}
+.sym-details[open] summary{color:var(--accent)}
+.sym-details summary::after{
+  content:'';
+  margin-left:auto;
+  width:6px;height:6px;
+  border-right:1.5px solid currentColor;
+  border-bottom:1.5px solid currentColor;
+  transform:rotate(-45deg);
+  transition:transform var(--transition);
+  flex-shrink:0;
+}
+.sym-details[open] summary::after{transform:rotate(45deg)}
+
+/* ── CANVAS ── */
+#canvas-wrap{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+  background:#ffffff;
+  background-image:radial-gradient(circle,#c8d3e0 1px,transparent 1px);
+  background-size:24px 24px;
+}
+body.dark #canvas-wrap{
+  background:#1a2332;
+  background-image:radial-gradient(circle,#2a3a52 1px,transparent 1px);
+  background-size:24px 24px;
+}
 #canvas-wrap.panning{cursor:grabbing}
-#canvas-svg{width:100%;height:100%;display:block}
-
-/* right panel - properties */
-#right-panel{width:240px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;font-size:12px}
-#right-panel h3{padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);border-bottom:1px solid var(--border)}
-#right-panel .empty-state{padding:20px;text-align:center;color:var(--text2)}
-.prop-group{padding:8px 12px;border-bottom:1px solid var(--border)}
-.prop-group label{display:block;font-size:10px;text-transform:uppercase;color:var(--text2);margin-bottom:3px}
-.prop-group input,.prop-group select{width:100%;padding:5px 7px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px}
-.prop-group input:focus{outline:none;border-color:var(--accent)}
-.prop-row{display:flex;gap:6px}
-.prop-row .half{flex:1}
-.door-entry,.window-entry{background:var(--bg);border-radius:4px;padding:6px 8px;margin-bottom:4px;position:relative}
-.door-entry select,.window-entry select{font-size:11px;padding:3px 5px}
-.door-entry .del-btn,.window-entry .del-btn{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px}
-.prop-group .add-btn{width:100%;padding:5px;font-size:11px;border:1px dashed var(--border);background:none;color:var(--accent);border-radius:4px;cursor:pointer;margin-top:4px}
-.prop-group .add-btn:hover{background:#eff6ff}
-
-/* toast */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.3s}
-#toast.show{opacity:1}
-#status-bar{display:flex;align-items:center;padding:3px 10px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text2);gap:12px;flex-shrink:0}
-
-/* mini-map */
-#minimap{position:absolute;bottom:8px;left:8px;width:140px;height:100px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;box-shadow:var(--shadow);z-index:5;cursor:pointer}
-#minimap svg{width:100%;height:100%}
-#minimap .viewport{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 2}
-
-/* tooltips */
-[data-tooltip]{position:relative}
-[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap;z-index:100;pointer-events:none}
-
-/* distance indicators */
-.dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
-
-/* context menu */
-.ctx-item{padding:6px 12px;cursor:pointer;border-radius:4px;font-size:12px;white-space:nowrap;transition:background 0.1s}
-.ctx-item:hover{background:#eff6ff}
-.ctx-sep{border-top:1px solid var(--border);margin:2px 0}
-.dark .ctx-item:hover{background:#1e293b}
-
-/* shortcuts panel */
-#shortcuts-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:90;align-items:center;justify-content:center}
-#shortcuts-overlay.show{display:flex}
-#shortcuts-panel{background:var(--surface);border-radius:10px;padding:20px 24px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:80vh;overflow-y:auto}
-#shortcuts-panel h3{font-size:14px;margin-bottom:12px;text-align:center}
-#shortcuts-panel table{width:100%;border-collapse:collapse}
-#shortcuts-panel td{padding:4px 8px;font-size:11px;border-bottom:1px solid var(--border)}
-#shortcuts-panel td:first-child{font-weight:600;color:var(--accent);width:90px;white-space:nowrap}
-#shortcuts-panel td:last-child{color:var(--text2)}
-#shortcuts-close{float:right;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);padding:0 4px}
-
-/* search input */
-.palette-search{padding:6px 8px;font-size:11px;border:1px solid var(--border);border-radius:4px;width:calc(100% - 16px);margin:0 8px 8px;outline:none}
-.palette-search:focus{border-color:var(--accent)}
-
-/* wall draw preview */
-.wall-vertex{fill:#2563eb;stroke:#1d4ed8;stroke-width:1.5}
-.wall-preview-line{stroke:#2563eb;stroke-width:2;stroke-dasharray:6 4;pointer-events:none}
-.wall-preview-segment{stroke:#2d2d2d;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 #canvas-wrap.wall-tool{cursor:crosshair}
 #canvas-wrap.room-tool{cursor:crosshair}
-.room-preview{fill:rgba(37,99,235,0.12);stroke:#2563eb;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
-
-/* proactive tooltip hint for wall tool */
-.wall-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:11px;color:var(--text);pointer-events:none;z-index:5;box-shadow:var(--shadow);white-space:nowrap}
-
-/* floor tabs */
-.floor-tab{padding:3px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;cursor:pointer;white-space:nowrap;transition:all 0.15s;display:flex;align-items:center;gap:4px}
-.floor-tab:hover{background:var(--bg);border-color:var(--accent)}
-.floor-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.floor-tab .floor-del{font-size:14px;line-height:1;padding:0 2px;margin-left:2px;opacity:0.6;cursor:pointer;border-radius:3px}
-.floor-tab .floor-del:hover{opacity:1;background:rgba(255,255,255,0.2)}
-/* stair preview */
-.stair-preview{fill:rgba(100,100,100,0.15);stroke:#666;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
 #canvas-wrap.stair-tool{cursor:crosshair}
+#canvas-svg{width:100%;height:100%;display:block}
+
+/* wall preview classes */
+.wall-vertex{fill:#3b82f6;stroke:#2563eb;stroke-width:1.5}
+.wall-preview-line{stroke:#3b82f6;stroke-width:1.5;stroke-dasharray:6 4;pointer-events:none}
+.wall-preview-segment{stroke:#1e293b;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.room-preview{fill:rgba(59,130,246,0.1);stroke:#3b82f6;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
+.stair-preview{fill:rgba(100,100,100,0.12);stroke:#64748b;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
+
 /* stair rendered */
 .stair-fill{fill:#f5f0e8}
 .stair-outline{stroke:#8a7b6b;stroke-width:1.5;fill:none}
@@ -126,111 +334,392 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
 .stair-arrow{stroke:#6d5d4b;stroke-width:1.5;fill:none;marker-end:url(#arrowhead)}
 .stair-label{font-family:system-ui,sans-serif;font-size:10px;font-weight:700;fill:#6d5d4b;text-anchor:middle;dominant-baseline:middle}
 
-/* symbol palette details */
-#left-panel details summary{color:var(--text)}
-#left-panel details[open] summary{border-bottom:1px solid var(--border);margin-bottom:2px}
+/* wall hint */
+#wall-hint{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:6px 16px;
+  font-size:11px;font-weight:500;
+  color:var(--text2);
+  pointer-events:none;
+  z-index:5;
+  box-shadow:var(--shadow-md);
+  white-space:nowrap;
+}
+
+/* minimap */
+#minimap{
+  position:absolute;bottom:10px;right:10px;
+  width:150px;height:110px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+  z-index:5;cursor:pointer;
+  opacity:0.92;
+  transition:opacity var(--transition);
+}
+#minimap:hover{opacity:1}
+#minimap svg{width:100%;height:100%}
+#minimap .viewport{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 2}
+
+/* ── RIGHT PANEL ── */
+#right-panel{
+  width:260px;
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  font-size:12px;
+}
+.rp-header{
+  padding:12px 14px 8px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--text3);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+
+/* Dynamic props CSS (used by renderProperties JS) */
+.prop-group{padding:10px 14px;border-bottom:1px solid var(--border)}
+.prop-group label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text3);margin-bottom:5px}
+.prop-group input,.prop-group select{width:100%;padding:6px 8px;font-size:12px;font-family:inherit;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:var(--radius-sm);outline:none;margin-bottom:6px;transition:border-color var(--transition)}
+.prop-group input:focus,.prop-group select:focus{border-color:var(--accent);background:var(--surface)}
+.prop-group strong{font-weight:600;color:var(--text)}
+.prop-row{display:flex;gap:6px}
+.prop-row .half{flex:1;min-width:0}
+.door-entry,.window-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:4px;position:relative}
+.door-entry select,.window-entry select{font-size:11px}
+.del-btn{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);transition:all var(--transition)}
+.del-btn:hover{background:var(--danger-bg);color:var(--danger)}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
+.add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
+
+/* ── STATUS BAR ── */
+#status-bar{
+  height:26px;
+  display:flex;align-items:center;
+  padding:0 12px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  font-size:10px;font-weight:500;
+  color:var(--text3);
+  gap:14px;
+  flex-shrink:0;
+}
+#status-bar span{display:flex;align-items:center;gap:4px}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(6px);
+  background:var(--text);color:var(--surface);
+  padding:8px 18px;border-radius:var(--radius-lg);
+  font-size:12px;font-weight:500;
+  z-index:200;opacity:0;pointer-events:none;
+  transition:opacity 0.2s ease,transform 0.2s ease;
+  white-space:nowrap;
+  box-shadow:var(--shadow-lg);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── CONTEXT MENU ── */
+#context-menu{
+  display:none;position:fixed;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:4px;
+  z-index:150;
+  box-shadow:var(--shadow-lg);
+  min-width:168px;
+}
+.ctx-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 10px;cursor:pointer;
+  border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;
+  color:var(--text2);
+  transition:all var(--transition);
+}
+.ctx-item:hover{background:var(--accent-bg);color:var(--accent)}
+.ctx-sep{height:1px;background:var(--border);margin:3px 4px}
+
+/* ── SHORTCUTS OVERLAY ── */
+#shortcuts-overlay{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);
+  z-index:180;align-items:center;justify-content:center;
+}
+#shortcuts-overlay.show{display:flex}
+#shortcuts-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:24px 28px;
+  max-width:400px;width:92%;
+  box-shadow:var(--shadow-lg);
+  max-height:85vh;overflow-y:auto;
+  position:relative;
+}
+#shortcuts-panel h3{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);text-align:center}
+#shortcuts-panel table{width:100%;border-collapse:collapse}
+#shortcuts-panel td{padding:5px 8px;font-size:11px;border-bottom:1px solid var(--border);color:var(--text2)}
+#shortcuts-panel td:first-child{font-weight:700;color:var(--accent);width:100px;white-space:nowrap;font-family:monospace;font-size:12px}
+#shortcuts-close{
+  position:absolute;top:16px;right:16px;
+  background:none;border:none;cursor:pointer;
+  color:var(--text3);font-size:20px;line-height:1;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);transition:all var(--transition);
+}
+#shortcuts-close:hover{background:var(--bg);color:var(--text)}
+
+/* tooltip */
+[data-tooltip]{position:relative}
+[data-tooltip]:hover::after{
+  content:attr(data-tooltip);
+  position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+  background:var(--text);color:var(--surface);
+  font-size:10px;font-weight:500;
+  padding:4px 8px;border-radius:var(--radius-sm);
+  white-space:nowrap;z-index:100;pointer-events:none;
+  box-shadow:var(--shadow);
+}
+
+/* distance indicator */
+.dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
 </style>
 </head>
 <body>
 <div id="app">
+
+  <!-- ═══ TOOLBAR ═══ -->
   <div id="toolbar">
-    <span id="file-name">🌳 Sem título</span>
-    <div class="sep"></div>
-    <button onclick="newProject()" title="Novo">📄 Novo</button>
-    <button onclick="importYAML()" title="Importar YAML">📥 Abrir</button>
-    <button onclick="exportYAML()" title="Exportar YAML">📤 YAML</button>
-    <button onclick="exportSVG()" class="accent" title="Exportar SVG">⬇ SVG</button>
-    <button onclick="exportDXF()" title="Exportar DXF (AutoCAD)">📐 DXF</button>
-    <button onclick="exportPDF()" title="Exportar PDF (impressão)">🖨️ PDF</button>
-    <button onclick="exportPNG()" title="Exportar PNG">🖼️ PNG</button>
-    <div class="sep"></div>
-    <div class="btn-group">
-      <button onclick="undo()" title="Desfazer">↩</button>
-      <button onclick="redo()" title="Refazer">↪</button>
-    </div>
-    <div class="sep"></div>
-    <div class="btn-group">
-      <button onclick="zoomOut()" title="Zoom out">−</button>
-      <button onclick="zoomReset()" title="Zoom 100%"><span id="zoom-label">100%</span></button>
-      <button onclick="zoomIn()" title="Zoom in">+</button>
-    </div>
-      <button onclick="toggleGrid()" id="btn-grid">⊞ Grid</button>
-      <button onclick="toggleTheme()" title="Alternar tema">🌓 Tema</button>
-      <button onclick="toggleShortcuts()" title="Atalhos de teclado">?</button>
-      <div class="sep"></div>
-    <button onclick="deleteSelected()" class="danger" title="Deletar selecionado">🗑</button>
-    <div class="sep"></div>
-    <button onclick="copySelected()" title="Copiar (Ctrl+C)">📋 Copiar</button>
-    <button onclick="pasteSelected()" title="Colar (Ctrl+V)">📌 Colar</button>
-    <div class="sep"></div>
-    <div class="btn-group">
-      <button onclick="alignSelected('left')" title="Alinhar esquerda">⫷</button>
-      <button onclick="alignSelected('centerX')" title="Centralizar horizontal">⫿</button>
-      <button onclick="alignSelected('right')" title="Alinhar direita">⫸</button>
-    </div>
-    <div class="btn-group">
-      <button onclick="alignSelected('top')" title="Alinhar topo">⫯</button>
-      <button onclick="alignSelected('centerY')" title="Centralizar vertical">⫿</button>
-      <button onclick="alignSelected('bottom')" title="Alinhar base">⫰</button>
-    </div>
-    <div class="sep"></div>
-    <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()" style="margin-left:auto;width:220px">
-  </div>
-  <div id="floor-tabs" style="display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
-    <span style="font-size:11px;color:var(--text2);margin-right:4px">🏢</span>
-    <div id="floor-tab-list" style="display:flex;gap:4px"></div>
-    <button onclick="addFloor()" title="Adicionar pavimento" style="padding:2px 8px;font-size:14px;border:1px dashed var(--border);background:none;color:var(--accent);border-radius:4px;cursor:pointer;margin-left:4px">＋</button>
-  </div>
-  <div id="main">
-    <div id="left-panel">
-      <h3>🔧 Ferramentas</h3>
-      <div style="padding:6px 8px;display:flex;flex-direction:column;gap:3px">
-        <button class="add-btn tool-btn" id="tool-select" onclick="setTool('select')" style="background:#eff6ff;border-color:var(--accent)">🖱️ Selecionar/Mover</button>
-        <button class="add-btn tool-btn" id="tool-wall" onclick="setTool('wall')">🧱 Desenhar Parede</button>
-        <button class="add-btn tool-btn" id="tool-room" onclick="setTool('room')">⬜ Desenhar Cômodo</button>
-        <button class="add-btn tool-btn" id="tool-door" onclick="setTool('door')">🚪 Adicionar Porta</button>
-        <button class="add-btn tool-btn" id="tool-window" onclick="setTool('window')">🪟 Adicionar Janela</button>
-        <button class="add-btn tool-btn" id="tool-stair" onclick="setTool('stair')">🪜 Adicionar Escada</button>
+    <!-- Logo -->
+    <div class="tb-logo">
+      <div class="tb-logo-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="4" width="9" height="8" rx="1"/><rect x="6" y="2" width="9" height="8" rx="1" opacity="0.6"/></svg>
       </div>
-      <h3>🧩 Cômodos</h3>
-      <input type="text" class="palette-search" id="palette-search" placeholder="🔍 Filtrar cômodos..." oninput="filterPalette()" autocomplete="off">
+      <span id="file-name">Sem título</span>
+    </div>
+
+    <!-- File ops -->
+    <button class="tb-btn" onclick="newProject()" data-tooltip="Novo projeto">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
+      Novo
+    </button>
+    <button class="tb-btn" onclick="importYAML()" data-tooltip="Abrir arquivo YAML">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
+      Abrir
+    </button>
+    <button class="tb-btn" onclick="exportYAML()" data-tooltip="Exportar YAML">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+      YAML
+    </button>
+    <button class="tb-btn accent" onclick="exportSVG()" data-tooltip="Exportar SVG">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+      SVG
+    </button>
+    <button class="tb-btn" onclick="exportDXF()" data-tooltip="Exportar DXF (AutoCAD)">DXF</button>
+    <button class="tb-btn" onclick="exportPDF()" data-tooltip="Imprimir PDF">PDF</button>
+    <button class="tb-btn" onclick="exportPNG()" data-tooltip="Exportar PNG">PNG</button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Undo/Redo -->
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="undo()" data-tooltip="Desfazer (Ctrl+Z)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7H9a3.5 3.5 0 1 1 0 7H6"/><polyline points="1.5,4 4.5,7 1.5,10"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="redo()" data-tooltip="Refazer (Ctrl+Y)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 7H7a3.5 3.5 0 1 0 0 7h3"/><polyline points="14.5,4 11.5,7 14.5,10"/></svg>
+      </button>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <!-- Zoom -->
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="zoomOut()" data-tooltip="Zoom out">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="4"/><line x1="8.5" y1="8.5" x2="11" y2="11"/><line x1="3" y1="5" x2="7" y2="5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="zoomReset()" data-tooltip="Zoom 100%"><span id="zoom-label">100%</span></button>
+      <button class="tb-btn-icon" onclick="zoomIn()" data-tooltip="Zoom in">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="4"/><line x1="8.5" y1="8.5" x2="11" y2="11"/><line x1="3" y1="5" x2="7" y2="5"/><line x1="5" y1="3" x2="5" y2="7"/></svg>
+      </button>
+    </div>
+
+    <!-- Grid toggle -->
+    <button class="tb-btn-icon" id="btn-grid" onclick="toggleGrid()" data-tooltip="Alternar grade">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="0.5"/><rect x="9" y="1" width="6" height="6" rx="0.5"/><rect x="1" y="9" width="6" height="6" rx="0.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg>
+    </button>
+    <!-- Theme toggle -->
+    <button class="tb-btn-icon" onclick="toggleTheme()" data-tooltip="Alternar tema">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><line x1="8" y1="1" x2="8" y2="2.5"/><line x1="8" y1="13.5" x2="8" y2="15"/><line x1="1" y1="8" x2="2.5" y2="8"/><line x1="13.5" y1="8" x2="15" y2="8"/><line x1="2.9" y1="2.9" x2="4" y2="4"/><line x1="12" y1="12" x2="13.1" y2="13.1"/><line x1="2.9" y1="13.1" x2="4" y2="12"/><line x1="12" y1="4" x2="13.1" y2="2.9"/></svg>
+    </button>
+    <!-- Shortcuts -->
+    <button class="tb-btn-icon" onclick="toggleShortcuts()" data-tooltip="Atalhos de teclado">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.5a2 2 0 1 1 2.5 2c-.5.3-0.5.7-0.5 1.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Edit ops -->
+    <button class="tb-btn-icon danger" onclick="deleteSelected()" data-tooltip="Deletar (Del)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 14,4"/><path d="M5.5 4V2.5h5V4M6 7v5m4-5v5"/><path d="M3.5 4l1 10h7l1-10"/></svg>
+    </button>
+    <button class="tb-btn-icon" onclick="copySelected()" data-tooltip="Copiar (Ctrl+C)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 5.5V2.5h-8v8h3"/></svg>
+    </button>
+    <button class="tb-btn-icon" onclick="pasteSelected()" data-tooltip="Colar (Ctrl+V)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4.5" width="10" height="10" rx="1"/><path d="M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/></svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Align -->
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="alignSelected('left')" data-tooltip="Alinhar esquerda">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="1" y1="0" x2="1" y2="12"/><rect x="2" y="1.5" width="6" height="2.5" rx="0.5"/><rect x="2" y="8" width="4" height="2.5" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('centerX')" data-tooltip="Centralizar horizontal">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="6" y1="0" x2="6" y2="12"/><rect x="2" y="1.5" width="8" height="2.5" rx="0.5"/><rect x="3" y="8" width="6" height="2.5" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('right')" data-tooltip="Alinhar direita">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="11" y1="0" x2="11" y2="12"/><rect x="4" y="1.5" width="6" height="2.5" rx="0.5"/><rect x="6" y="8" width="4" height="2.5" rx="0.5"/></svg>
+      </button>
+    </div>
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="alignSelected('top')" data-tooltip="Alinhar topo">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="1" x2="12" y2="1"/><rect x="1.5" y="2" width="2.5" height="6" rx="0.5"/><rect x="8" y="2" width="2.5" height="4" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('centerY')" data-tooltip="Centralizar vertical">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="6" x2="12" y2="6"/><rect x="1.5" y="2" width="2.5" height="8" rx="0.5"/><rect x="8" y="3" width="2.5" height="6" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('bottom')" data-tooltip="Alinhar base">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="11" x2="12" y2="11"/><rect x="1.5" y="4" width="2.5" height="6" rx="0.5"/><rect x="8" y="6" width="2.5" height="4" rx="0.5"/></svg>
+      </button>
+    </div>
+
+    <!-- Title input pushed right -->
+    <div class="tb-sep" style="margin-left:auto"></div>
+    <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()">
+  </div>
+
+  <!-- ═══ FLOOR TABS ═══ -->
+  <div id="floor-tabs">
+    <span class="ft-label">Pavimentos</span>
+    <div id="floor-tab-list"></div>
+    <button class="ft-add" onclick="addFloor()" title="Adicionar pavimento">+</button>
+  </div>
+
+  <!-- ═══ MAIN ═══ -->
+  <div id="main">
+
+    <!-- LEFT PANEL -->
+    <div id="left-panel">
+      <div class="panel-section-label">Ferramentas</div>
+      <div class="tools-grid">
+        <button class="tool-btn active" id="tool-select" onclick="setTool('select')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l4.5 13L8.5 10l5 0.5L2 2z"/></svg>
+          Selecionar
+        </button>
+        <button class="tool-btn" id="tool-wall" onclick="setTool('wall')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2l3.5 3.5-9 9H1.5v-3.5l9-9z"/><line x1="8.5" y1="4" x2="12" y2="7.5"/></svg>
+          Parede
+        </button>
+        <button class="tool-btn" id="tool-room" onclick="setTool('room')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="12" height="8" rx="1"/></svg>
+          Cômodo
+        </button>
+        <button class="tool-btn" id="tool-door" onclick="setTool('door')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="2" width="7" height="12" rx="0.5"/><path d="M10 2v12M7 8a3 3 0 0 0 3-3"/></svg>
+          Porta
+        </button>
+        <button class="tool-btn" id="tool-window" onclick="setTool('window')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="5" width="12" height="6" rx="1"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></svg>
+          Janela
+        </button>
+        <button class="tool-btn" id="tool-stair" onclick="setTool('stair')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 14h4v-4h4V6h4V2"/></svg>
+          Escada
+        </button>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section-label" style="padding-bottom:4px">Cômodos</div>
+      <div class="palette-search-wrap palette-search-icon" style="position:relative">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1"><circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+        <input type="text" id="palette-search" placeholder="Filtrar cômodos..." oninput="filterPalette()" autocomplete="off">
+      </div>
       <div class="palette-grid" id="palette"></div>
-      <h3>📦 Símbolos</h3>
-      <details open>
-        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">🛋️ Móveis</summary>
+
+      <div class="panel-divider"></div>
+      <div class="panel-section-label">Símbolos</div>
+
+      <details class="sym-details" open>
+        <summary>Móveis</summary>
         <div class="palette-grid" id="sym-furniture"></div>
       </details>
-      <details>
-        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">🍳 Cozinha</summary>
+      <details class="sym-details">
+        <summary>Cozinha</summary>
         <div class="palette-grid" id="sym-kitchen"></div>
       </details>
-      <details>
-        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">🚿 Banheiro</summary>
+      <details class="sym-details">
+        <summary>Banheiro</summary>
         <div class="palette-grid" id="sym-bathroom"></div>
       </details>
-      <details>
-        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">💡 Elétrica / Portas</summary>
+      <details class="sym-details">
+        <summary>Elétrica / Portas</summary>
         <div class="palette-grid" id="sym-electrical"></div>
       </details>
     </div>
+
+    <!-- CANVAS -->
     <div id="canvas-wrap">
       <svg id="canvas-svg"></svg>
       <div id="minimap" onclick="focusMinimap(event)"><svg id="minimap-svg"></svg></div>
-      <div id="wall-hint" class="wall-hint" style="display:none">Clique para iniciar — Duplo clique ou Enter para finalizar — Esc para cancelar</div>
+      <div id="wall-hint" style="display:none">Clique para iniciar · Duplo clique ou Enter para finalizar · Esc para cancelar</div>
     </div>
-    <div id="context-menu" style="display:none;position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,0.2);min-width:160px">
-      <div class="ctx-item" onclick="copySelected();hideContextMenu()">📋 Copiar</div>
-      <div class="ctx-item" onclick="pasteSelected();hideContextMenu()">📌 Colar</div>
+
+    <!-- Context menu (inside main so it does not affect layout) -->
+    <div id="context-menu">
+      <div class="ctx-item" onclick="copySelected();hideContextMenu()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 5.5V2.5h-8v8h3"/></svg>
+        Copiar
+      </div>
+      <div class="ctx-item" onclick="pasteSelected();hideContextMenu()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4.5" width="10" height="10" rx="1"/><path d="M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/></svg>
+        Colar
+      </div>
       <div class="ctx-sep"></div>
-      <div class="ctx-item" onclick="deleteSelected();hideContextMenu()">🗑 Deletar</div>
+      <div class="ctx-item" onclick="deleteSelected();hideContextMenu()" style="color:var(--danger)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 14,4"/><path d="M5.5 4V2.5h5V4M6 7v5m4-5v5"/><path d="M3.5 4l1 10h7l1-10"/></svg>
+        Deletar
+      </div>
       <div class="ctx-sep"></div>
-      <div class="ctx-item" onclick="zoomReset();hideContextMenu()">⊡ Zoom 100%</div>
+      <div class="ctx-item" onclick="zoomReset();hideContextMenu()">Zoom 100%</div>
     </div>
+
+    <!-- RIGHT PANEL -->
     <div id="right-panel">
-      <h3>📋 Propriedades</h3>
-      <div id="props-content" class="empty-state">Selecione um cômodo no canvas</div>
+      <div class="rp-header">Propriedades</div>
+      <div id="props-content" class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"><rect x="4" y="8" width="18" height="16" rx="2"/><path d="M8 13h10M8 17h7"/></svg>
+        Selecione um elemento no canvas
+      </div>
     </div>
   </div>
+
+  <!-- STATUS BAR -->
   <div id="status-bar">
     <span id="status-coords">x:0 y:0</span>
     <span id="status-zoom">Zoom: 100%</span>
@@ -238,11 +727,15 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
     <span id="status-area">Área: 0 m²</span>
   </div>
 </div>
+
+<!-- TOAST -->
 <div id="toast"></div>
+
+<!-- SHORTCUTS OVERLAY -->
 <div id="shortcuts-overlay" onclick="if(event.target===this) hideShortcuts()">
   <div id="shortcuts-panel">
     <button id="shortcuts-close" onclick="hideShortcuts()">×</button>
-    <h3>⌨️ Atalhos de Teclado</h3>
+    <h3>Atalhos de Teclado</h3>
     <table>
       <tr><td>Delete</td><td>Remover selecionado</td></tr>
       <tr><td>Ctrl+Z</td><td>Desfazer</td></tr>
@@ -1341,10 +1834,9 @@ function setTool(tool) {
 }
 
 function setToolUI(tool) {
-  document.querySelectorAll('#left-panel .tool-btn').forEach(b => b.style.background = '');
-  document.querySelectorAll('#left-panel .tool-btn').forEach(b => b.style.borderColor = '');
-  const btn = document.getElementById('tool-'+tool);
-  if (btn) { btn.style.background = '#eff6ff'; btn.style.borderColor = 'var(--accent)'; }
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tool-' + tool);
+  if (btn) btn.classList.add('active');
 }
 
 // ═══════════════════════════════════════════════════
