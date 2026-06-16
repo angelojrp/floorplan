@@ -571,12 +571,12 @@ function renderSVG(input) {
   const C = { w: '#2d2d2d', ws: '#1a1a1a', rb: '#fafafa', dp: '#2d2d2d', da: '#555', wf: '#4a90d9', dl: '#b71c1c', dt: '#b71c1c', gd: '#e0e0e0', lb: '#1a1a1a', tt: '#1a1a1a' };
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%">`;
   s += `<style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style>`;
-551:   s += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
+  s += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
 
-552:   // lot (terreno)
-553:   if (input.lot) s += `<rect x="${input.lot.x}" y="${input.lot.y}" width="${input.lot.w}" height="${input.lot.h}" class="lot"/>`;
+  // lot (terreno)
+  if (input.lot) s += `<rect x="${input.lot.x}" y="${input.lot.y}" width="${input.lot.w}" height="${input.lot.h}" class="lot"/>`;
 
-554:   if (grid !== false) for (let cx = Math.ceil(vbX / grid) * grid; cx <= vbX + vbW; cx += grid) for (let cy = Math.ceil(vbY / grid) * grid; cy <= vbY + vbH; cy += grid) s += `<circle cx="${cx}" cy="${cy}" r="0.6" class="gd"/>`;
+  if (grid !== false) for (let cx = Math.ceil(vbX / grid) * grid; cx <= vbX + vbW; cx += grid) for (let cy = Math.ceil(vbY / grid) * grid; cy <= vbY + vbH; cy += grid) s += `<circle cx="${cx}" cy="${cy}" r="0.6" class="gd"/>`;
   if (title) s += `<text x="${(minX + maxX) / 2}" y="${minY - 45}" class="ttl">${esc(title)}</text>`;
   for (const r of rooms) s += `<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb" data-room-id="${esc(r.id)}"/>`;
 
