@@ -570,6 +570,16 @@ function renderSVG(input) {
     for (const arc of d.swingArcs) { if (arc.r > 0) { s += `<line x1="${arc.cx}" y1="${arc.cy}" x2="${arc.x2}" y2="${arc.y2}" class="dp"/><path d="M ${arc.x1} ${arc.y1} A ${arc.r} ${arc.r} 0 0 ${arc.sweep} ${arc.x2} ${arc.y2}" class="da"/>`; } }
   }
 
+  // corner fills — fecha os cantos onde paredes perpendiculares se encontram
+  const corners = new Set();
+  for (const r of rooms) {
+    const pts = [[r.rect.x, r.rect.y], [r.rect.x + r.rect.w, r.rect.y], [r.rect.x, r.rect.y + r.rect.h], [r.rect.x + r.rect.w, r.rect.y + r.rect.h]];
+    for (const [cx, cy] of pts) {
+      const key = `${rnd(cx)},${rnd(cy)}`;
+      if (!corners.has(key)) { corners.add(key); s += `<rect x="${rnd(cx - hw)}" y="${rnd(cy - hw)}" width="${rnd(wt)}" height="${rnd(wt)}" class="wf"/>`; }
+    }
+  }
+
   for (const r of rooms) s += `<text x="${r.labelPos.x}" y="${r.labelPos.y}" class="rn">${esc(r.name)}</text>`;
 
   for (const d of dimensions) {

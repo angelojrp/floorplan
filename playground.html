@@ -537,6 +537,16 @@ function renderSvg(input) {
     }
   }
 
+  // corner fills
+  const corners = new Set();
+  for (const room of rooms) {
+    const pts = [[room.rect.x, room.rect.y], [room.rect.x + room.rect.w, room.rect.y], [room.rect.x, room.rect.y + room.rect.h], [room.rect.x + room.rect.w, room.rect.y + room.rect.h]];
+    for (const [cx, cy] of pts) {
+      const key = `${rnd(cx)},${rnd(cy)}`;
+      if (!corners.has(key)) { corners.add(key); svg += `<rect x="${rnd(cx - hw)}" y="${rnd(cy - hw)}" width="${rnd(wt)}" height="${rnd(wt)}" class="wf"/>`; }
+    }
+  }
+
   // room labels
   for (const room of rooms) {
     svg += `<text x="${room.labelPos.x}" y="${room.labelPos.y}" class="rn">${esc(room.name)}</text>`;

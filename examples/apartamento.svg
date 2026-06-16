@@ -196,6 +196,18 @@
 <path d="M 560 1160 A 160 160 0 0 1 400 1320" class="door-arc"/>
 <line x1="1100" y1="1320" x2="940" y2="1320" class="door-panel"/>
 <path d="M 1100 1160 A 160 160 0 0 1 940 1320" class="door-arc"/>
+<rect x="-15" y="-15" width="30" height="30" class="wall-fill"/>
+<rect x="1085" y="-15" width="30" height="30" class="wall-fill"/>
+<rect x="-15" y="825" width="30" height="30" class="wall-fill"/>
+<rect x="1085" y="825" width="30" height="30" class="wall-fill"/>
+<rect x="1685" y="-15" width="30" height="30" class="wall-fill"/>
+<rect x="1685" y="825" width="30" height="30" class="wall-fill"/>
+<rect x="1085" y="1265" width="30" height="30" class="wall-fill"/>
+<rect x="1685" y="1265" width="30" height="30" class="wall-fill"/>
+<rect x="545" y="825" width="30" height="30" class="wall-fill"/>
+<rect x="-15" y="1585" width="30" height="30" class="wall-fill"/>
+<rect x="545" y="1585" width="30" height="30" class="wall-fill"/>
+<rect x="1085" y="1585" width="30" height="30" class="wall-fill"/>
 <text x="550" y="420" class="room-name">Sala de Estar</text>
 <text x="1400" y="420" class="room-name">Cozinha</text>
 <text x="1400" y="1060" class="room-name">Banheiro</text>

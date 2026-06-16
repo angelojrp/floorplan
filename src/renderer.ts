@@ -114,6 +114,9 @@ export function renderSvg(input: ResolvedFloorPlan): string {
     }
   }
 
+  // preenchimento de cantos — fecha gaps onde paredes perpendiculares se encontram
+  out.push(...renderCornerFills(rooms, wt));
+
   // labels dos cômodos
   for (const room of rooms) {
     out.push(renderRoomLabel(room));
@@ -358,6 +361,29 @@ function renderDoorPanels(door: ResolvedDoor): string {
     );
   }
   return parts.join('\n');
+}
+
+// ── preenchimento de cantos ──
+
+function renderCornerFills(rooms: ResolvedRoom[], wt: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const room of rooms) {
+    const corners = [
+      [room.rect.x, room.rect.y],
+      [room.rect.x + room.rect.width, room.rect.y],
+      [room.rect.x, room.rect.y + room.rect.height],
+      [room.rect.x + room.rect.width, room.rect.y + room.rect.height],
+    ];
+    for (const [cx, cy] of corners) {
+      const key = `${rnd(cx)},${rnd(cy)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(`<rect x="${rnd(cx - wt / 2)}" y="${rnd(cy - wt / 2)}" width="${rnd(wt)}" height="${rnd(wt)}" class="wall-fill"/>`);
+      }
+    }
+  }
+  return out;
 }
 
 // ── label do cômodo ──
