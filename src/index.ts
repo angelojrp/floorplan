@@ -21,4 +21,6 @@ export { parseFloorPlan } from './parser';
 export { resolveLayout } from './layout';
 export { renderSvg } from './renderer';
 export { exportDXF } from './dxf';
+export { renderPDFHtml } from './pdf';
+export type { PDFOptions } from './pdf';
 export * from './types';

@@ -109,6 +109,26 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
 
 /* proactive tooltip hint for wall tool */
 .wall-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:11px;color:var(--text);pointer-events:none;z-index:5;box-shadow:var(--shadow);white-space:nowrap}
+
+/* floor tabs */
+.floor-tab{padding:3px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;cursor:pointer;white-space:nowrap;transition:all 0.15s;display:flex;align-items:center;gap:4px}
+.floor-tab:hover{background:var(--bg);border-color:var(--accent)}
+.floor-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.floor-tab .floor-del{font-size:14px;line-height:1;padding:0 2px;margin-left:2px;opacity:0.6;cursor:pointer;border-radius:3px}
+.floor-tab .floor-del:hover{opacity:1;background:rgba(255,255,255,0.2)}
+/* stair preview */
+.stair-preview{fill:rgba(100,100,100,0.15);stroke:#666;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
+#canvas-wrap.stair-tool{cursor:crosshair}
+/* stair rendered */
+.stair-fill{fill:#f5f0e8}
+.stair-outline{stroke:#8a7b6b;stroke-width:1.5;fill:none}
+.stair-diag{stroke:#c4b5a5;stroke-width:0.8}
+.stair-arrow{stroke:#6d5d4b;stroke-width:1.5;fill:none;marker-end:url(#arrowhead)}
+.stair-label{font-family:system-ui,sans-serif;font-size:10px;font-weight:700;fill:#6d5d4b;text-anchor:middle;dominant-baseline:middle}
+
+/* symbol palette details */
+#left-panel details summary{color:var(--text)}
+#left-panel details[open] summary{border-bottom:1px solid var(--border);margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -121,6 +141,8 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
     <button onclick="exportYAML()" title="Exportar YAML">📤 YAML</button>
     <button onclick="exportSVG()" class="accent" title="Exportar SVG">⬇ SVG</button>
     <button onclick="exportDXF()" title="Exportar DXF (AutoCAD)">📐 DXF</button>
+    <button onclick="exportPDF()" title="Exportar PDF (impressão)">🖨️ PDF</button>
+    <button onclick="exportPNG()" title="Exportar PNG">🖼️ PNG</button>
     <div class="sep"></div>
     <div class="btn-group">
       <button onclick="undo()" title="Desfazer">↩</button>
@@ -154,6 +176,11 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
     <div class="sep"></div>
     <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()" style="margin-left:auto;width:220px">
   </div>
+  <div id="floor-tabs" style="display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+    <span style="font-size:11px;color:var(--text2);margin-right:4px">🏢</span>
+    <div id="floor-tab-list" style="display:flex;gap:4px"></div>
+    <button onclick="addFloor()" title="Adicionar pavimento" style="padding:2px 8px;font-size:14px;border:1px dashed var(--border);background:none;color:var(--accent);border-radius:4px;cursor:pointer;margin-left:4px">＋</button>
+  </div>
   <div id="main">
     <div id="left-panel">
       <h3>🔧 Ferramentas</h3>
@@ -163,10 +190,28 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
         <button class="add-btn tool-btn" id="tool-room" onclick="setTool('room')">⬜ Desenhar Cômodo</button>
         <button class="add-btn tool-btn" id="tool-door" onclick="setTool('door')">🚪 Adicionar Porta</button>
         <button class="add-btn tool-btn" id="tool-window" onclick="setTool('window')">🪟 Adicionar Janela</button>
+        <button class="add-btn tool-btn" id="tool-stair" onclick="setTool('stair')">🪜 Adicionar Escada</button>
       </div>
       <h3>🧩 Cômodos</h3>
       <input type="text" class="palette-search" id="palette-search" placeholder="🔍 Filtrar cômodos..." oninput="filterPalette()" autocomplete="off">
       <div class="palette-grid" id="palette"></div>
+      <h3>📦 Símbolos</h3>
+      <details open>
+        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">🛋️ Móveis</summary>
+        <div class="palette-grid" id="sym-furniture"></div>
+      </details>
+      <details>
+        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">🍳 Cozinha</summary>
+        <div class="palette-grid" id="sym-kitchen"></div>
+      </details>
+      <details>
+        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">🚿 Banheiro</summary>
+        <div class="palette-grid" id="sym-bathroom"></div>
+      </details>
+      <details>
+        <summary style="font-weight:600;padding:4px 8px;cursor:pointer">💡 Elétrica / Portas</summary>
+        <div class="palette-grid" id="sym-electrical"></div>
+      </details>
     </div>
     <div id="canvas-wrap">
       <svg id="canvas-svg"></svg>
@@ -213,11 +258,13 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
       <tr><td>3</td><td>Ferramenta Cômodo</td></tr>
       <tr><td>4</td><td>Ferramenta Porta</td></tr>
       <tr><td>5</td><td>Ferramenta Janela</td></tr>
+      <tr><td>6</td><td>Ferramenta Escada</td></tr>
     </table>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<script src="symbols.js"></script>
 <script>
 // ═══════════════════════════════════════════════════
 //  DATA MODEL
@@ -228,6 +275,9 @@ const DEFAULT_SCALE = 2; // px per cm
 let state = {
   title: '',
   rooms: [],
+  symbols: [],
+  floors: [{ id: 'terreo', name: 'Térreo', level: 0, rooms: [], stairs: [] }],
+  activeFloor: 'terreo',
   scale: DEFAULT_SCALE,
   wallThickness: 15,
   gridSize: 100,
@@ -238,6 +288,7 @@ let state = {
   panX: 0, panY: 0,
   gridVisible: true,
   nextId: 1,
+  nextSymId: 1,
   clipboard: null,
   snapLines: []
 };
@@ -245,14 +296,17 @@ let state = {
 let undoStack = [], redoStack = [];
 const MAX_UNDO = 50;
 
+function getFloor() { return state.floors.find(f => f.id === state.activeFloor) || state.floors[0]; }
+function ensureRooms() { const f = getFloor(); if (!f.rooms) f.rooms = []; return f; }
+
 function saveUndo() {
-  undoStack.push(JSON.parse(JSON.stringify({ rooms: state.rooms, title: state.title })));
+  undoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor })));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
 
-function undo() { if (!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify({ rooms: state.rooms, title: state.title }))); const s = undoStack.pop(); state.rooms = s.rooms; state.title = s.title; state.selectedId = null; render(); toast('Desfeito'); }
-function redo() { if (!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify({ rooms: state.rooms, title: state.title }))); const s = redoStack.pop(); state.rooms = s.rooms; state.title = s.title; state.selectedId = null; render(); toast('Refeito'); }
+function undo() { if (!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }))); const s = undoStack.pop(); state.floors = s.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: s.rooms || [], stairs: [] }]; state.symbols = s.symbols || []; state.title = s.title; state.nextId = s.nextId || 1; state.nextSymId = s.nextSymId || 1; state.activeFloor = s.activeFloor || 'terreo'; state.selectedId = null; render(); toast('Desfeito'); }
+function redo() { if (!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }))); const s = redoStack.pop(); state.floors = s.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: s.rooms || [], stairs: [] }]; state.symbols = s.symbols || []; state.title = s.title; state.nextId = s.nextId || 1; state.nextSymId = s.nextSymId || 1; state.activeFloor = s.activeFloor || 'terreo'; state.selectedId = null; render(); toast('Refeito'); }
 
 function generateId() { return 'r_' + (state.nextId++); }
 
@@ -283,6 +337,28 @@ function initPalette() {
   `).join('');
 }
 
+function initSymbolPalette() {
+  for (const cat of SYMBOL_CATEGORIES) {
+    const el = document.getElementById(cat.id);
+    if (!el) continue;
+    el.innerHTML = cat.keys.map(key => {
+      const s = SYMBOLS[key];
+      if (!s) return '';
+      return `<div class="palette-item" draggable="true" ondragstart="onSymbolDrag(event,'${key}')">
+        <span class="pi-icon">${s.icon}</span>
+        <span class="pi-name">${s.name}</span>
+        <span class="pi-size">${s.w}×${s.h}cm</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function onSymbolDrag(ev, type) {
+  ev.dataTransfer.setData('text/plain', JSON.stringify({type}));
+}
+
+function generateSymbolId() { return 'sym_' + (state.nextSymId++); }
+
 // ═══════════════════════════════════════════════════
 //  CANVAS RENDERING
 // ═══════════════════════════════════════════════════
@@ -297,7 +373,7 @@ function render() {
 
   // pattern defs for hatches
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  defs.innerHTML = '<pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern>';
+  defs.innerHTML = '<pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="stair-hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f5f0e8"/><line x1="0" y1="5" x2="10" y2="5" stroke="#d4c9b8" stroke-width="1.5"/></pattern><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#6d5d4b"/></marker>';
   svg.appendChild(defs);
 
   const g = document.createElementNS('http://www.w3.org/2000/svg','g');
@@ -318,8 +394,10 @@ function render() {
   }
 
   // rooms
+  const floor = getFloor();
+  const rooms = floor.rooms || [];
   let totalArea = 0;
-  for (const room of state.rooms) {
+  for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
     const rw = room.width * state.scale, rh = room.height * state.scale;
     totalArea += room.width * room.height;
@@ -451,12 +529,99 @@ function render() {
     g.appendChild(group);
   }
 
+  // stairs
+  for (const stair of (floor.stairs || [])) {
+    const sx = stair.x * state.scale, sy = stair.y * state.scale;
+    const sw = stair.width * state.scale, sh = stair.height * state.scale;
+    const dir = stair.direction || 'up';
+    const sg = document.createElementNS('http://www.w3.org/2000/svg','g');
+    sg.setAttribute('data-id', stair.id);
+    sg.style.cursor = state.tool === 'select' ? 'move' : 'default';
+    const isSelected = state.selectedIds.has(stair.id);
+    if (isSelected) sg.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+
+    // fill with stair pattern
+    const sr = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    sr.setAttribute('x', sx); sr.setAttribute('y', sy);
+    sr.setAttribute('width', sw); sr.setAttribute('height', sh);
+    sr.setAttribute('fill', 'url(#stair-hatch)');
+    sr.setAttribute('stroke', isSelected ? '#2563eb' : '#8a7b6b');
+    sr.setAttribute('stroke-width', isSelected ? 2 : 1.5);
+    sg.appendChild(sr);
+
+    // diagonal center lines
+    const dline = document.createElementNS('http://www.w3.org/2000/svg','line');
+    dline.setAttribute('x1', sx); dline.setAttribute('y1', sy);
+    dline.setAttribute('x2', sx + sw); dline.setAttribute('y2', sy + sh);
+    dline.setAttribute('stroke', '#c4b5a5'); dline.setAttribute('stroke-width', '1');
+    sg.appendChild(dline);
+
+    // arrow indicator
+    const midX = sx + sw/2, midY = sy + sh/2;
+    const arrowLen = Math.min(sw, sh) * 0.4;
+    let ax1, ay1, ax2, ay2;
+    if (dir === 'up') {
+      ax1 = midX; ay1 = sy + sh * 0.75;
+      ax2 = midX; ay2 = sy + sh * 0.25;
+    } else {
+      ax1 = midX; ay1 = sy + sh * 0.25;
+      ax2 = midX; ay2 = sy + sh * 0.75;
+    }
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg','line');
+    arrow.setAttribute('x1', ax1); arrow.setAttribute('y1', ay1);
+    arrow.setAttribute('x2', ax2); arrow.setAttribute('y2', ay2);
+    arrow.setAttribute('stroke', '#6d5d4b'); arrow.setAttribute('stroke-width', '2');
+    arrow.setAttribute('marker-end', 'url(#arrowhead)');
+    sg.appendChild(arrow);
+
+    // label
+    const sl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    sl.setAttribute('x', midX); sl.setAttribute('y', midY);
+    sl.setAttribute('text-anchor','middle'); sl.setAttribute('dominant-baseline','middle');
+    sl.setAttribute('font-size','10'); sl.setAttribute('font-weight','700');
+    sl.setAttribute('fill','#6d5d4b');
+    sl.textContent = dir === 'up' ? 'UP' : 'DOWN';
+    sg.appendChild(sl);
+
+    g.appendChild(sg);
+  }
+
+  // symbols (overlay on floor plan)
+  for (const sym of state.symbols) {
+    const def = SYMBOLS[sym.type];
+    if (!def) continue;
+    const sx = sym.x * state.scale, sy = sym.y * state.scale;
+    const sw = sym.w * state.scale, sh = sym.h * state.scale;
+    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+    group.setAttribute('data-id', sym.id);
+    group.style.cursor = state.tool === 'select' ? 'move' : 'default';
+    const isSelected = state.selectedIds.has(sym.id);
+    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+    const inner = document.createElementNS('http://www.w3.org/2000/svg','g');
+    const scX = sw / def.w, scY = sh / def.h;
+    const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
+    inner.setAttribute('transform', `translate(${sx},${sy}) scale(${scX},${scY})${rot}`);
+    inner.innerHTML = def.svg;
+    group.appendChild(inner);
+    if (isSelected) {
+      const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
+      selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
+      selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
+      selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
+      selRect.setAttribute('pointer-events','none');
+      group.appendChild(selRect);
+    }
+    g.appendChild(group);
+  }
+
   // status
-  document.getElementById('status-rooms').textContent = `Cômodos: ${state.rooms.length}`;
+  document.getElementById('status-rooms').textContent = `Cômodos: ${rooms.length} | Símbolos: ${state.symbols.length}`;
   document.getElementById('status-area').textContent = `Área: ${(totalArea/10000).toFixed(1)} m²`;
   document.getElementById('global-title').value = state.title;
   renderProperties();
   updateMinimap();
+  updateFloorTabs();
 }
 
 function openingOnWall(wall, rx, ry, rw, rh, off, wid) {
@@ -518,6 +683,11 @@ document.addEventListener('mousemove', e => {
     updateRoomDraw(e);
     return;
   }
+  // stair tool: update preview
+  if (state.tool === 'stair' && stairDrawState) {
+    updateStairDraw(e);
+    return;
+  }
   // update coords
   const svg = document.getElementById('canvas-svg');
   if (svg) {
@@ -569,24 +739,41 @@ canvasWrap.addEventListener('click', e => {
   if (state.tool === 'room') return;
 
   const g = e.target.closest('[data-id]');
-  const roomId = g ? g.getAttribute('data-id') : null;
+  const elId = g ? g.getAttribute('data-id') : null;
 
-  if (!roomId) {
+  if (!elId) {
     if (state.tool === 'select' && !e.shiftKey) { state.selectedId = null; state.selectedIds.clear(); render(); }
     return;
   }
 
+  // symbol click
+  const sym = state.symbols.find(s => s.id === elId);
+  if (sym) {
+    if (state.tool === 'door' || state.tool === 'window' || state.tool === 'stair') { toast('⬜ Use esta ferramenta em paredes de cômodos'); return; }
+    if (e.shiftKey) {
+      if (state.selectedIds.has(sym.id)) state.selectedIds.delete(sym.id);
+      else state.selectedIds.add(sym.id);
+      state.selectedId = sym.id;
+    } else {
+      state.selectedId = state.selectedId === sym.id ? null : sym.id;
+      state.selectedIds.clear();
+      if (state.selectedId) state.selectedIds.add(state.selectedId);
+    }
+    render();
+    return;
+  }
+
   if (state.tool === 'door' || state.tool === 'window') {
-    addOpening(roomId, e);
+    addOpening(elId, e);
     return;
   }
 
   if (e.shiftKey) {
-    if (state.selectedIds.has(roomId)) state.selectedIds.delete(roomId);
-    else state.selectedIds.add(roomId);
-    state.selectedId = roomId;
+    if (state.selectedIds.has(elId)) state.selectedIds.delete(elId);
+    else state.selectedIds.add(elId);
+    state.selectedId = elId;
   } else {
-    state.selectedId = state.selectedId === roomId ? null : roomId;
+    state.selectedId = state.selectedId === elId ? null : elId;
     state.selectedIds.clear();
     if (state.selectedId) state.selectedIds.add(state.selectedId);
   }
@@ -616,29 +803,48 @@ canvasWrap.addEventListener('mousedown', e => {
     return;
   }
 
+  // ── stair tool: start draw ──
+  if (state.tool === 'stair') {
+    startStairDraw(e);
+    hasDragged = false;
+    return;
+  }
+
   if (state.tool !== 'select') return;
   const g = e.target.closest('[data-id]');
   if (!g || e.target.closest('rect[fill="#fff"]')) return;
-  const room = state.rooms.find(r => r.id === g.getAttribute('data-id'));
-  if (!room) return;
+  const elId = g.getAttribute('data-id');
+  const floor = getFloor();
+  const room = (floor.rooms || []).find(r => r.id === elId);
+  const stair = (floor.stairs || []).find(s => s.id === elId);
+  const sym = state.symbols.find(s => s.id === elId);
+
+  if (!room && !sym && !stair) return;
+
   hasDragged = false;
-  if (!e.shiftKey && !state.selectedIds.has(room.id)) {
-    state.selectedId = room.id; state.selectedIds.clear(); state.selectedIds.add(room.id);
+  if (!e.shiftKey && !state.selectedIds.has(elId)) {
+    state.selectedId = elId; state.selectedIds.clear(); state.selectedIds.add(elId);
   }
-  state.selectedId = room.id;
-  // salva posições originais de todos os selecionados
-  moveState = { ids: [...state.selectedIds], sx: e.clientX, sy: e.clientY, origins: {} };
-  for (const id of moveState.ids) {
-    const r = state.rooms.find(rr => rr.id === id);
-    if (r) moveState.origins[id] = { x: r.x, y: r.y };
+  state.selectedId = elId;
+  moveState = { ids: [elId], sx: e.clientX, sy: e.clientY, origins: {} };
+  if (room) {
+    for (const id of moveState.ids) {
+      const r = (floor.rooms || []).find(rr => rr.id === id);
+      if (r) moveState.origins[id] = { x: r.x, y: r.y };
+    }
+  } else if (sym) {
+    moveState.origins[elId] = { x: sym.x, y: sym.y };
+  } else if (stair) {
+    moveState.origins[elId] = { x: stair.x, y: stair.y };
   }
-  moveOrigin = { x: room.x, y: room.y };
+  moveOrigin = { x: (room||sym||stair).x, y: (room||sym||stair).y };
   e.preventDefault();
 });
 
 let resizeState = null, resizeOrigin = null;
 function startResize(roomId, handleType, e) {
-  const room = state.rooms.find(r => r.id === roomId);
+  const floor = getFloor();
+  const room = (floor.rooms || []).find(r => r.id === roomId);
   if (!room) return;
   hasDragged = false;
   resizeState = {
@@ -660,7 +866,26 @@ document.addEventListener('mousemove', e => {
     let moved = false;
 
     for (const id of moveState.ids) {
-      const room = state.rooms.find(r => r.id === id);
+      const sym = state.symbols.find(s => s.id === id);
+      if (sym && moveState.origins[id]) {
+        let nx = Math.round(Math.max(0, moveState.origins[id].x + dx));
+        let ny = Math.round(Math.max(0, moveState.origins[id].y + dy));
+        if (pxDelta > 3 && (nx !== moveState.origins[id].x || ny !== moveState.origins[id].y)) { hasDragged = true; moved = true; }
+        sym.x = nx; sym.y = ny;
+        continue;
+      }
+
+      const floor = getFloor();
+      const stair = (floor.stairs || []).find(s => s.id === id);
+      if (stair && moveState.origins[id]) {
+        let nx = Math.round(Math.max(0, moveState.origins[id].x + dx));
+        let ny = Math.round(Math.max(0, moveState.origins[id].y + dy));
+        if (pxDelta > 3 && (nx !== moveState.origins[id].x || ny !== moveState.origins[id].y)) { hasDragged = true; moved = true; }
+        stair.x = nx; stair.y = ny;
+        continue;
+      }
+
+      const room = (floor.rooms || []).find(r => r.id === id);
       if (!room || !moveState.origins[id]) continue;
       let nx = Math.round(Math.max(0, moveState.origins[id].x + dx) / snap) * snap;
       let ny = Math.round(Math.max(0, moveState.origins[id].y + dy) / snap) * snap;
@@ -668,7 +893,7 @@ document.addEventListener('mousemove', e => {
       // smart snap: alinhar a bordas de outros cômodos
       if (state.gridVisible) {
         const threshold = 15; // px tolerance in cm
-        for (const other of state.rooms) {
+        for (const other of (floor.rooms || [])) {
           if (moveState.ids.includes(other.id)) continue;
           const edges = [
             { v: other.x, t: other.x + other.width, snap: other.x, name: 'left' },
@@ -706,7 +931,8 @@ document.addEventListener('mousemove', e => {
   if (resizeState) {
     const dx = (e.clientX - resizeState.sx) / (state.scale * state.zoom);
     const dy = (e.clientY - resizeState.sy) / (state.scale * state.zoom);
-    const room = state.rooms.find(r => r.id === resizeState.id);
+    const floor = getFloor();
+    const room = (floor.rooms || []).find(r => r.id === resizeState.id);
     if (!room) return;
     let {ox, oy, ow, oh} = resizeState;
     const ht = resizeState.handle;
@@ -731,6 +957,10 @@ document.addEventListener('mouseup', e => {
     finishRoomDraw();
     return;
   }
+  if (stairDrawState) {
+    finishStairDraw();
+    return;
+  }
 });
 
 // palette drag to canvas
@@ -741,6 +971,26 @@ canvasWrap.addEventListener('dragover', e => e.preventDefault());
 canvasWrap.addEventListener('drop', e => {
   e.preventDefault();
   const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+
+  // symbol drop
+  if (data.type) {
+    const def = SYMBOLS[data.type];
+    if (!def) return;
+    saveUndo();
+    const svg = document.getElementById('canvas-svg');
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM(); if (!ctm) return;
+    const svgPt = pt.matrixTransform(ctm.inverse());
+    const x = Math.round(Math.max(0, svgPt.x / state.scale));
+    const y = Math.round(Math.max(0, svgPt.y / state.scale));
+    state.symbols.push({ id: generateSymbolId(), type: data.type, x, y, w: def.w, h: def.h, rotation: 0 });
+    state.selectedId = state.symbols[state.symbols.length-1].id;
+    state.selectedIds.clear(); state.selectedIds.add(state.selectedId);
+    render();
+    toast(`➕ ${def.name} adicionado`);
+    return;
+  }
+
   if (!data.name) return;
   saveUndo();
   const svg = document.getElementById('canvas-svg');
@@ -749,15 +999,17 @@ canvasWrap.addEventListener('drop', e => {
   const svgPt = pt.matrixTransform(ctm.inverse());
   const x = Math.round(Math.max(0, svgPt.x / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
   const y = Math.round(Math.max(0, svgPt.y / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
-  state.rooms.push({ id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [], hatch: data.hatch || undefined });
-  state.selectedId = state.rooms[state.rooms.length-1].id;
+  const floor = ensureRooms();
+  floor.rooms.push({ id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [], hatch: data.hatch || undefined });
+  state.selectedId = floor.rooms[floor.rooms.length-1].id;
   render();
   toast(`➕ ${data.name} adicionado`);
 });
 
 // add door/window via tool
 function addOpening(roomId, e) {
-  const room = state.rooms.find(r => r.id === roomId);
+  const floor = getFloor();
+  const room = (floor.rooms || []).find(r => r.id === roomId);
   if (!room) return;
   const svg = document.getElementById('canvas-svg');
   const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
@@ -807,18 +1059,26 @@ function addOpening(roomId, e) {
 function deleteSelected() {
   const ids = state.selectedIds.size > 0 ? [...state.selectedIds] : (state.selectedId ? [state.selectedId] : []);
   if (!ids.length) return;
+  const roomIds = ids.filter(id => !id.startsWith('sym_') && !id.startsWith('stair_'));
+  const symIds = ids.filter(id => id.startsWith('sym_'));
+  const stairIds = ids.filter(id => id.startsWith('stair_'));
   saveUndo();
-  state.rooms = state.rooms.filter(r => !ids.includes(r.id));
+  const floor = getFloor();
+  floor.rooms = (floor.rooms || []).filter(r => !roomIds.includes(r.id));
+  state.symbols = state.symbols.filter(s => !symIds.includes(s.id));
+  if (floor.stairs) floor.stairs = floor.stairs.filter(s => !stairIds.includes(s.id));
   state.selectedId = null; state.selectedIds.clear();
   render();
-  toast(`🗑 ${ids.length} cômodo(s) removido(s)`);
+  const count = roomIds.length + symIds.length + stairIds.length;
+  toast(`🗑 ${count} item(ns) removido(s)`);
 }
 
 // copy / paste
 function copySelected() {
   const ids = state.selectedIds.size > 0 ? [...state.selectedIds] : (state.selectedId ? [state.selectedId] : []);
   if (!ids.length) return;
-  state.clipboard = state.rooms.filter(r => ids.includes(r.id)).map(r => ({
+  const floor = getFloor();
+  state.clipboard = (floor.rooms || []).filter(r => ids.includes(r.id)).map(r => ({
     ...JSON.parse(JSON.stringify(r)), id: null
   }));
   toast(`📋 ${state.clipboard.length} cômodo(s) copiado(s)`);
@@ -827,10 +1087,11 @@ function copySelected() {
 function pasteSelected() {
   if (!state.clipboard || !state.clipboard.length) { toast('📋 Nada para colar'); return; }
   saveUndo();
+  const floor = ensureRooms();
   state.selectedIds.clear();
   for (const r of state.clipboard) {
     const newRoom = {...JSON.parse(JSON.stringify(r)), id: generateId(), x: r.x + 50, y: r.y + 50};
-    state.rooms.push(newRoom);
+    floor.rooms.push(newRoom);
     state.selectedId = newRoom.id;
     state.selectedIds.add(newRoom.id);
   }
@@ -843,7 +1104,8 @@ function alignSelected(dir) {
   const ids = state.selectedIds.size > 1 ? [...state.selectedIds] : [];
   if (ids.length < 2) { toast('Selecione 2+ cômodos (Shift+click)'); return; }
   saveUndo();
-  const rooms = state.rooms.filter(r => ids.includes(r.id));
+  const floor = getFloor();
+  const rooms = (floor.rooms || []).filter(r => ids.includes(r.id));
   switch (dir) {
     case 'left': { const minX = Math.min(...rooms.map(r => r.x)); rooms.forEach(r => r.x = minX); break; }
     case 'right': { const maxR = Math.max(...rooms.map(r => r.x + r.width)); rooms.forEach(r => r.x = maxR - r.width); break; }
@@ -867,6 +1129,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !editable) {
     if (state.tool === 'wall') { cancelWallDraw(); return; }
     if (state.tool === 'room') { state.tool = 'select'; setToolUI('select'); render(); return; }
+    if (state.tool === 'stair') { state.tool = 'select'; setToolUI('select'); stairDrawState = null; render(); return; }
     if (state.tool === 'door' || state.tool === 'window') { setTool('select'); render(); return; }
     state.selectedId = null; state.selectedIds.clear(); state.tool = 'select'; setToolUI('select'); render();
   }
@@ -877,6 +1140,7 @@ document.addEventListener('keydown', e => {
     else if (e.key === '3') { setTool('room'); e.preventDefault(); }
     else if (e.key === '4') { setTool('door'); e.preventDefault(); }
     else if (e.key === '5') { setTool('window'); e.preventDefault(); }
+    else if (e.key === '6') { setTool('stair'); e.preventDefault(); }
   }
 });
 
@@ -886,7 +1150,51 @@ document.addEventListener('keydown', e => {
 
 function renderProperties() {
   const el = document.getElementById('props-content');
-  const room = state.rooms.find(r => r.id === state.selectedId);
+
+  // symbol selected
+  const sym = state.symbols.find(s => s.id === state.selectedId);
+  if (sym) {
+    const def = SYMBOLS[sym.type];
+    if (!def) { el.innerHTML = '<div class="empty-state">Símbolo não encontrado</div>'; return; }
+    let html = `<div class="prop-group"><label>🪑 Símbolo</label><strong>${def.icon} ${def.name}</strong></div>`;
+    html += `<div class="prop-group"><label>Dimensões (cm)</label>
+      <div class="prop-row"><div class="half"><label>X</label><input type=number value="${sym.x}" onchange="updateSymbolProp('x',+this.value)"></div>
+      <div class="half"><label>Y</label><input type=number value="${sym.y}" onchange="updateSymbolProp('y',+this.value)"></div></div>
+      <div class="prop-row"><div class="half"><label>Largura</label><input type=number value="${sym.w}" onchange="updateSymbolProp('w',+this.value)"></div>
+      <div class="half"><label>Altura</label><input type=number value="${sym.h}" onchange="updateSymbolProp('h',+this.value)"></div></div>
+      <label>Rotação (°)</label><input type=number value="${sym.rotation||0}" onchange="updateSymbolProp('rotation',+this.value)">
+    </div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  // stair selected
+  const stair = (getFloor().stairs || []).find(s => s.id === state.selectedId);
+  if (stair) {
+    let html = `<div class="prop-group"><label>🪜 Escada</label><strong>${stair.width}×${stair.height}cm</strong></div>`;
+    html += `<div class="prop-group"><label>Posição (cm)</label>
+      <div class="prop-row"><div class="half"><label>X</label><input type=number value="${stair.x}" onchange="updateStairProp('x',+this.value)"></div>
+      <div class="half"><label>Y</label><input type=number value="${stair.y}" onchange="updateStairProp('y',+this.value)"></div></div>
+      <div class="prop-row"><div class="half"><label>Largura</label><input type=number value="${stair.width}" onchange="updateStairProp('width',+this.value)"></div>
+      <div class="half"><label>Altura</label><input type=number value="${stair.height}" onchange="updateStairProp('height',+this.value)"></div></div>
+    </div>`;
+    html += `<div class="prop-group"><label>Direção</label>
+      <select onchange="updateStairProp('direction',this.value)">
+        <option value="up" ${stair.direction==='up'?'selected':''}>Up (Sobe)</option>
+        <option value="down" ${stair.direction==='down'?'selected':''}>Down (Desce)</option>
+      </select>
+    </div>`;
+    html += `<div class="prop-group"><label>Conecta ao pavimento</label>
+      <select onchange="updateStairProp('connectsTo',this.value)">
+        <option value="">— Nenhum —</option>
+        ${state.floors.filter(f => f.id !== state.activeFloor).map(f => `<option value="${f.id}" ${stair.connectsTo===f.id?'selected':''}>${f.name}</option>`).join('')}
+      </select>
+    </div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) { el.innerHTML = '<div class="empty-state">Selecione um cômodo no canvas</div>'; return; }
 
   let html = `<div class="prop-group"><label>Nome</label><input value="${escAttr(room.name)}" onchange="updateProp('name',this.value)"></div>`;
@@ -932,15 +1240,32 @@ function renderProperties() {
 }
 
 function updateProp(prop, val) {
-  const room = state.rooms.find(r => r.id === state.selectedId);
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
   room[prop] = (val === '' && prop === 'hatch') ? undefined : val;
   render();
 }
 
+function updateSymbolProp(prop, val) {
+  const sym = state.symbols.find(s => s.id === state.selectedId);
+  if (!sym) return;
+  saveUndo();
+  sym[prop] = val;
+  render();
+}
+
+function updateStairProp(prop, val) {
+  const floor = getFloor();
+  const stair = (floor.stairs || []).find(s => s.id === state.selectedId);
+  if (!stair) return;
+  saveUndo();
+  stair[prop] = val;
+  render();
+}
+
 function updateDoor(idx, prop, val) {
-  const room = state.rooms.find(r => r.id === state.selectedId);
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
   room.doors[idx][prop] = val;
@@ -948,7 +1273,7 @@ function updateDoor(idx, prop, val) {
 }
 
 function updateWindow(idx, prop, val) {
-  const room = state.rooms.find(r => r.id === state.selectedId);
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
   room.windows[idx][prop] = val;
@@ -956,7 +1281,7 @@ function updateWindow(idx, prop, val) {
 }
 
 function addDoor() {
-  const room = state.rooms.find(r => r.id === state.selectedId);
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
   room.doors.push({wall:'south', offset:Math.round(room.width/2-40), width:80, type:'pivot', swing:'left'});
@@ -964,7 +1289,7 @@ function addDoor() {
 }
 
 function addWindow() {
-  const room = state.rooms.find(r => r.id === state.selectedId);
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
   room.windows.push({wall:'north', offset:Math.round(room.width/2-50), width:100, height:120, sill:110});
@@ -972,7 +1297,7 @@ function addWindow() {
 }
 
 function removeOpening(type, idx) {
-  const room = state.rooms.find(r => r.id === state.selectedId);
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
   saveUndo();
   room[type].splice(idx, 1);
@@ -990,19 +1315,25 @@ function setTool(tool) {
     wallState.vertices = [];
     wallState.active = false;
     canvasWrap.classList.add('wall-tool');
-    canvasWrap.classList.remove('room-tool');
+    canvasWrap.classList.remove('room-tool','stair-tool');
     document.getElementById('wall-hint').style.display = 'block';
     renderPreview();
   } else if (tool === 'room') {
     canvasWrap.classList.add('room-tool');
-    canvasWrap.classList.remove('wall-tool');
+    canvasWrap.classList.remove('wall-tool','stair-tool');
+    document.getElementById('wall-hint').style.display = 'none';
+    renderPreview();
+  } else if (tool === 'stair') {
+    canvasWrap.classList.add('stair-tool');
+    canvasWrap.classList.remove('wall-tool','room-tool');
     document.getElementById('wall-hint').style.display = 'none';
     renderPreview();
   } else {
-    canvasWrap.classList.remove('wall-tool','room-tool');
+    canvasWrap.classList.remove('wall-tool','room-tool','stair-tool');
     document.getElementById('wall-hint').style.display = 'none';
     wallState.vertices = []; wallState.active = false;
     roomDrawState = null;
+    stairDrawState = null;
     renderPreview();
     renderRoomPreview();
   }
@@ -1014,6 +1345,112 @@ function setToolUI(tool) {
   document.querySelectorAll('#left-panel .tool-btn').forEach(b => b.style.borderColor = '');
   const btn = document.getElementById('tool-'+tool);
   if (btn) { btn.style.background = '#eff6ff'; btn.style.borderColor = 'var(--accent)'; }
+}
+
+// ═══════════════════════════════════════════════════
+//  FLOOR MANAGEMENT
+// ═══════════════════════════════════════════════════
+
+function switchFloor(id) {
+  state.activeFloor = id;
+  state.selectedId = null;
+  state.selectedIds.clear();
+  render();
+}
+
+function addFloor() {
+  const existingNames = state.floors.map(f => f.name);
+  let num = state.floors.length + 1;
+  let name = `Pavimento ${num}`;
+  while (existingNames.includes(name)) { num++; name = `Pavimento ${num}`; }
+  const id = 'floor' + (state.floors.length + 1);
+  saveUndo();
+  state.floors.push({ id, name, level: state.floors.length, rooms: [], stairs: [] });
+  state.activeFloor = id;
+  render();
+  toast(`🏢 ${name} adicionado`);
+}
+
+function removeFloor(id) {
+  if (state.floors.length <= 1) { toast('É necessário ao menos 1 pavimento'); return; }
+  saveUndo();
+  state.floors = state.floors.filter(f => f.id !== id);
+  state.activeFloor = state.floors[0].id;
+  state.selectedId = null; state.selectedIds.clear();
+  render();
+  toast('🏢 Pavimento removido');
+}
+
+function updateFloorTabs() {
+  const el = document.getElementById('floor-tab-list');
+  if (!el) return;
+  el.innerHTML = state.floors.map(f => `
+    <span class="floor-tab${f.id === state.activeFloor ? ' active' : ''}" onclick="switchFloor('${f.id}')">
+      🏠 ${f.name}
+      ${state.floors.length > 1 ? `<span class="floor-del" onclick="event.stopPropagation();removeFloor('${f.id}')" title="Remover pavimento">×</span>` : ''}
+    </span>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  STAIR DRAWING TOOL (click-drag)
+// ═══════════════════════════════════════════════════
+
+let stairDrawState = null;
+
+function startStairDraw(e) {
+  const pt = svgPoint(e.clientX, e.clientY);
+  stairDrawState = { sx: pt.x, sy: pt.y, ex: pt.x, ey: pt.y };
+}
+
+function updateStairDraw(e) {
+  if (!stairDrawState) return;
+  const pt = svgPoint(e.clientX, e.clientY);
+  stairDrawState.ex = pt.x; stairDrawState.ey = pt.y;
+  renderStairPreview();
+}
+
+function finishStairDraw() {
+  if (!stairDrawState) return;
+  let x1 = stairDrawState.sx, y1 = stairDrawState.sy;
+  let x2 = stairDrawState.ex, y2 = stairDrawState.ey;
+  const sc = state.scale;
+  let cmX = Math.round(Math.min(x1, x2) / sc);
+  let cmY = Math.round(Math.min(y1, y2) / sc);
+  let cmW = Math.round(Math.abs(x2 - x1) / sc);
+  let cmH = Math.round(Math.abs(y2 - y1) / sc);
+  if (cmW < 20 || cmH < 20) { stairDrawState = null; render(); return; }
+  saveUndo();
+  const floor = ensureRooms();
+  floor.stairs.push({ id: 'stair_' + (state.nextId++), x: cmX, y: cmY, width: cmW, height: cmH, direction: 'up', connectsTo: '' });
+  stairDrawState = null;
+  setTool('select');
+  render();
+  toast(`🪜 Escada adicionada (${cmW}×${cmH}cm)`);
+}
+
+function renderStairPreview() {
+  const svg = document.getElementById('canvas-svg');
+  svg.querySelectorAll('.stair-preview-layer').forEach(el => el.remove());
+  if (!stairDrawState) return;
+  const pg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  pg.classList.add('stair-preview-layer');
+  const x = Math.min(stairDrawState.sx, stairDrawState.ex);
+  const y = Math.min(stairDrawState.sy, stairDrawState.ey);
+  const w = Math.abs(stairDrawState.ex - stairDrawState.sx);
+  const h = Math.abs(stairDrawState.ey - stairDrawState.sy);
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('class', 'stair-preview');
+  pg.appendChild(rect);
+  const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  lbl.setAttribute('x', x + w/2); lbl.setAttribute('y', y + h/2);
+  lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('dominant-baseline', 'middle');
+  lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', '#666'); lbl.setAttribute('font-weight', '600');
+  lbl.textContent = 'UP';
+  pg.appendChild(lbl);
+  svg.appendChild(pg);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1041,7 +1478,8 @@ function finishWallDraw() {
   const h = Math.round((maxY - minY) / state.scale);
 
   saveUndo();
-  state.rooms.push({
+  const floor = ensureRooms();
+  floor.rooms.push({
     id: generateId(), name: 'Parede', x, y, width: w, height: h, doors: [], windows: [], hatch: undefined
   });
   wallState.vertices = []; wallState.active = false;
@@ -1124,7 +1562,8 @@ function finishRoomDraw() {
   if (cmW < 30 || cmH < 30) { roomDrawState = null; render(); return; }
 
   saveUndo();
-  state.rooms.push({
+  const floor = ensureRooms();
+  floor.rooms.push({
     id: generateId(), name: 'Cômodo', x: cmX, y: cmY, width: cmW, height: cmH, doors: [], windows: [], hatch: undefined
   });
   roomDrawState = null;
@@ -1180,7 +1619,7 @@ function hideContextMenu() {
 }
 
 canvasWrap.addEventListener('contextmenu', e => {
-  if (state.tool === 'wall' || state.tool === 'room') return;
+  if (state.tool === 'wall' || state.tool === 'room' || state.tool === 'stair') return;
   e.preventDefault();
   const menu = document.getElementById('context-menu');
   menu.style.display = 'block';
@@ -1226,8 +1665,8 @@ function toggleGrid() { state.gridVisible = !state.gridVisible; render(); }
 function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
 
 function newProject() {
-  if (state.rooms.length && !confirm('Criar novo projeto? Alterações não salvas serão perdidas.')) return;
-  state = {...state, title:'', rooms:[], selectedId:null, zoom:1, panX:0, panY:0, nextId:1};
+  if ((getFloor().rooms || []).length && !confirm('Criar novo projeto? Alterações não salvas serão perdidas.')) return;
+  state = {...state, title:'', floors:[{ id: 'terreo', name: 'Térreo', level: 0, rooms: [], stairs: [] }], activeFloor:'terreo', symbols:[], selectedId:null, zoom:1, panX:0, panY:0, nextId:1};
   undoStack=[]; redoStack=[];
   document.getElementById('file-name').textContent = '🌳 Sem título';
   render();
@@ -1243,19 +1682,44 @@ function importYAML() {
     const text = await e.target.files[0].text();
     try {
       const raw = jsyaml.load(text);
-      if (!raw.rooms) throw new Error('YAML inválido: sem rooms');
       state.title = raw.title || '';
       state.scale = raw.scale || DEFAULT_SCALE;
       state.wallThickness = raw.wallThickness || 15;
       state.gridSize = raw.grid || 100;
       state.gridVisible = raw.grid !== false;
-      state.rooms = raw.rooms.map(r => ({
-        id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
-        width: r.width||300, height: r.height||300,
-        doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
-        windows: r.windows || [],
-        hatch: r.hatch
-      }));
+
+      if (raw.floors) {
+        state.floors = raw.floors.map(f => ({
+          id: f.id || 'floor_' + (state.nextId++),
+          name: f.name || 'Pavimento',
+          level: f.level || 0,
+          rooms: (f.rooms || []).map(r => ({
+            id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+            width: r.width||300, height: r.height||300,
+            doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+            windows: r.windows || [],
+            hatch: r.hatch
+          })),
+          stairs: (f.stairs || []).map(s => ({
+            id: 'stair_' + (state.nextId++), x: s.x||0, y: s.y||0,
+            width: s.width||100, height: s.height||250,
+            direction: s.direction||'up', connectsTo: s.connectsTo||''
+          }))
+        }));
+      } else if (raw.rooms) {
+        state.floors = [{
+          id: 'terreo', name: 'Térreo', level: 0,
+          rooms: raw.rooms.map(r => ({
+            id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+            width: r.width||300, height: r.height||300,
+            doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+            windows: r.windows || [],
+            hatch: r.hatch
+          })),
+          stairs: []
+        }];
+      }
+      state.activeFloor = state.floors[0].id;
       undoStack=[]; redoStack=[]; state.selectedId=null;
       document.getElementById('file-name').textContent = '📂 ' + (e.target.files[0].name);
       document.getElementById('global-title').value = state.title;
@@ -1271,22 +1735,29 @@ function exportYAML() {
     version: 1, title: state.title || 'Planta Baixa',
     scale: state.scale, wallThickness: state.wallThickness,
     grid: state.gridVisible ? state.gridSize : false,
-    rooms: state.rooms.map(r => ({
-      id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
-      hatch: r.hatch || undefined,
-      doors: r.doors.length ? r.doors.map(d => ({wall:d.wall,offset:d.offset,width:d.width,type:d.type,swing:d.swing})) : undefined,
-      windows: r.windows.length ? r.windows : undefined
-    }))
+    floors: state.floors.map(f => ({
+      id: f.id, name: f.name, level: f.level,
+      rooms: (f.rooms || []).map(r => ({
+        id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
+        hatch: r.hatch || undefined,
+        doors: r.doors.length ? r.doors.map(d => ({wall:d.wall,offset:d.offset,width:d.width,type:d.type,swing:d.swing})) : undefined,
+        windows: r.windows.length ? r.windows : undefined
+      })),
+      stairs: (f.stairs || []).length ? f.stairs.map(s => ({id:s.id,x:s.x,y:s.y,width:s.width,height:s.height,direction:s.direction,connectsTo:s.connectsTo||undefined})) : undefined
+    })),
+    symbols: state.symbols.length ? state.symbols.map(s => ({id:s.id,type:s.type,x:s.x,y:s.y,w:s.w,h:s.h,rotation:s.rotation||0})) : undefined
   };
   downloadFile('planta.yaml', jsyaml.dump(out, {lineWidth:-1, noCompatMode:true}), 'text/yaml');
   toast('📤 YAML exportado!');
 }
 
 function exportSVG() {
+  const floor = getFloor();
+  const rooms = floor.rooms || [];
   const yaml = jsyaml.dump({
     version:1, title:state.title||'Planta Baixa', scale:state.scale,
     wallThickness:state.wallThickness, grid:state.gridVisible?state.gridSize:false,
-    rooms: state.rooms.map(r => ({
+    rooms: rooms.map(r => ({
       id:r.id, name:r.name, x:r.x, y:r.y, width:r.width, height:r.height,
       hatch: r.hatch || undefined,
       doors: r.doors.length ? r.doors : undefined,
@@ -1294,10 +1765,24 @@ function exportSVG() {
     }))
   }, {lineWidth:-1, noCompatMode:true});
 
-  // Use the existing engine to render SVG
   const input = parseFloorplanInput(yaml);
   const resolved = resolveFloorplanLayout(input);
-  const svgStr = renderFloorplanSVG(resolved);
+  let svgStr = renderFloorplanSVG(resolved);
+
+  // append symbols
+  if (state.symbols.length) {
+    let symSvg = '';
+    for (const sym of state.symbols) {
+      const def = SYMBOLS[sym.type];
+      if (!def) continue;
+      const sx = sym.x * resolved.scale, sy = sym.y * resolved.scale;
+      const scX = sym.w * resolved.scale / def.w, scY = sym.h * resolved.scale / def.h;
+      const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
+      symSvg += `<g transform="translate(${sx},${sy}) scale(${scX},${scY})${rot}">${def.svg}</g>`;
+    }
+    svgStr = svgStr.replace('</svg>', symSvg + '</svg>');
+  }
+
   downloadFile('planta.svg', svgStr, 'image/svg+xml');
   toast('⬇ SVG exportado!');
 }
@@ -1459,10 +1944,12 @@ function renderFloorplanDXF(input) {
 }
 
 function exportDXF() {
+  const floor = getFloor();
+  const rooms = floor.rooms || [];
   const yaml = jsyaml.dump({
     version:1, title:state.title||'Planta Baixa', scale:state.scale,
     wallThickness:state.wallThickness, grid:state.gridVisible?state.gridSize:false,
-    rooms: state.rooms.map(r => ({
+    rooms: rooms.map(r => ({
       id:r.id, name:r.name, x:r.x, y:r.y, width:r.width, height:r.height,
       hatch: r.hatch || undefined,
       doors: r.doors.length ? r.doors : undefined,
@@ -1475,6 +1962,93 @@ function exportDXF() {
   const dxfStr = renderFloorplanDXF(resolved);
   downloadFile('planta.dxf', dxfStr, 'application/dxf');
   toast('📐 DXF exportado!');
+}
+
+function calculateTotalArea() {
+  let total = 0;
+  for (const f of state.floors) {
+    for (const r of (f.rooms || [])) { total += r.width * r.height; }
+  }
+  return (total / 10000).toFixed(1);
+}
+
+function exportPDF() {
+  const svgEl = document.querySelector('#canvas-svg');
+  if (!svgEl) return;
+  const clone = svgEl.cloneNode(true);
+  const svg = clone.outerHTML;
+  const escS = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${escS(state.title || 'Planta Baixa')}</title>
+<style>
+  @page { size: A3 landscape; margin: 15mm; }
+  body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+  .page { page-break-after: always; padding: 20px; }
+  .title-block { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+  .title-block h1 { font-size: 24px; margin: 0; }
+  .stamp { font-size: 9px; color: #666; text-align: right; }
+  .stamp table { border-collapse: collapse; margin-left: auto; }
+  .stamp td { padding: 2px 8px; border: 1px solid #ccc; font-size: 9px; }
+  .floor-plan { text-align: center; margin: 20px 0; }
+  .floor-plan svg { max-width: 100%; height: auto; }
+  .legend { margin-top: 20px; font-size: 10px; }
+  .scale-bar { margin: 10px 0; text-align: center; font-size: 10px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head><body>
+  <div class="page">
+    <div class="title-block">
+      <div><h1>${escS(state.title || 'Planta Baixa')}</h1><p>Escala: 1:50 | Data: ${new Date().toLocaleDateString('pt-BR')}</p></div>
+      <div class="stamp">
+        <table>
+          <tr><td>Projeto:</td><td>${escS(state.title || 'Planta')}</td></tr>
+          <tr><td>Escala:</td><td>1:50</td></tr>
+          <tr><td>Data:</td><td>${new Date().toLocaleDateString('pt-BR')}</td></tr>
+          <tr><td>&Aacute;rea:</td><td>${calculateTotalArea()} m&sup2;</td></tr>
+          <tr><td>Gerado por:</td><td>Floorplan</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="floor-plan">${svg}</div>
+    <div class="legend">
+      <strong>Legenda:</strong> ${(getFloor().rooms||[]).map(r => escS(r.name)).join(' | ') || 'Nenhum c&ocirc;modo'}
+    </div>
+    <div class="scale-bar">&block;&block;&block;&block;&block; 5m &block;&block;&block;&block;&block;</div>
+  </div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+function exportPNG() {
+  const svgEl = document.querySelector('#canvas-svg');
+  if (!svgEl) return;
+  const clone = svgEl.cloneNode(true);
+  const svg = clone.outerHTML;
+  const canvas = document.createElement('canvas');
+  const img = new Image();
+  const blob = new Blob([svg], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  img.onload = () => {
+    canvas.width = img.width * 2;
+    canvas.height = img.height * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'planta.png';
+    a.click();
+    toast('🖼️ PNG exportado!');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('Erro ao exportar PNG'); };
+  img.src = url;
 }
 
 function rnd(n){return Math.round(n*10)/10}
@@ -1508,15 +2082,16 @@ function toggleTheme() {
 function updateMinimap() {
   const mm = document.getElementById('minimap-svg');
   if (!mm) return;
-  if (!state.rooms.length) { mm.innerHTML = ''; return; }
+  const rooms = getFloor().rooms || [];
+  if (!rooms.length) { mm.innerHTML = ''; return; }
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  for (const r of state.rooms) {
+  for (const r of rooms) {
     minX=Math.min(minX,r.x);minY=Math.min(minY,r.y);
     maxX=Math.max(maxX,r.x+r.width);maxY=Math.max(maxY,r.y+r.height);
   }
   const pad = 50, vw=maxX-minX+pad*2, vh=maxY-minY+pad*2;
   mm.setAttribute('viewBox',`${minX-pad} ${minY-pad} ${vw} ${vh}`);
-  mm.innerHTML = state.rooms.map(r =>
+  mm.innerHTML = rooms.map(r =>
     `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" fill="#bbb" stroke="#999" stroke-width="1" rx="2"/>`
   ).join('');
   // viewport indicator
@@ -1571,7 +2146,7 @@ function autoSave() {
   clearTimeout(autoSaveTimeout);
   autoSaveTimeout = setTimeout(() => {
     try {
-      const data = { title: state.title, rooms: state.rooms, scale: state.scale, wallThickness: state.wallThickness, gridSize: state.gridSize, gridVisible: state.gridVisible, nextId: state.nextId };
+      const data = { title: state.title, floors: state.floors, activeFloor: state.activeFloor, symbols: state.symbols, scale: state.scale, wallThickness: state.wallThickness, gridSize: state.gridSize, gridVisible: state.gridVisible, nextId: state.nextId, nextSymId: state.nextSymId };
       localStorage.setItem(EDITOR_LS_KEY, JSON.stringify(data));
     } catch(e) {}
   }, 1000);
@@ -1583,12 +2158,19 @@ function loadAutoSave() {
     if (raw) {
       const data = JSON.parse(raw);
       state.title = data.title || '';
-      state.rooms = data.rooms || [];
+      state.floors = data.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: data.rooms || [], stairs: [] }];
+      // migrate old format
+      if (!data.floors && data.rooms) {
+        state.floors = [{ id: 'terreo', name: 'Térreo', level: 0, rooms: data.rooms, stairs: [] }];
+      }
+      state.activeFloor = data.activeFloor || state.floors[0].id;
       state.scale = data.scale || DEFAULT_SCALE;
       state.wallThickness = data.wallThickness || 15;
       state.gridSize = data.gridSize || 100;
       state.gridVisible = data.gridVisible !== false;
       state.nextId = data.nextId || 1;
+      state.nextSymId = data.nextSymId || 1;
+      state.symbols = data.symbols || [];
       document.getElementById('global-title').value = state.title;
       return true;
     }
@@ -1601,16 +2183,18 @@ const _origRender = render;
 render = function() {
   _origRender();
   autoSave();
-  // restore wall/room previews after render clears SVG
+  // restore wall/room/stair previews after render clears SVG
   if (state.tool === 'wall') renderPreview();
   if (state.tool === 'room') renderRoomPreview();
+  if (state.tool === 'stair') renderStairPreview();
 };
 
 // init
 initPalette();
+initSymbolPalette();
 if (!loadAutoSave()) {
   // default starter room
-  state.rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
+  state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
 }
 render();
 </script>

@@ -4,6 +4,7 @@ import type {
   ResolvedRoom,
   ResolvedDoor,
   ResolvedWindow,
+  ResolvedStair,
   ResolvedFreeWall,
   WallSegment,
   Point,
@@ -31,6 +32,22 @@ export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
     thickness: (w.thickness || input.wallThickness!) * scale,
   }));
 
+  // Resolve stairs from all floors
+  const stairs: ResolvedStair[] = [];
+  for (const floor of (input.floors || [])) {
+    for (const stair of (floor.stairs || [])) {
+      stairs.push({
+        id: stair.id,
+        x: stair.x * scale,
+        y: stair.y * scale,
+        width: stair.width * scale,
+        height: stair.height * scale,
+        direction: stair.direction || 'up',
+        connectsTo: stair.connectsTo,
+      });
+    }
+  }
+
   const grid = input.grid === false ? false : (input.grid || 100) * scale;
   const dimensions = computeDimensions(rooms, scale, wt);
 
@@ -38,6 +55,7 @@ export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
     title: input.title,
     scale,
     rooms,
+    stairs: stairs.length ? stairs : undefined,
     freeWalls,
     wallThicknessPx: wt,
     grid,

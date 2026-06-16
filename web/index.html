@@ -163,6 +163,10 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
         <div class="ex-title">Galpão Industrial</div>
         <div class="ex-meta">~162m² · 4 áreas</div>
       </a>
+      <a class="example-card" data-example="casa2pav" onclick="loadExample('casa2pav')">
+        <div class="ex-title">Casa 2 Pavimentos</div>
+        <div class="ex-meta">~90m² · 8 cômodos · 2 andares</div>
+      </a>
       <div class="section-title">🧩 Biblioteca de Cômodos</div>
       <div id="room-library"></div>
       <div class="section-title">🔗 Compartilhar</div>
@@ -180,6 +184,8 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
       <div class="sep"></div>
       <button onclick="downloadSVG()" title="Baixar SVG">⬇ SVG</button>
       <button onclick="downloadYAML()" title="Baixar YAML">📄 YAML</button>
+      <button onclick="exportPDF()" title="Exportar PDF (impressão)">🖨️ PDF</button>
+      <button onclick="exportPNG()" title="Exportar PNG">🖼️ PNG</button>
       <div class="sep"></div>
       <button onclick="toggleGrid()" id="btn-grid" title="Alternar grid">⊞ Grid</button>
       <button onclick="toggleTheme()" title="Alternar tema">🌓 Tema</button>
@@ -189,6 +195,8 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
       <button class="qa-btn" onclick="insertSnippet('door')" title="Inserir porta">🚪 Porta</button>
       <button class="qa-btn" onclick="insertSnippet('window')" title="Inserir janela">🪟 Janela</button>
       <button class="qa-btn" onclick="insertSnippet('lot')" title="Inserir lote">📐 Lote</button>
+      <button class="qa-btn" onclick="insertSnippet('floor')" title="Inserir pavimento">🏢 Pavimento</button>
+      <button class="qa-btn" onclick="insertSnippet('stair')" title="Inserir escada">🪜 Escada</button>
       <div class="sep"></div>
       <button onclick="resetEditor()" title="Voltar ao exemplo original">↺ Reset</button>
     </div>
@@ -748,7 +756,187 @@ rooms:
         offset: 60
         width: 60
         height: 80
-        sill: 160`
+        sill: 160`,
+
+  casa2pav: `version: 1
+title: "Casa 2 Pavimentos"
+scale: 2
+wallThickness: 15
+grid: 100
+
+floors:
+  - id: terreo
+    name: Térreo
+    level: 0
+    rooms:
+      - id: sala
+        name: Sala de Estar
+        x: 0
+        y: 0
+        width: 500
+        height: 400
+        doors:
+          - wall: south
+            offset: 200
+            width: 100
+            type: double
+            swing: left
+          - wall: east
+            offset: 160
+            width: 80
+            type: pivot
+            swing: left
+        windows:
+          - wall: north
+            offset: 80
+            width: 250
+            height: 120
+            sill: 110
+          - wall: west
+            offset: 100
+            width: 150
+            height: 120
+            sill: 110
+      - id: cozinha
+        name: Cozinha
+        x: 500
+        y: 0
+        width: 300
+        height: 400
+        doors:
+          - wall: west
+            offset: 100
+            width: 80
+            type: pivot
+            swing: right
+          - wall: south
+            offset: 100
+            width: 80
+            type: pivot
+            swing: left
+        windows:
+          - wall: east
+            offset: 80
+            width: 120
+            height: 120
+            sill: 110
+      - id: lavabo
+        name: Lavabo
+        x: 500
+        y: 400
+        width: 150
+        height: 200
+        hatch: diagonal
+        doors:
+          - wall: west
+            offset: 60
+            width: 70
+            type: pivot
+            swing: left
+      - id: varanda
+        name: Varanda
+        x: 0
+        y: 400
+        width: 500
+        height: 200
+        doors:
+          - wall: north
+            offset: 200
+            width: 100
+            type: double
+            swing: left
+    stairs:
+      - id: escada1
+        x: 650
+        y: 400
+        width: 100
+        height: 300
+        direction: up
+        connectsTo: superior
+  - id: superior
+    name: Pavimento Superior
+    level: 1
+    rooms:
+      - id: quarto1
+        name: Quarto 1
+        x: 0
+        y: 0
+        width: 350
+        height: 350
+        doors:
+          - wall: east
+            offset: 140
+            width: 80
+            type: pivot
+            swing: right
+        windows:
+          - wall: south
+            offset: 80
+            width: 180
+            height: 120
+            sill: 110
+      - id: quarto2
+        name: Quarto 2
+        x: 350
+        y: 0
+        width: 300
+        height: 350
+        doors:
+          - wall: west
+            offset: 100
+            width: 80
+            type: pivot
+            swing: left
+        windows:
+          - wall: south
+            offset: 60
+            width: 150
+            height: 120
+            sill: 110
+      - id: banheiro_sup
+        name: Banheiro
+        x: 350
+        y: 350
+        width: 300
+        height: 200
+        hatch: diagonal
+        doors:
+          - wall: north
+            offset: 100
+            width: 70
+            type: pivot
+            swing: left
+        windows:
+          - wall: east
+            offset: 100
+            width: 60
+            height: 80
+            sill: 160
+      - id: corredor_sup
+        name: Corredor
+        x: 0
+        y: 350
+        width: 350
+        height: 120
+        doors:
+          - wall: north
+            offset: 60
+            width: 80
+            type: pivot
+            swing: left
+          - wall: south
+            offset: 160
+            width: 80
+            type: pivot
+            swing: right
+    stairs:
+      - id: escada1_sup
+        x: 50
+        y: 470
+        width: 100
+        height: 300
+        direction: down
+        connectsTo: terreo`
 };
 
 // Parse inline YAML (semicolon-separated compact format → proper indentation)
@@ -767,18 +955,46 @@ function expandExample(yaml) {
 
 function parseInput(yamlStr) {
   const raw = jsyaml.load(yamlStr);
-  if (!raw || !raw.rooms || !raw.rooms.length) throw new Error('Defina ao menos um cômodo (rooms)');
+  if (!raw) throw new Error('YAML inválido');
+
+  // Backward compat: flat rooms → single floor
+  let floors = [];
+  if (raw.floors && raw.floors.length) {
+    floors = raw.floors.map(f => ({
+      id: f.id, name: f.name || 'Pavimento', level: f.level || 0,
+      rooms: (f.rooms || []).map((r, i) => ({
+        id: r.id || 'r' + i, name: r.name || 'Cômodo', x: r.x, y: r.y,
+        width: r.width, height: r.height,
+        doors: (r.doors || []).map(d => ({ wall: d.wall, offset: d.offset, width: d.width, type: d.type || 'pivot', swing: d.swing || 'left' })),
+        windows: (r.windows || []).map(w => ({ wall: w.wall, offset: w.offset, width: w.width, height: w.height || 120, sill: w.sill || 110 })),
+        hatch: r.hatch
+      })),
+      stairs: (f.stairs || []).map(s => ({
+        id: s.id, name: s.name || '', x: s.x, y: s.y, width: s.width, height: s.height,
+        direction: s.direction || 'up', connectsTo: s.connectsTo || ''
+      }))
+    }));
+  } else if (raw.rooms && raw.rooms.length) {
+    floors = [{
+      id: 'main', name: 'Térreo', level: 0,
+      rooms: raw.rooms.map((r, i) => ({
+        id: r.id || 'r' + i, name: r.name || 'Cômodo', x: r.x, y: r.y,
+        width: r.width, height: r.height,
+        doors: (r.doors || []).map(d => ({ wall: d.wall, offset: d.offset, width: d.width, type: d.type || 'pivot', swing: d.swing || 'left' })),
+        windows: (r.windows || []).map(w => ({ wall: w.wall, offset: w.offset, width: w.width, height: w.height || 120, sill: w.sill || 110 })),
+        hatch: r.hatch
+      })),
+      stairs: []
+    }];
+  } else {
+    throw new Error('Defina ao menos um cômodo (rooms) ou pavimento (floors)');
+  }
+
   const sc = raw.scale || 2;
   return {
     title: raw.title, scale: sc, wallThickness: raw.wallThickness || 15,
     grid: raw.grid !== undefined ? raw.grid : 100,
-    rooms: raw.rooms.map((r, i) => ({
-      id: r.id || 'r' + i, name: r.name || 'Cômodo', x: r.x, y: r.y,
-      width: r.width, height: r.height,
-      doors: (r.doors || []).map(d => ({ wall: d.wall, offset: d.offset, width: d.width, type: d.type || 'pivot', swing: d.swing || 'left' })),
-      windows: (r.windows || []).map(w => ({ wall: w.wall, offset: w.offset, width: w.width, height: w.height || 120, sill: w.sill || 110 })),
-      hatch: r.hatch
-    })),
+    floors,
     walls: raw.walls || [],
     lot: raw.lot || null
   };
@@ -788,7 +1004,24 @@ function pt(x, y) { return { x, y }; }
 
 function resolveLayout(input) {
   const sc = input.scale, wt = input.wallThickness * sc;
-  const rooms = input.rooms.map(room => {
+  
+  // Flatten all rooms from all floors (for rendering, all rooms go in same SVG)
+  const allRooms = [];
+  const allStairs = [];
+  for (const floor of (input.floors || [])) {
+    for (const room of (floor.rooms || [])) {
+      allRooms.push(room);
+    }
+    for (const stair of (floor.stairs || [])) {
+      allStairs.push(stair);
+    }
+  }
+  // Backward compat: direct rooms array
+  if (!input.floors && input.rooms) {
+    for (const room of input.rooms) allRooms.push(room);
+  }
+
+  const rooms = allRooms.map(room => {
     const r = { x: room.x * sc, y: room.y * sc, w: room.width * sc, h: room.height * sc };
     const doors = (room.doors || []).map(d => {
       const op = openingOnWall(d.wall, r, d.offset * sc, d.width * sc);
@@ -815,6 +1048,11 @@ function resolveLayout(input) {
   }
   return { title: input.title, rooms, freeWalls: [], wallThicknessPx: wt, grid: input.grid === false ? false : (input.grid || 100) * sc,
     lot,
+    stairs: allStairs.map(s => ({
+      ...s,
+      sx: s.x * sc, sy: s.y * sc, sw: s.width * sc, sh: s.height * sc
+    })),
+    floors: input.floors || [],
     dimensions: [
       { x1: minX, y1: maxY + off, x2: maxX, y2: maxY + off, value: ((maxX - minX) / sc / 100).toFixed(2) + ' m' },
       { x1: maxX + off, y1: minY, x2: maxX + off, y2: maxY, value: ((maxY - minY) / sc / 100).toFixed(2) + ' m' }
@@ -876,8 +1114,8 @@ function renderSVG(input) {
 
   const C = { w: '#2d2d2d', ws: '#1a1a1a', rb: '#fafafa', dp: '#2d2d2d', da: '#555', wf: '#4a90d9', dl: '#b71c1c', dt: '#b71c1c', gd: '#e0e0e0', lb: '#1a1a1a', tt: '#1a1a1a' };
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%">`;
-  s += `<style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style>`;
-  s += `<defs><pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern></defs>`;
+  s += `<style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}.stair-fill{fill:#f5f0e8;stroke:#8a7b6b;stroke-width:1.5}.stair-label{font-family:system-ui,sans-serif;font-size:12px;font-weight:700;fill:#6d5d4b;text-anchor:middle;dominant-baseline:middle}.floor-label{font-family:system-ui,sans-serif;font-size:14px;font-weight:600;fill:#16213e;text-anchor:start}</style>`;
+  s += `<defs><pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="stair-hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f5f0e8"/><line x1="0" y1="5" x2="10" y2="5" stroke="#d4c9b8" stroke-width="1.5"/></pattern><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#6d5d4b"/></marker></defs>`;
   s += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
 
   // lot (terreno)
@@ -949,6 +1187,37 @@ function renderSVG(input) {
 
   for (const r of rooms) s += `<text x="${r.labelPos.x}" y="${r.labelPos.y}" class="rn">${esc(r.name)}</text>`;
 
+  // stairs
+  if (input.stairs) for (const stair of input.stairs) {
+    const dir = stair.direction || 'up';
+    const sx = stair.sx, sy = stair.sy, sw = stair.sw, sh = stair.sh;
+    const midX = sx + sw/2, midY = sy + sh/2;
+    s += `<rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" class="stair-fill" fill="url(#stair-hatch)"/>`;
+    s += `<line x1="${sx}" y1="${sy}" x2="${sx+sw}" y2="${sy+sh}" stroke="#c4b5a5" stroke-width="1"/>`;
+    let ax1, ay1, ax2, ay2;
+    if (dir === 'up') {
+      ax1 = midX; ay1 = sy + sh * 0.75;
+      ax2 = midX; ay2 = sy + sh * 0.25;
+    } else {
+      ax1 = midX; ay1 = sy + sh * 0.25;
+      ax2 = midX; ay2 = sy + sh * 0.75;
+    }
+    s += `<line x1="${ax1}" y1="${ay1}" x2="${ax2}" y2="${ay2}" stroke="#6d5d4b" stroke-width="2" marker-end="url(#arrowhead)"/>`;
+    s += `<text x="${midX}" y="${midY}" class="stair-label">${dir==='up'?'UP':'DOWN'}</text>`;
+  }
+
+  // floor labels (multi-floor)
+  if (input.floors && input.floors.length > 1) {
+    const maxXBound = Math.max(...rooms.map(r => r.rect.x + r.rect.w));
+    for (const floor of input.floors) {
+      if (!floor.rooms || !floor.rooms.length) continue;
+      const fr = rooms.find(r => floor.rooms.some(fr => fr.id === r.id));
+      if (!fr) continue;
+      const fy = fr.rect.y - 10;
+      s += `<text x="${fr.rect.x}" y="${fy}" class="floor-label">${esc(floor.name)}</text>`;
+    }
+  }
+
   for (const d of dimensions) {
     const isH = Math.abs(d.y2 - d.y1) < Math.abs(d.x2 - d.x1);
     s += `<line x1="${d.x1}" y1="${d.y1}" x2="${d.x2}" y2="${d.y2}" class="dl"/>`;
@@ -978,10 +1247,12 @@ const editor = CodeMirror(document.getElementById('editor-wrap'), { value: '', m
 let currentExample = 'apartamento', renderTimeout, showGrid = true, zoomLevel = 1, editorValid = true;
 
 // ── YAML autocomplete / hints ──
-const TOP_KEYS = ['version:', 'title:', 'scale:', 'wallThickness:', 'grid:', 'lot:', 'rooms:', 'walls:'];
-const ROOM_PROPS = ['id:', 'name:', 'x:', 'y:', 'width:', 'height:', 'doors:', 'windows:'];
+const TOP_KEYS = ['version:', 'title:', 'scale:', 'wallThickness:', 'grid:', 'lot:', 'floors:', 'rooms:', 'walls:'];
+const ROOM_PROPS = ['id:', 'name:', 'x:', 'y:', 'width:', 'height:', 'doors:', 'windows:', 'hatch:'];
 const DOOR_PROPS = ['wall:', 'offset:', 'width:', 'type:', 'swing:'];
 const WIN_PROPS = ['wall:', 'offset:', 'width:', 'height:', 'sill:'];
+const STAIR_PROPS = ['id:', 'x:', 'y:', 'width:', 'height:', 'direction:', 'connectsTo:'];
+const FLOOR_PROPS = ['id:', 'name:', 'level:', 'rooms:', 'stairs:'];
 const WALL_DIRS = ['north', 'south', 'east', 'west'];
 const DOOR_TYPES = ['pivot', 'sliding', 'double'];
 const SWING = ['left', 'right', 'none'];
@@ -1003,7 +1274,38 @@ function floorplanHint(cm) {
     suggestions = suggestions.concat(TOP_KEYS);
   }
 
-  // Inside rooms block
+  // Inside floors block
+  const hasFloors = allText.includes('\nfloors:');
+  if (hasFloors) {
+    if (indent === 2 && /^\s*- /.test(line)) {
+      suggestions = suggestions.concat(['- id:']);
+    }
+    if (indent === 4 && !/^\s*- /.test(line)) {
+      const lastFloorIdx = textBefore.lastIndexOf('\n  - id:');
+      const lastTopKey = Math.max(textBefore.lastIndexOf('\nfloors:'), textBefore.lastIndexOf('\nrooms:'), textBefore.lastIndexOf('\nlot:'));
+      if (lastFloorIdx > lastTopKey) {
+        suggestions = suggestions.concat(FLOOR_PROPS);
+      }
+    }
+    if (indent === 6 && /^\s*- /.test(line)) {
+      const sectionBefore = textBefore;
+      const lastStairs = sectionBefore.lastIndexOf('\n    stairs:');
+      const lastRooms = sectionBefore.lastIndexOf('\n    rooms:');
+      if (lastStairs > lastRooms) {
+        suggestions = suggestions.concat(['- id:']);
+      }
+    }
+    if (indent >= 8 && !/^\s*- /.test(line)) {
+      const sectionBefore = textBefore;
+      const lastStairs = sectionBefore.lastIndexOf('\n    stairs:');
+      const lastRooms = sectionBefore.lastIndexOf('\n    rooms:');
+      if (lastStairs > lastRooms) {
+        suggestions = suggestions.concat(STAIR_PROPS);
+      }
+    }
+  }
+
+  // Inside rooms block (old format or within floors)
   if (allText.includes('\nrooms:')) {
     // Room entry (indent 2)
     if (indent === 2 && /^\s*- /.test(line)) {
@@ -1015,7 +1317,8 @@ function floorplanHint(cm) {
       const lastTopKey = Math.max(
         textBefore.lastIndexOf('\nrooms:'),
         textBefore.lastIndexOf('\nlot:'),
-        textBefore.lastIndexOf('\nwalls:')
+        textBefore.lastIndexOf('\nwalls:'),
+        textBefore.lastIndexOf('\nfloors:')
       );
       if (lastRoomIdx > lastTopKey) {
         if (indent === 4 && !/^\s*- /.test(line)) {
@@ -1081,7 +1384,16 @@ function loadExample(name) {
 
 function validateFloorplan(input) {
   const warnings = [];
-  const rooms = input.rooms;
+  // Handle both old and new format
+  let rooms;
+  if (input.floors) {
+    rooms = [];
+    for (const f of input.floors) {
+      for (const r of (f.rooms || [])) rooms.push(r);
+    }
+  } else {
+    rooms = input.rooms || [];
+  }
 
   // 1. Porta fora da parede
   for (const room of rooms) {
@@ -1285,6 +1597,12 @@ window.insertSnippet = function(type) {
     case 'lot':
       snippet = 'lot:\n  width: 2000\n  height: 1500\n';
       break;
+    case 'floor':
+      snippet = '  - id: pav1\n    name: Novo Pavimento\n    level: 1\n    rooms:\n      - id: comodo\n        name: Novo Cômodo\n        x: 0\n        y: 0\n        width: 400\n        height: 300\n        doors:\n          - wall: south; offset: 160; width: 80; type: pivot; swing: left\n        windows:\n          - wall: north; offset: 100; width: 150; height: 120; sill: 110\n    stairs:\n      - id: escada\n        x: 500\n        y: 200\n        width: 100\n        height: 300\n        direction: up\n        connectsTo: terreo\n';
+      break;
+    case 'stair':
+      snippet = '      - id: escada\n        x: 400\n        y: 200\n        width: 100\n        height: 300\n        direction: up\n        connectsTo: terreo\n';
+      break;
   }
   editor.replaceRange(snippet, cursor);
   editor.focus();
@@ -1295,6 +1613,101 @@ window.insertSnippet = function(type) {
 window.downloadSVG = () => { try { const svg = renderFloorplan(editor.getValue()); const b = new Blob([svg], { type: 'image/svg+xml' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'planta.svg'; a.click(); URL.revokeObjectURL(u); } catch (e) { toast('Erro: ' + e.message); } };
 window.downloadYAML = () => { const b = new Blob([editor.getValue()], { type: 'text/yaml' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'planta.yaml'; a.click(); URL.revokeObjectURL(u); };
 window.resetEditor = () => { loadExample(currentExample); toast('Editor redefinido'); };
+
+window.exportPDF = function() {
+  let svg;
+  const svgEl = document.querySelector('#preview-pane svg');
+  if (svgEl) {
+    const clone = svgEl.cloneNode(true);
+    svg = clone.outerHTML;
+  } else {
+    try { svg = renderFloorplan(editor.getValue()); } catch(e) { toast('Erro: ' + e.message); return; }
+  }
+
+    let title = 'Planta Baixa', rooms = [], totalArea = '0.0';
+  try {
+    const input = parseInput(expandExample(editor.getValue()));
+    title = input.title || 'Planta Baixa';
+    if (input.floors) {
+      for (const f of input.floors) for (const r of (f.rooms || [])) rooms.push(r);
+    }
+    if (input.rooms) rooms = input.rooms;
+    totalArea = (rooms.reduce((sum, r) => sum + r.width * r.height, 0) / 10000).toFixed(1);
+  } catch(e) {}
+
+  const escS = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${escS(title)}</title>
+<style>
+  @page { size: A3 landscape; margin: 15mm; }
+  body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+  .page { page-break-after: always; padding: 20px; }
+  .title-block { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+  .title-block h1 { font-size: 24px; margin: 0; }
+  .stamp { font-size: 9px; color: #666; text-align: right; }
+  .stamp table { border-collapse: collapse; margin-left: auto; }
+  .stamp td { padding: 2px 8px; border: 1px solid #ccc; font-size: 9px; }
+  .floor-plan { text-align: center; margin: 20px 0; }
+  .floor-plan svg { max-width: 100%; height: auto; }
+  .legend { margin-top: 20px; font-size: 10px; }
+  .scale-bar { margin: 10px 0; text-align: center; font-size: 10px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head><body>
+  <div class="page">
+    <div class="title-block">
+      <div><h1>${escS(title)}</h1><p>Escala: 1:50 | Data: ${new Date().toLocaleDateString('pt-BR')}</p></div>
+      <div class="stamp">
+        <table>
+          <tr><td>Projeto:</td><td>${escS(title)}</td></tr>
+          <tr><td>Escala:</td><td>1:50</td></tr>
+          <tr><td>Data:</td><td>${new Date().toLocaleDateString('pt-BR')}</td></tr>
+          <tr><td>&Aacute;rea:</td><td>${totalArea} m&sup2;</td></tr>
+          <tr><td>Gerado por:</td><td>Floorplan</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="floor-plan">${svg}</div>
+    <div class="legend">
+      <strong>Legenda:</strong> ${rooms.map(r => escS(r.name)).join(' | ') || 'Nenhum c&ocirc;modo'}
+    </div>
+    <div class="scale-bar">&block;&block;&block;&block;&block; 5m &block;&block;&block;&block;&block;</div>
+  </div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+};
+
+window.exportPNG = function() {
+  const svgEl = document.querySelector('#preview-pane svg');
+  if (!svgEl) { toast('Nenhum SVG para exportar'); return; }
+  const clone = svgEl.cloneNode(true);
+  const svg = clone.outerHTML;
+  const canvas = document.createElement('canvas');
+  const img = new Image();
+  const blob = new Blob([svg], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  img.onload = () => {
+    canvas.width = img.width * 2;
+    canvas.height = img.height * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'planta.png';
+    a.click();
+    toast('🖼️ PNG exportado!');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('Erro ao exportar PNG'); };
+  img.src = url;
+};
 
 // share
 function saveHash() { try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(editor.getValue())))); } catch (e) {} }
@@ -1308,10 +1721,19 @@ window.showSummary = function() {
     const input = parseInput(expandExample(editor.getValue()));
     const sc = input.scale;
     let totalArea = 0;
-    const rooms = input.rooms.map(r => {
+    let allRooms = [];
+    
+    if (input.floors) {
+      for (const f of input.floors) {
+        for (const r of (f.rooms || [])) allRooms.push(r);
+      }
+    }
+    if (input.rooms) allRooms = input.rooms;
+    
+    const rooms = allRooms.map(r => {
       const areaM2 = (r.width * r.height) / 10000;
       totalArea += areaM2;
-      return { name: r.name, area: areaM2, doors: r.doors.length, windows: r.windows.length };
+      return { name: r.name, area: areaM2, doors: (r.doors||[]).length, windows: (r.windows||[]).length };
     });
     const totalDoors = rooms.reduce((s, r) => s + r.doors, 0);
     const totalWindows = rooms.reduce((s, r) => s + r.windows, 0);
@@ -1378,7 +1800,10 @@ function insertRoomTemplate(idx) {
   // find existing rooms to place new room at staggered position
   const input = parseInput(expandExample(yaml));
   let maxX = 0, maxY = 0;
-  for (const r of input.rooms) {
+  const allRooms = [];
+  if (input.floors) { for (const f of input.floors) for (const r of (f.rooms || [])) allRooms.push(r); }
+  if (input.rooms) allRooms.push(...input.rooms);
+  for (const r of allRooms) {
     maxX = Math.max(maxX, r.x + r.width);
     maxY = Math.max(maxY, r.y + r.height);
   }
