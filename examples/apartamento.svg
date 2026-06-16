@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-70 -70 1880 1780" width="100%" height="100%">
+<style>
+  .wall-fill { fill: #2d2d2d; stroke: #1a1a1a; stroke-width: 0.8; }
+  .room-bg { fill: #fafafa; }
+  .door-panel { stroke: #2d2d2d; stroke-width: 1.8; stroke-linecap: round; }
+  .door-arc { fill: none; stroke: #555555; stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .window-frame { stroke: #4a90d9; stroke-width: 1.5; }
+  .window-glass { fill: #d6eaf8; stroke: #4a90d9; stroke-width: 0.6; }
+  .jamb { stroke: #2d2d2d; stroke-width: 3; stroke-linecap: round; }
+  .dim-line { fill: none; stroke: #b71c1c; stroke-width: 0.8; }
+  .dim-tick { stroke: #b71c1c; stroke-width: 0.8; }
+  .dim-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; fill: #b71c1c; text-anchor: middle; }
+  .room-name { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; font-weight: 600; fill: #1a1a1a; text-anchor: middle; dominant-baseline: middle; }
+  .room-area { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; fill: #666666; text-anchor: middle; dominant-baseline: middle; }
+  .title-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #1a1a1a; text-anchor: middle; }
+  .grid-dot { fill: #e0e0e0; }
+  .free-wall-fill { fill: #e0e0e0; stroke: #2d2d2d; stroke-width: 0.8; }
+</style>
+<rect x="-70" y="-70" width="1880" height="1780" fill="#ffffff"/>
+<circle cx="0" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="0" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="200" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="400" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="600" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="800" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="1000" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="1200" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="1400" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="1600" cy="1600" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="0" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="200" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="400" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="600" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="800" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="1000" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="1200" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="1400" r="0.6" class="grid-dot"/>
+<circle cx="1800" cy="1600" r="0.6" class="grid-dot"/>
+<text x="870" y="-40" class="title-text">Apartamento 2 Quartos — Planta Baixa</text>
+<rect x="0" y="0" width="1100" height="840" class="room-bg"/>
+<rect x="1100" y="0" width="600" height="840" class="room-bg"/>
+<rect x="1100" y="840" width="600" height="440" class="room-bg"/>
+<rect x="0" y="840" width="560" height="760" class="room-bg"/>
+<rect x="560" y="840" width="540" height="760" class="room-bg"/>
+<rect x="0" y="-15" width="200" height="30" class="wall-fill"/>
+<rect x="660" y="-15" width="1040" height="30" class="wall-fill"/>
+<rect x="0" y="825" width="400" height="30" class="wall-fill"/>
+<rect x="560" y="825" width="740" height="30" class="wall-fill"/>
+<rect x="1460" y="825" width="240" height="30" class="wall-fill"/>
+<rect x="1100" y="1265" width="600" height="30" class="wall-fill"/>
+<rect x="0" y="1585" width="160" height="30" class="wall-fill"/>
+<rect x="520" y="1585" width="160" height="30" class="wall-fill"/>
+<rect x="980" y="1585" width="120" height="30" class="wall-fill"/>
+<rect x="-15" y="0" width="30" height="120" class="wall-fill"/>
+<rect x="-15" y="520" width="30" height="1080" class="wall-fill"/>
+<rect x="1085" y="0" width="30" height="300" class="wall-fill"/>
+<rect x="1085" y="460" width="30" height="700" class="wall-fill"/>
+<rect x="1085" y="1320" width="30" height="280" class="wall-fill"/>
+<rect x="1685" y="0" width="30" height="200" class="wall-fill"/>
+<rect x="1685" y="500" width="30" height="460" class="wall-fill"/>
+<rect x="1685" y="1120" width="30" height="160" class="wall-fill"/>
+<rect x="545" y="840" width="30" height="320" class="wall-fill"/>
+<rect x="545" y="1320" width="30" height="280" class="wall-fill"/>
+<rect x="-15" y="122" width="30" height="396" fill="#fafafa" stroke="none"/>
+<line x1="-9" y1="120" x2="-9" y2="520" class="window-frame"/>
+<line x1="0" y1="120" x2="0" y2="520" class="window-frame"/>
+<line x1="9" y1="120" x2="9" y2="520" class="window-frame"/>
+<line x1="-15" y1="120" x2="15" y2="120" class="window-frame"/>
+<line x1="-15" y1="520" x2="15" y2="520" class="window-frame"/>
+<rect x="202" y="-15" width="356" height="30" fill="#fafafa" stroke="none"/>
+<line x1="200" y1="-9" x2="560" y2="-9" class="window-frame"/>
+<line x1="200" y1="0" x2="560" y2="0" class="window-frame"/>
+<line x1="200" y1="9" x2="560" y2="9" class="window-frame"/>
+<line x1="200" y1="-15" x2="200" y2="15" class="window-frame"/>
+<line x1="560" y1="-15" x2="560" y2="15" class="window-frame"/>
+<rect x="1685" y="202" width="30" height="296" fill="#fafafa" stroke="none"/>
+<line x1="1691" y1="200" x2="1691" y2="500" class="window-frame"/>
+<line x1="1700" y1="200" x2="1700" y2="500" class="window-frame"/>
+<line x1="1709" y1="200" x2="1709" y2="500" class="window-frame"/>
+<line x1="1685" y1="200" x2="1715" y2="200" class="window-frame"/>
+<line x1="1685" y1="500" x2="1715" y2="500" class="window-frame"/>
+<rect x="1685" y="962" width="30" height="156" fill="#fafafa" stroke="none"/>
+<line x1="1691" y1="960" x2="1691" y2="1120" class="window-frame"/>
+<line x1="1700" y1="960" x2="1700" y2="1120" class="window-frame"/>
+<line x1="1709" y1="960" x2="1709" y2="1120" class="window-frame"/>
+<line x1="1685" y1="960" x2="1715" y2="960" class="window-frame"/>
+<line x1="1685" y1="1120" x2="1715" y2="1120" class="window-frame"/>
+<rect x="162" y="1585" width="356" height="30" fill="#fafafa" stroke="none"/>
+<line x1="160" y1="1591" x2="520" y2="1591" class="window-frame"/>
+<line x1="160" y1="1600" x2="520" y2="1600" class="window-frame"/>
+<line x1="160" y1="1609" x2="520" y2="1609" class="window-frame"/>
+<line x1="160" y1="1585" x2="160" y2="1615" class="window-frame"/>
+<line x1="520" y1="1585" x2="520" y2="1615" class="window-frame"/>
+<rect x="682" y="1585" width="296" height="30" fill="#fafafa" stroke="none"/>
+<line x1="680" y1="1591" x2="980" y2="1591" class="window-frame"/>
+<line x1="680" y1="1600" x2="980" y2="1600" class="window-frame"/>
+<line x1="680" y1="1609" x2="980" y2="1609" class="window-frame"/>
+<line x1="680" y1="1585" x2="680" y2="1615" class="window-frame"/>
+<line x1="980" y1="1585" x2="980" y2="1615" class="window-frame"/>
+<line x1="400" y1="825" x2="400" y2="855" class="jamb"/>
+<line x1="560" y1="825" x2="560" y2="855" class="jamb"/>
+<line x1="500" y1="15" x2="500" y2="-15" class="jamb"/>
+<line x1="660" y1="15" x2="660" y2="-15" class="jamb"/>
+<line x1="1115" y1="300" x2="1085" y2="300" class="jamb"/>
+<line x1="1115" y1="460" x2="1085" y2="460" class="jamb"/>
+<line x1="1300" y1="825" x2="1300" y2="855" class="jamb"/>
+<line x1="1460" y1="825" x2="1460" y2="855" class="jamb"/>
+<line x1="1300" y1="855" x2="1300" y2="825" class="jamb"/>
+<line x1="1440" y1="855" x2="1440" y2="825" class="jamb"/>
+<line x1="545" y1="1160" x2="575" y2="1160" class="jamb"/>
+<line x1="545" y1="1320" x2="575" y2="1320" class="jamb"/>
+<line x1="1085" y1="1160" x2="1115" y2="1160" class="jamb"/>
+<line x1="1085" y1="1320" x2="1115" y2="1320" class="jamb"/>
+<line x1="400" y1="840" x2="400" y2="680" class="door-panel"/>
+<path d="M 560 840 A 160 160 0 0 1 400 680" class="door-arc"/>
+<line x1="500" y1="0" x2="500" y2="160" class="door-panel"/>
+<path d="M 660 0 A 160 160 0 0 0 500 160" class="door-arc"/>
+<line x1="1100" y1="460" x2="1260" y2="460" class="door-panel"/>
+<path d="M 1100 300 A 160 160 0 0 0 1260 460" class="door-arc"/>
+<line x1="1300" y1="840" x2="1300" y2="680" class="door-panel"/>
+<path d="M 1460 840 A 160 160 0 0 1 1300 680" class="door-arc"/>
+<line x1="1300" y1="840" x2="1300" y2="980" class="door-panel"/>
+<path d="M 1440 840 A 140 140 0 0 0 1300 980" class="door-arc"/>
+<line x1="560" y1="1320" x2="400" y2="1320" class="door-panel"/>
+<path d="M 560 1160 A 160 160 0 0 1 400 1320" class="door-arc"/>
+<line x1="1100" y1="1320" x2="940" y2="1320" class="door-panel"/>
+<path d="M 1100 1160 A 160 160 0 0 1 940 1320" class="door-arc"/>
+<text x="550" y="420" class="room-name">Sala de Estar</text>
+<text x="1400" y="420" class="room-name">Cozinha</text>
+<text x="1400" y="1060" class="room-name">Banheiro</text>
+<text x="280" y="1220" class="room-name">Quarto 1</text>
+<text x="830" y="1220" class="room-name">Quarto 2</text>
+<line x1="0" y1="1640" x2="1700" y2="1640" class="dim-line"/>
+<line x1="0" y1="1633" x2="0" y2="1647" class="dim-tick"/>
+<line x1="1700" y1="1633" x2="1700" y2="1647" class="dim-tick"/>
+<text x="850" y="1626" class="dim-text">8.50 m</text>
+<line x1="1740" y1="0" x2="1740" y2="1600" class="dim-line"/>
+<line x1="1733" y1="0" x2="1747" y2="0" class="dim-tick"/>
+<line x1="1733" y1="1600" x2="1747" y2="1600" class="dim-tick"/>
+<text x="1754" y="800" class="dim-text">8.00 m</text>
+</svg>

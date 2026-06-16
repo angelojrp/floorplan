@@ -1,0 +1,47 @@
+version: 1
+title: "Estúdio Compacto (~30m²)"
+scale: 2
+wallThickness: 15
+grid: 100
+rooms:
+  - id: living
+    name: "Sala/Cozinha Integrada"
+    x: 15
+    y: 15
+    width: 415
+    height: 550
+    doors:
+      - wall: south
+        offset: 170
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 30
+        width: 120
+        height: 120
+        sill: 100
+      - wall: west
+        offset: 100
+        width: 180
+        height: 120
+        sill: 100
+  - id: bath
+    name: "Banheiro"
+    x: 445
+    y: 15
+    width: 220
+    height: 220
+    doors:
+      - wall: west
+        offset: 60
+        width: 80
+        type: sliding
+        swing: left
+    windows:
+      - wall: north
+        offset: 40
+        width: 100
+        height: 60
+        sill: 160

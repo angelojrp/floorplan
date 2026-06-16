@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floorplan Playground</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; font-family:'Segoe UI', system-ui, sans-serif; overflow:hidden; }
+#app { display:flex; height:100%; }
+#editor-pane { width:45%; min-width:300px; display:flex; flex-direction:column; background:#1e1e1e; }
+#editor-pane .header { padding:10px 14px; background:#252526; color:#ccc; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #333; }
+#editor-pane .header .badge { font-size:11px; background:#0e639c; color:#fff; padding:2px 8px; border-radius:3px; }
+#editor-wrap { flex:1; overflow:hidden; }
+#editor-wrap .CodeMirror { height:100%; font-size:13px; line-height:1.5; }
+#preview-pane { flex:1; display:flex; flex-direction:column; background:#f5f5f5; }
+#preview-pane .header { padding:10px 14px; background:#fff; color:#333; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #ddd; }
+#preview-pane .header .actions { display:flex; gap:6px; }
+#preview-pane .header button { padding:4px 12px; font-size:12px; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer; }
+#preview-pane .header button:hover { background:#eee; }
+#preview-wrap { flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; padding:10px; }
+#preview-wrap svg { max-width:100%; max-height:100%; box-shadow:0 2px 12px rgba(0,0,0,0.12); background:#fff; }
+#error-bar { display:none; padding:8px 14px; background:#5c1a1a; color:#f48771; font-size:12px; border-top:1px solid #6c2020; font-family:monospace; }
+#error-bar.show { display:block; }
+.resize-handle { width:4px; background:#444; cursor:col-resize; flex-shrink:0; }
+.resize-handle:hover { background:#0e639c; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="editor-pane">
+    <div class="header"><span>📐 planta.yaml</span><span class="badge">YAML</span></div>
+    <div id="editor-wrap"></div>
+    <div id="error-bar"></div>
+  </div>
+  <div class="resize-handle" id="resize-handle"></div>
+  <div id="preview-pane">
+    <div class="header">
+      <span>🏠 Preview SVG</span>
+      <div class="actions">
+        <button onclick="downloadSVG()" title="Download SVG">⬇ SVG</button>
+        <button onclick="toggleGrid()" title="Alternar grid">⊞ Grid</button>
+        <button onclick="zoomFit()" title="Ajustar zoom">⊡ Fit</button>
+      </div>
+    </div>
+    <div id="preview-wrap"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+//  FLOORPLAN ENGINE (portado para browser)
+// ═══════════════════════════════════════════════
+
+const DEFAULT_YAML = `version: 1
+title: "Apartamento 2 Quartos — Planta Baixa"
+scale: 2           # px por cm (1:50)
+wallThickness: 15   # cm
+grid: 100           # cm
+
+rooms:
+  - id: sala
+    name: Sala de Estar
+    x: 0
+    y: 0
+    width: 550
+    height: 420
+    doors:
+      - wall: south
+        offset: 200
+        width: 80
+        type: pivot
+        swing: left
+      - wall: north
+        offset: 250
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: west
+        offset: 60
+        width: 200
+        height: 120
+        sill: 110
+      - wall: north
+        offset: 100
+        width: 180
+        height: 120
+        sill: 110
+
+  - id: cozinha
+    name: Cozinha
+    x: 550
+    y: 0
+    width: 300
+    height: 420
+    doors:
+      - wall: west
+        offset: 150
+        width: 80
+        type: pivot
+        swing: right
+      - wall: south
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
+
+  - id: banheiro
+    name: Banheiro
+    x: 550
+    y: 420
+    width: 300
+    height: 220
+    doors:
+      - wall: north
+        offset: 100
+        width: 70
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 60
+        width: 80
+        height: 80
+        sill: 160
+
+  - id: quarto1
+    name: Quarto 1
+    x: 0
+    y: 420
+    width: 280
+    height: 380
+    doors:
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 80
+        width: 180
+        height: 120
+        sill: 110
+
+  - id: quarto2
+    name: Quarto 2
+    x: 280
+    y: 420
+    width: 270
+    height: 380
+    doors:
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 60
+        width: 150
+        height: 120
+        sill: 110
+`;
+
+// ── render pipeline ──
+
+function renderFloorplan(yamlStr) {
+  const input = parseInput(yamlStr);
+  const resolved = resolveLayout(input);
+  return renderSvg(resolved);
+}
+
+function parseInput(yamlStr) {
+  const raw = jsyaml.load(yamlStr);
+  if (!raw || !raw.rooms || !raw.rooms.length) throw new Error('Defina ao menos um cômodo (rooms)');
+  const input = {
+    version: raw.version || 1,
+    title: raw.title,
+    scale: raw.scale || 2,
+    wallThickness: raw.wallThickness || 15,
+    grid: raw.grid !== undefined ? raw.grid : 100,
+    rooms: (raw.rooms || []).map((r, i) => ({
+      id: r.id || 'room_' + i,
+      name: r.name || 'Cômodo ' + (i + 1),
+      x: r.x || 0,
+      y: r.y || 0,
+      width: r.width || 300,
+      height: r.height || 300,
+      doors: (r.doors || []).map(d => ({
+        wall: d.wall || 'south',
+        offset: d.offset || 0,
+        width: d.width || 80,
+        type: d.type || 'pivot',
+        swing: d.swing || 'left'
+      })),
+      windows: (r.windows || []).map(w => ({
+        wall: w.wall || 'north',
+        offset: w.offset || 0,
+        width: w.width || 100,
+        height: w.height || 120,
+        sill: w.sill || 110
+      }))
+    })),
+    walls: raw.walls || []
+  };
+  return input;
+}
+
+// ── geometry / layout ──
+
+function pt(x, y) { return { x, y }; }
+
+function resolveLayout(input) {
+  const scale = input.scale;
+  const wt = (input.wallThickness || 15) * scale;
+
+  const rooms = input.rooms.map(room => {
+    const r = {
+      x: room.x * scale,
+      y: room.y * scale,
+      w: room.width * scale,
+      h: room.height * scale
+    };
+    const labelPos = { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+
+    // compute openings
+    const doors = (room.doors || []).map(d => {
+      const op = openingOnWall(d.wall, r, d.offset * scale, d.width * scale);
+      const doorW = (d.wall === 'north' || d.wall === 'south') ? op.end.x - op.start.x : op.end.y - op.start.y;
+      const arcs = computeSwingArcs(d, op.start, op.end, doorW);
+      return { wall: d.wall, start: op.start, end: op.end, swingArcs: arcs, type: d.type };
+    });
+    const windows = (room.windows || []).map(w => {
+      const op = openingOnWall(w.wall, r, w.offset * scale, w.width * scale);
+      return { wall: w.wall, start: op.start, end: op.end };
+    });
+
+    const wallSegs = computeWallSegments(r, doors, windows);
+    return { id: room.id, name: room.name, rect: r, wallSegs, doors, windows, labelPos };
+  });
+
+  const freeWalls = (input.walls || []).map(w => ({
+    from: { x: w.from[0] * scale, y: w.from[1] * scale },
+    to: { x: w.to[0] * scale, y: w.to[1] * scale },
+    thickness: (w.thickness || input.wallThickness || 15) * scale
+  }));
+
+  const grid = input.grid === false ? false : (input.grid || 100) * scale;
+
+  // dimensions
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const room of rooms) {
+    minX = Math.min(minX, room.rect.x);
+    minY = Math.min(minY, room.rect.y);
+    maxX = Math.max(maxX, room.rect.x + room.rect.w);
+    maxY = Math.max(maxY, room.rect.y + room.rect.h);
+  }
+  const offset = 40;
+  const dims = [
+    { x1: minX, y1: maxY + offset, x2: maxX, y2: maxY + offset, value: ((maxX - minX) / scale / 100).toFixed(2) + ' m', offset },
+    { x1: maxX + offset, y1: minY, x2: maxX + offset, y2: maxY, value: ((maxY - minY) / scale / 100).toFixed(2) + ' m', offset }
+  ];
+
+  return { title: input.title, rooms, freeWalls, wallThicknessPx: wt, grid, dimensions: dims };
+}
+
+function openingOnWall(wall, r, offsetPx, widthPx) {
+  switch (wall) {
+    case 'north': return { start: pt(r.x + offsetPx, r.y), end: pt(r.x + offsetPx + widthPx, r.y) };
+    case 'south': return { start: pt(r.x + offsetPx, r.y + r.h), end: pt(r.x + offsetPx + widthPx, r.y + r.h) };
+    case 'east':  return { start: pt(r.x + r.w, r.y + offsetPx), end: pt(r.x + r.w, r.y + offsetPx + widthPx) };
+    case 'west':  return { start: pt(r.x, r.y + offsetPx), end: pt(r.x, r.y + offsetPx + widthPx) };
+  }
+}
+
+function computeSwingArcs(door, start, end, doorWidthPx) {
+  if (door.type === 'sliding') return [];
+
+  let inX = 0, inY = 0;
+  switch (door.wall) {
+    case 'north': inX = 0; inY = 1; break;
+    case 'south': inX = 0; inY = -1; break;
+    case 'east':  inX = -1; inY = 0; break;
+    case 'west':  inX = 1; inY = 0; break;
+  }
+
+  if (door.type === 'double') {
+    const mx = (start.x + end.x) / 2, my = (start.y + end.y) / 2;
+    const hr = doorWidthPx / 2;
+    return [
+      buildArc(start.x, start.y, hr, mx, my, inX, inY, hr),
+      buildArc(end.x, end.y, hr, mx, my, inX, inY, hr)
+    ];
+  }
+
+  const hingeStart = door.swing === 'left';
+  const hx = hingeStart ? start.x : end.x;
+  const hy = hingeStart ? start.y : end.y;
+  const cx = hingeStart ? end.x : start.x;
+  const cy = hingeStart ? end.y : start.y;
+  return [buildArc(hx, hy, doorWidthPx, cx, cy, inX, inY, doorWidthPx)];
+}
+
+function buildArc(cx, cy, r, closedX, closedY, inX, inY, inDist) {
+  const ox = cx + inX * inDist;
+  const oy = cy + inY * inDist;
+  const v1x = closedX - cx, v1y = closedY - cy;
+  const v2x = ox - cx, v2y = oy - cy;
+  const cross = v1x * v2y - v1y * v2x;
+  return { cx: Math.round(cx), cy: Math.round(cy), r: Math.round(r), x1: Math.round(closedX), y1: Math.round(closedY), x2: Math.round(ox), y2: Math.round(oy), sweep: cross > 0 ? 0 : 1 };
+}
+
+function computeWallSegments(r, doors, windows) {
+  const segs = [];
+  const openings = [
+    ...doors.map(d => ({ wall: d.wall, start: d.start, end: d.end })),
+    ...windows.map(w => ({ wall: w.wall, start: w.start, end: w.end }))
+  ];
+
+  const edges = [
+    { dir: 'north', from: pt(r.x, r.y), to: pt(r.x + r.w, r.y) },
+    { dir: 'south', from: pt(r.x, r.y + r.h), to: pt(r.x + r.w, r.y + r.h) },
+    { dir: 'west',  from: pt(r.x, r.y), to: pt(r.x, r.y + r.h) },
+    { dir: 'east',  from: pt(r.x + r.w, r.y), to: pt(r.x + r.w, r.y + r.h) }
+  ];
+
+  for (const edge of edges) {
+    const ops = openings
+      .filter(o => o.wall === edge.dir)
+      .sort((a, b) => {
+        const isH = edge.dir === 'north' || edge.dir === 'south';
+        return isH ? a.start.x - b.start.x : a.start.y - b.start.y;
+      });
+
+    if (ops.length === 0) {
+      segs.push({ x1: edge.from.x, y1: edge.from.y, x2: edge.to.x, y2: edge.to.y, direction: edge.dir });
+      continue;
+    }
+
+    const isH = edge.dir === 'north' || edge.dir === 'south';
+    let cur = isH ? edge.from.x : edge.from.y;
+    const max = isH ? edge.to.x : edge.to.y;
+
+    for (const op of ops) {
+      const opS = isH ? op.start.x : op.start.y;
+      const opE = isH ? op.end.x : op.end.y;
+      if (opS > cur) {
+        segs.push({
+          x1: isH ? cur : edge.from.x, y1: isH ? edge.from.y : cur,
+          x2: isH ? opS : edge.from.x, y2: isH ? edge.from.y : opS,
+          direction: edge.dir
+        });
+      }
+      cur = Math.max(cur, opE);
+    }
+    if (cur < max) {
+      segs.push({
+        x1: isH ? cur : edge.from.x, y1: isH ? edge.from.y : cur,
+        x2: edge.to.x, y2: edge.to.y, direction: edge.dir
+      });
+    }
+  }
+  return segs;
+}
+
+// ── SVG renderer ──
+
+function renderSvg(input) {
+  const { rooms, freeWalls, wallThicknessPx, grid, dimensions, title } = input;
+  const wt = wallThicknessPx;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const room of rooms) {
+    minX = Math.min(minX, room.rect.x); minY = Math.min(minY, room.rect.y);
+    maxX = Math.max(maxX, room.rect.x + room.rect.w); maxY = Math.max(maxY, room.rect.y + room.rect.h);
+  }
+  for (const d of dimensions) {
+    minX = Math.min(minX, d.x1, d.x2); minY = Math.min(minY, d.y1, d.y2);
+    maxX = Math.max(maxX, d.x1, d.x2); maxY = Math.max(maxY, d.y1, d.y2);
+  }
+  const m = 70;
+  const vbX = minX - m, vbY = minY - m, vbW = maxX - minX + m * 2, vbH = maxY - minY + m * 2;
+
+  const C = {
+    wall: '#2d2d2d', wallStroke: '#1a1a1a', roomBg: '#fafafa',
+    door: '#2d2d2d', doorArc: '#555', windowStroke: '#4a90d9',
+    dimLine: '#b71c1c', dimText: '#b71c1c', gridDot: '#e0e0e0',
+    label: '#1a1a1a', title: '#1a1a1a', freeWall: '#e0e0e0'
+  };
+
+  let svg = '';
+  svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%">`;
+  svg += `<style>
+    .wf{fill:${C.wall};stroke:${C.wallStroke};stroke-width:0.8}
+    .rb{fill:${C.roomBg}}
+    .dp{stroke:${C.door};stroke-width:1.8;stroke-linecap:round}
+    .da{fill:none;stroke:${C.doorArc};stroke-width:1.2;stroke-dasharray:5 4}
+    .wfr{stroke:${C.windowStroke};stroke-width:1.5}
+    .jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}
+    .dl{fill:none;stroke:${C.dimLine};stroke-width:0.8}
+    .dtk{stroke:${C.dimLine};stroke-width:0.8}
+    .dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dimText};text-anchor:middle}
+    .rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.label};text-anchor:middle;dominant-baseline:middle}
+    .ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.title};text-anchor:middle}
+    .gd{fill:${C.gridDot}}
+</style>`;
+
+  svg += `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
+
+  // grid dots
+  if (grid !== false) {
+    for (let cx = Math.ceil(vbX / grid) * grid; cx <= vbX + vbW; cx += grid) {
+      for (let cy = Math.ceil(vbY / grid) * grid; cy <= vbY + vbH; cy += grid) {
+        svg += `<circle cx="${cx}" cy="${cy}" r="0.6" class="gd"/>`;
+      }
+    }
+  }
+
+  // title
+  if (title) {
+    svg += `<text x="${(minX + maxX) / 2}" y="${minY - 40}" class="ttl">${esc(title)}</text>`;
+  }
+
+  // room backgrounds
+  for (const room of rooms) {
+    svg += `<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.w}" height="${room.rect.h}" class="rb"/>`;
+  }
+
+  // collect & render walls (deduplicated)
+  const hSolids = new Map(), hOpenings = new Map(), vSolids = new Map(), vOpenings = new Map();
+  for (const room of rooms) {
+    for (const seg of room.wallSegs) {
+      const isH = seg.direction === 'north' || seg.direction === 'south';
+      if (isH) {
+        const m = hSolids.get(seg.y1) || []; m.push({ a: Math.min(seg.x1, seg.x2), b: Math.max(seg.x1, seg.x2) }); hSolids.set(seg.y1, m);
+      } else {
+        const m = vSolids.get(seg.x1) || []; m.push({ a: Math.min(seg.y1, seg.y2), b: Math.max(seg.y1, seg.y2) }); vSolids.set(seg.x1, m);
+      }
+    }
+    for (const d of room.doors) {
+      const isH = d.wall === 'north' || d.wall === 'south';
+      const y = isH ? d.start.y : d.start.x;
+      const a = isH ? Math.min(d.start.x, d.end.x) : Math.min(d.start.y, d.end.y);
+      const b = isH ? Math.max(d.start.x, d.end.x) : Math.max(d.start.y, d.end.y);
+      const map = isH ? hOpenings : vOpenings;
+      const m = map.get(y) || []; m.push({ a, b }); map.set(y, m);
+    }
+    for (const w of room.windows) {
+      const isH = w.wall === 'north' || w.wall === 'south';
+      const y = isH ? w.start.y : w.start.x;
+      const a = isH ? Math.min(w.start.x, w.end.x) : Math.min(w.start.y, w.end.y);
+      const b = isH ? Math.max(w.start.x, w.end.x) : Math.max(w.start.y, w.end.y);
+      const map = isH ? hOpenings : vOpenings;
+      const m = map.get(y) || []; m.push({ a, b }); map.set(y, m);
+    }
+  }
+
+  const hw = wt / 2;
+  for (const [y, solids] of hSolids) {
+    const openings = mergeSpans(hOpenings.get(y) || []);
+    for (const s of subtractOpenings(mergeSpans(solids), openings)) {
+      if (s.b - s.a > 0) svg += `<rect x="${rnd(s.a)}" y="${rnd(y - hw)}" width="${rnd(s.b - s.a)}" height="${rnd(wt)}" class="wf"/>`;
+    }
+  }
+  for (const [x, solids] of vSolids) {
+    const openings = mergeSpans(vOpenings.get(x) || []);
+    for (const s of subtractOpenings(mergeSpans(solids), openings)) {
+      if (s.b - s.a > 0) svg += `<rect x="${rnd(x - hw)}" y="${rnd(s.a)}" width="${rnd(wt)}" height="${rnd(s.b - s.a)}" class="wf"/>`;
+    }
+  }
+
+  // windows (gap + frame lines)
+  for (const room of rooms) {
+    for (const w of room.windows) {
+      const isH = w.wall === 'north' || w.wall === 'south';
+      const g = 2;
+      if (isH) {
+        svg += `<rect x="${w.start.x + g}" y="${w.start.y - hw}" width="${w.end.x - w.start.x - g * 2}" height="${wt}" fill="${C.roomBg}" stroke="none"/>`;
+        for (let i = -1; i <= 1; i++) {
+          svg += `<line x1="${w.start.x}" y1="${w.start.y + hw * 0.6 * i}" x2="${w.end.x}" y2="${w.start.y + hw * 0.6 * i}" class="wfr"/>`;
+        }
+        svg += `<line x1="${w.start.x}" y1="${w.start.y - hw}" x2="${w.start.x}" y2="${w.start.y + hw}" class="wfr"/>`;
+        svg += `<line x1="${w.end.x}" y1="${w.start.y - hw}" x2="${w.end.x}" y2="${w.start.y + hw}" class="wfr"/>`;
+      } else {
+        svg += `<rect x="${w.start.x - hw}" y="${w.start.y + g}" width="${wt}" height="${w.end.y - w.start.y - g * 2}" fill="${C.roomBg}" stroke="none"/>`;
+        for (let i = -1; i <= 1; i++) {
+          svg += `<line x1="${w.start.x + hw * 0.6 * i}" y1="${w.start.y}" x2="${w.start.x + hw * 0.6 * i}" y2="${w.end.y}" class="wfr"/>`;
+        }
+        svg += `<line x1="${w.start.x - hw}" y1="${w.start.y}" x2="${w.start.x + hw}" y2="${w.start.y}" class="wfr"/>`;
+        svg += `<line x1="${w.start.x - hw}" y1="${w.end.y}" x2="${w.start.x + hw}" y2="${w.end.y}" class="wfr"/>`;
+      }
+    }
+  }
+
+  // door jambs
+  for (const room of rooms) {
+    for (const d of room.doors) {
+      const isH = d.wall === 'north' || d.wall === 'south';
+      if (isH) {
+        const s = d.wall === 'north' ? -1 : 1;
+        svg += `<line x1="${d.start.x}" y1="${d.start.y - hw * s}" x2="${d.start.x}" y2="${d.start.y + hw * s}" class="jb"/>`;
+        svg += `<line x1="${d.end.x}" y1="${d.end.y - hw * s}" x2="${d.end.x}" y2="${d.end.y + hw * s}" class="jb"/>`;
+      } else {
+        const s = d.wall === 'west' ? -1 : 1;
+        svg += `<line x1="${d.start.x - hw * s}" y1="${d.start.y}" x2="${d.start.x + hw * s}" y2="${d.start.y}" class="jb"/>`;
+        svg += `<line x1="${d.end.x - hw * s}" y1="${d.end.y}" x2="${d.end.x + hw * s}" y2="${d.end.y}" class="jb"/>`;
+      }
+    }
+  }
+
+  // door panels & arcs
+  for (const room of rooms) {
+    for (const d of room.doors) {
+      if (d.type === 'sliding') {
+        svg += `<line x1="${d.start.x}" y1="${d.start.y}" x2="${d.end.x}" y2="${d.end.y}" class="dp" stroke-dasharray="6 3"/>`;
+        continue;
+      }
+      for (const arc of d.swingArcs) {
+        if (arc.r <= 0) continue;
+        svg += `<line x1="${arc.cx}" y1="${arc.cy}" x2="${arc.x2}" y2="${arc.y2}" class="dp"/>`;
+        svg += `<path d="M ${arc.x1} ${arc.y1} A ${arc.r} ${arc.r} 0 0 ${arc.sweep} ${arc.x2} ${arc.y2}" class="da"/>`;
+      }
+    }
+  }
+
+  // room labels
+  for (const room of rooms) {
+    svg += `<text x="${room.labelPos.x}" y="${room.labelPos.y}" class="rn">${esc(room.name)}</text>`;
+  }
+
+  // dimensions
+  for (const d of dimensions) {
+    const isH = Math.abs(d.y2 - d.y1) < Math.abs(d.x2 - d.x1);
+    svg += `<line x1="${d.x1}" y1="${d.y1}" x2="${d.x2}" y2="${d.y2}" class="dl"/>`;
+    if (isH) {
+      svg += `<line x1="${d.x1}" y1="${d.y1 - 7}" x2="${d.x1}" y2="${d.y1 + 7}" class="dtk"/>`;
+      svg += `<line x1="${d.x2}" y1="${d.y2 - 7}" x2="${d.x2}" y2="${d.y2 + 7}" class="dtk"/>`;
+    } else {
+      svg += `<line x1="${d.x1 - 7}" y1="${d.y1}" x2="${d.x1 + 7}" y2="${d.y1}" class="dtk"/>`;
+      svg += `<line x1="${d.x2 - 7}" y1="${d.y2}" x2="${d.x2 + 7}" y2="${d.y2}" class="dtk"/>`;
+    }
+    const mx = (d.x1 + d.x2) / 2, my = (d.y1 + d.y2) / 2;
+    svg += `<text x="${isH ? mx : mx + 14}" y="${isH ? my - 14 : my}" class="dtx">${esc(d.value)}</text>`;
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+function mergeSpans(spans) {
+  if (!spans.length) return [];
+  const sorted = [...spans].sort((a, b) => a.a - b.a);
+  const result = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const last = result[result.length - 1];
+    if (sorted[i].a <= last.b) { last.b = Math.max(last.b, sorted[i].b); }
+    else { result.push(sorted[i]); }
+  }
+  return result;
+}
+
+function subtractOpenings(solids, openings) {
+  if (!openings.length) return solids;
+  const result = [];
+  for (const s of solids) {
+    let cur = s.a;
+    for (const op of openings) {
+      if (op.b <= cur) continue;
+      if (op.a >= s.b) break;
+      const gs = Math.max(cur, op.a), ge = Math.min(s.b, op.b);
+      if (gs > cur) result.push({ a: cur, b: gs });
+      cur = Math.max(cur, ge);
+    }
+    if (cur < s.b) result.push({ a: cur, b: s.b });
+  }
+  return result;
+}
+
+function rnd(n) { return Math.round(n * 10) / 10; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ═══════════════════════════════════════════════
+//  PLAYGROUND UI
+// ═══════════════════════════════════════════════
+
+const editor = CodeMirror(document.getElementById('editor-wrap'), {
+  value: DEFAULT_YAML,
+  mode: 'yaml',
+  theme: 'material-darker',
+  lineNumbers: true,
+  tabSize: 2,
+  indentUnit: 2,
+  indentWithTabs: false,
+  lineWrapping: false
+});
+
+let renderTimeout;
+function doRender() {
+  clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(() => {
+    try {
+      const svg = renderFloorplan(editor.getValue());
+      document.getElementById('preview-wrap').innerHTML = svg;
+      document.getElementById('error-bar').classList.remove('show');
+    } catch (e) {
+      document.getElementById('error-bar').textContent = '⚠ ' + e.message;
+      document.getElementById('error-bar').classList.add('show');
+    }
+  }, 200);
+}
+
+editor.on('change', doRender);
+doRender();
+
+// resize handle
+const resizeHandle = document.getElementById('resize-handle');
+const editorPane = document.getElementById('editor-pane');
+let isResizing = false;
+resizeHandle.addEventListener('mousedown', e => { isResizing = true; e.preventDefault(); });
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const w = Math.max(250, Math.min(e.clientX, window.innerWidth - 300));
+  editorPane.style.width = w + 'px';
+  editor.refresh();
+});
+document.addEventListener('mouseup', () => { isResizing = false; });
+
+// actions
+window.downloadSVG = function() {
+  try {
+    const svg = renderFloorplan(editor.getValue());
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'planta.svg'; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { alert('Erro: ' + e.message); }
+};
+
+let showGrid = true;
+const baseRender = renderFloorplan;
+renderFloorplan = function(yamlStr) {
+  if (!showGrid) {
+    const lines = yamlStr.split('\n');
+    const gridIdx = lines.findIndex(l => /^\s*grid:/.test(l));
+    if (gridIdx >= 0) {
+      lines[gridIdx] = 'grid: false';
+    } else {
+      const ins = lines.findIndex(l => /^\s*(version|title):/.test(l));
+      lines.splice(ins >= 0 ? ins + 1 : 0, 0, 'grid: false');
+    }
+    return baseRender(lines.join('\n'));
+  }
+  return baseRender(yamlStr);
+};
+
+window.toggleGrid = function() {
+  showGrid = !showGrid;
+  doRender();
+};
+
+window.zoomFit = function() {
+  const svg = document.querySelector('#preview-wrap svg');
+  if (svg) { svg.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); }
+};
+</script>
+</body>
+</html>

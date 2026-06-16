@@ -1,0 +1,27 @@
+{
+  "name": "floorplan",
+  "version": "0.1.0",
+  "description": "Text-to-floorplan renderer — descreva plantas baixas em YAML e renderize como SVG",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "floorplan": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["floorplan", "plant-baixa", "svg", "construction", "mermaid"],
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.6.1",
+    "zod": "^3.23.8",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

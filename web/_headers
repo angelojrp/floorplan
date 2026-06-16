@@ -1,0 +1,15 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=3600
+
+/*.html
+  Cache-Control: public, max-age=3600
+
+/*.yaml
+  Content-Type: application/x-yaml
+  Cache-Control: public, max-age=86400
