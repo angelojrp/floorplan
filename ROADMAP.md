@@ -64,19 +64,26 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 ## 🟠 Fase 3 — Profissional (médio prazo)
 
 ### Visual Builder Avançado
-- [ ] **Ferramenta de parede**: desenhar paredes livremente (linha contínua)
-- [ ] **Ferramenta de cômodo**: desenhar retângulo na área desejada
+- [x] **Ferramenta de parede**: desenhar paredes livremente (linha contínua)
+- [x] **Ferramenta de cômodo**: desenhar retângulo na área desejada
 - [ ] **Camadas (layers)**: paredes, portas, janelas, móveis, cotas, texto
 - [ ] **Estilos de parede**: alvenaria, drywall, vidro, divisória
 - [ ] **Níveis/pavimentos**: múltiplos andares (tabs)
 - [ ] **Escadas**: símbolo automático de escada entre pavimentos
 
 ### Exportação
-- [ ] **DXF**: exportar para AutoCAD/Revit
+- [x] **DXF**: exportar para AutoCAD/Revit
 - [ ] **PDF**: exportar com escala e margens de impressão
 - [ ] **Layout de impressão**: múltiplas folhas, carimbo, margens configuráveis
 - [ ] **PNG de alta resolução**: exportar imagens raster
 - [ ] **Compartilhamento**: gerar link público com preview (hospedagem efêmera)
+
+### IA & Ecossistema
+- [x] **CLI no npm**: `npx floorplan input.yaml -o output.svg`
+- [x] **JSON Schema**: validação para IAs (`docs/schema.json`)
+- [x] **AI Guide otimizado**: prompts, common mistakes, checklist
+- [x] **AGENTS.md**: instruções para coding assistants
+- [x] **API Worker**: Cloudflare Worker (POST YAML → SVG)
 
 ### Colaboração
 - [ ] Multi-usuário em tempo real (WebSocket/CRDT)
