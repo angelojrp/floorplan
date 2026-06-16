@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floorplan Editor — Visual Builder</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--surface:#fff;--text:#1a1a2e;--text2:#666;--border:#d4d4d8;--accent:#2563eb;--accent2:#1d4ed8;--danger:#dc2626;--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:6px}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%}
+
+/* toolbar */
+#toolbar{display:flex;align-items:center;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);gap:4px;flex-shrink:0;z-index:10}
+#toolbar button,#toolbar .btn-group button{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;cursor:pointer;white-space:nowrap;transition:all 0.15s}
+#toolbar button:hover{background:#f5f5f5;border-color:#aaa}
+#toolbar button.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+#toolbar button.accent:hover{background:var(--accent2)}
+#toolbar button.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+#toolbar .sep{width:1px;height:22px;background:var(--border);margin:0 6px}
+#toolbar .btn-group{display:flex}
+#toolbar .btn-group button{border-radius:0;margin-left:-1px}
+#toolbar .btn-group button:first-child{border-radius:4px 0 0 4px;margin-left:0}
+#toolbar .btn-group button:last-child{border-radius:0 4px 4px 0}
+#toolbar input[type=text]{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;width:200px}
+#toolbar select{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface)}
+#file-name{font-size:13px;font-weight:600;margin:0 8px;color:var(--accent)}
+
+/* main area */
+#main{flex:1;display:flex;overflow:hidden}
+
+/* left panel - room palette */
+#left-panel{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+#left-panel h3{padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);border-bottom:1px solid var(--border)}
+.palette-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}
+.palette-item{background:var(--bg);border:2px solid transparent;border-radius:6px;padding:8px;cursor:grab;text-align:center;transition:all 0.15s;user-select:none;font-size:11px}
+.palette-item:hover{border-color:var(--accent);background:#eff6ff}
+.palette-item:active{cursor:grabbing;transform:scale(0.95)}
+.palette-item .pi-icon{font-size:22px;display:block;margin-bottom:3px}
+.palette-item .pi-name{font-weight:600;font-size:11px}
+.palette-item .pi-size{color:var(--text2);font-size:9px;margin-top:1px}
+
+/* canvas area */
+#canvas-wrap{flex:1;overflow:hidden;position:relative;background:#e8e8e8;background-image:radial-gradient(circle,#ccc 1px,transparent 1px);background-size:20px 20px}
+#canvas-wrap.panning{cursor:grabbing}
+#canvas-svg{width:100%;height:100%;display:block}
+
+/* right panel - properties */
+#right-panel{width:240px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;font-size:12px}
+#right-panel h3{padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);border-bottom:1px solid var(--border)}
+#right-panel .empty-state{padding:20px;text-align:center;color:var(--text2)}
+.prop-group{padding:8px 12px;border-bottom:1px solid var(--border)}
+.prop-group label{display:block;font-size:10px;text-transform:uppercase;color:var(--text2);margin-bottom:3px}
+.prop-group input,.prop-group select{width:100%;padding:5px 7px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px}
+.prop-group input:focus{outline:none;border-color:var(--accent)}
+.prop-row{display:flex;gap:6px}
+.prop-row .half{flex:1}
+.door-entry,.window-entry{background:var(--bg);border-radius:4px;padding:6px 8px;margin-bottom:4px;position:relative}
+.door-entry select,.window-entry select{font-size:11px;padding:3px 5px}
+.door-entry .del-btn,.window-entry .del-btn{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px}
+.prop-group .add-btn{width:100%;padding:5px;font-size:11px;border:1px dashed var(--border);background:none;color:var(--accent);border-radius:4px;cursor:pointer;margin-top:4px}
+.prop-group .add-btn:hover{background:#eff6ff}
+
+/* toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.3s}
+#toast.show{opacity:1}
+#status-bar{display:flex;align-items:center;padding:3px 10px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--text2);gap:12px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <span id="file-name">🌳 Sem título</span>
+    <div class="sep"></div>
+    <button onclick="newProject()" title="Novo">📄 Novo</button>
+    <button onclick="importYAML()" title="Importar YAML">📥 Abrir</button>
+    <button onclick="exportYAML()" title="Exportar YAML">📤 YAML</button>
+    <button onclick="exportSVG()" class="accent" title="Exportar SVG">⬇ SVG</button>
+    <div class="sep"></div>
+    <div class="btn-group">
+      <button onclick="undo()" title="Desfazer">↩</button>
+      <button onclick="redo()" title="Refazer">↪</button>
+    </div>
+    <div class="sep"></div>
+    <div class="btn-group">
+      <button onclick="zoomOut()" title="Zoom out">−</button>
+      <button onclick="zoomReset()" title="Zoom 100%"><span id="zoom-label">100%</span></button>
+      <button onclick="zoomIn()" title="Zoom in">+</button>
+    </div>
+    <button onclick="toggleGrid()" id="btn-grid">⊞ Grid</button>
+    <div class="sep"></div>
+    <button onclick="deleteSelected()" class="danger" title="Deletar selecionado">🗑</button>
+    <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()" style="margin-left:auto;width:220px">
+  </div>
+  <div id="main">
+    <div id="left-panel">
+      <h3>🧩 Cômodos</h3>
+      <div class="palette-grid" id="palette"></div>
+      <h3>🔧 Ferramentas</h3>
+      <div style="padding:8px">
+        <button class="add-btn" id="tool-select" onclick="setTool('select')" style="margin-bottom:4px;background:#eff6ff;border-color:var(--accent)">🖱️ Selecionar/Mover</button>
+        <button class="add-btn" id="tool-door" onclick="setTool('door')">🚪 Adicionar Porta</button>
+        <button class="add-btn" id="tool-window" onclick="setTool('window')">🪟 Adicionar Janela</button>
+      </div>
+    </div>
+    <div id="canvas-wrap">
+      <svg id="canvas-svg"></svg>
+    </div>
+    <div id="right-panel">
+      <h3>📋 Propriedades</h3>
+      <div id="props-content" class="empty-state">Selecione um cômodo no canvas</div>
+    </div>
+  </div>
+  <div id="status-bar">
+    <span id="status-coords">x:0 y:0</span>
+    <span id="status-zoom">Zoom: 100%</span>
+    <span id="status-rooms">Cômodos: 0</span>
+    <span id="status-area">Área: 0 m²</span>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA MODEL
+// ═══════════════════════════════════════════════════
+
+const DEFAULT_SCALE = 2; // px per cm
+
+let state = {
+  title: '',
+  rooms: [],
+  scale: DEFAULT_SCALE,
+  wallThickness: 15,
+  gridSize: 100,
+  selectedId: null,
+  tool: 'select',
+  zoom: 1,
+  panX: 0, panY: 0,
+  gridVisible: true,
+  nextId: 1
+};
+
+let undoStack = [], redoStack = [];
+const MAX_UNDO = 50;
+
+function saveUndo() {
+  undoStack.push(JSON.parse(JSON.stringify({ rooms: state.rooms, title: state.title })));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = [];
+}
+
+function undo() { if (!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify({ rooms: state.rooms, title: state.title }))); const s = undoStack.pop(); state.rooms = s.rooms; state.title = s.title; state.selectedId = null; render(); toast('Desfeito'); }
+function redo() { if (!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify({ rooms: state.rooms, title: state.title }))); const s = redoStack.pop(); state.rooms = s.rooms; state.title = s.title; state.selectedId = null; render(); toast('Refeito'); }
+
+function generateId() { return 'r_' + (state.nextId++); }
+
+// ═══════════════════════════════════════════════════
+//  PALETTE
+// ═══════════════════════════════════════════════════
+
+const PALETTE = [
+  { icon:'🛋️', name:'Sala Estar', w:500, h:400 },
+  { icon:'🍳', name:'Cozinha', w:300, h:350 },
+  { icon:'🛏️', name:'Quarto', w:350, h:350 },
+  { icon:'🚿', name:'Banheiro', w:200, h:220 },
+  { icon:'🚪', name:'Corredor', w:400, h:120 },
+  { icon:'💼', name:'Escritório', w:350, h:350 },
+  { icon:'🍽️', name:'Sala Jantar', w:350, h:350 },
+  { icon:'🌿', name:'Varanda', w:300, h:150 },
+  { icon:'🏠', name:'Hall', w:250, h:200 },
+  { icon:'🧺', name:'Lavanderia', w:200, h:200 }
+];
+
+function initPalette() {
+  document.getElementById('palette').innerHTML = PALETTE.map(p => `
+    <div class="palette-item" draggable="true" ondragstart="onPaletteDrag(event,'${p.name}',${p.w},${p.h})">
+      <span class="pi-icon">${p.icon}</span>
+      <span class="pi-name">${p.name}</span>
+      <span class="pi-size">${p.w}×${p.h}cm</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  CANVAS RENDERING
+// ═══════════════════════════════════════════════════
+
+function render() {
+  const svg = document.getElementById('canvas-svg');
+  const sc = state.scale * state.zoom;
+  const wt = state.wallThickness * state.scale;
+
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `${-state.panX/state.zoom} ${-state.panY/state.zoom} ${svg.clientWidth/state.zoom} ${svg.clientHeight/state.zoom}`);
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    // viewBox already handles zoom + pan; group is identity
+    svg.appendChild(g);
+
+  // grid
+  if (state.gridVisible) {
+    const gs = state.gridSize;
+    const vb = svg.viewBox.baseVal;
+    for (let x = Math.floor(vb.x/gs)*gs; x < vb.x+vb.width+gs; x += gs) {
+      for (let y = Math.floor(vb.y/gs)*gs; y < vb.y+vb.height+gs; y += gs) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 0.5);
+        c.setAttribute('fill','#bbb'); g.appendChild(c);
+      }
+    }
+  }
+
+  // rooms
+  let totalArea = 0;
+  for (const room of state.rooms) {
+    const rx = room.x * state.scale, ry = room.y * state.scale;
+    const rw = room.width * state.scale, rh = room.height * state.scale;
+    totalArea += room.width * room.height;
+    
+    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+    group.setAttribute('data-id', room.id);
+    group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
+    if (state.selectedId === room.id) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+
+    // room fill
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', rx); rect.setAttribute('y', ry);
+    rect.setAttribute('width', rw); rect.setAttribute('height', rh);
+    rect.setAttribute('fill', state.selectedId === room.id ? '#eff6ff' : '#fafafa');
+    rect.setAttribute('stroke', state.selectedId === room.id ? '#2563eb' : '#999');
+    rect.setAttribute('stroke-width', state.selectedId === room.id ? 2 : 1);
+    group.appendChild(rect);
+
+    // walls (4 thick border rects — top/right/bottom/left)
+    const hw = wt / 2;
+    const wtop    = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    wtop.setAttribute('x', rx - hw); wtop.setAttribute('y', ry - hw);
+    wtop.setAttribute('width', rw + wt); wtop.setAttribute('height', wt);
+    wtop.setAttribute('fill','#2d2d2d');
+    const wbot    = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    wbot.setAttribute('x', rx - hw); wbot.setAttribute('y', ry + rh - hw);
+    wbot.setAttribute('width', rw + wt); wbot.setAttribute('height', wt);
+    wbot.setAttribute('fill','#2d2d2d');
+    const wleft   = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    wleft.setAttribute('x', rx - hw); wleft.setAttribute('y', ry - hw);
+    wleft.setAttribute('width', wt); wleft.setAttribute('height', rh + wt);
+    wleft.setAttribute('fill','#2d2d2d');
+    const wright  = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    wright.setAttribute('x', rx + rw - hw); wright.setAttribute('y', ry - hw);
+    wright.setAttribute('width', wt); wright.setAttribute('height', rh + wt);
+    wright.setAttribute('fill','#2d2d2d');
+    group.appendChild(wtop); group.appendChild(wbot);
+    group.appendChild(wleft); group.appendChild(wright);
+
+    // doors
+    for (const d of (room.doors || [])) {
+      const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
+      const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
+      const ar = swingArc(d, op.sx, op.sy, op.ex, op.ey, dw);
+      for (const a of ar) {
+        if (a.r <= 0) continue;
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1', a.cx); line.setAttribute('y1', a.cy);
+        line.setAttribute('x2', a.x2); line.setAttribute('y2', a.y2);
+        line.setAttribute('stroke','#2d2d2d'); line.setAttribute('stroke-width',1.8);
+        doorG.appendChild(line);
+        const arc = document.createElementNS('http://www.w3.org/2000/svg','path');
+        arc.setAttribute('d', `M${a.x1},${a.y1}A${a.r},${a.r} 0 0 ${a.sweep} ${a.x2},${a.y2}`);
+        arc.setAttribute('fill','none'); arc.setAttribute('stroke','#555');
+        arc.setAttribute('stroke-width',1.2); arc.setAttribute('stroke-dasharray','5 4');
+        doorG.appendChild(arc);
+      }
+      // wall gap
+      const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      if (d.wall==='north'||d.wall==='south') {
+        gap.setAttribute('x', op.sx); gap.setAttribute('y', (d.wall==='north'?ry:ry+rh)-hw);
+        gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
+      } else {
+        gap.setAttribute('x', (d.wall==='west'?rx:rx+rw)-hw);
+        gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
+        gap.setAttribute('height', op.ey-op.sy);
+      }
+      gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
+      group.appendChild(doorG);
+    }
+
+    // windows
+    for (const w of (room.windows || [])) {
+      const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
+      const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      if (w.wall==='north'||w.wall==='south') {
+        gap.setAttribute('x', op.sx); gap.setAttribute('y', (w.wall==='north'?ry:ry+rh)-hw);
+        gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
+      } else {
+        gap.setAttribute('x', (w.wall==='west'?rx:rx+rw)-hw);
+        gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
+        gap.setAttribute('height', op.ey-op.sy);
+      }
+      gap.setAttribute('fill','#fafafa'); winG.appendChild(gap);
+      const frame = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      frame.setAttribute('x', gap.getAttribute('x')); frame.setAttribute('y', gap.getAttribute('y'));
+      frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
+      frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
+      winG.appendChild(frame);
+      group.appendChild(winG);
+    }
+
+    // label
+    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+    label.setAttribute('x', rx + rw/2); label.setAttribute('y', ry + rh/2);
+    label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','middle');
+    label.setAttribute('font-size', Math.min(14, rw/20)); label.setAttribute('font-weight','600');
+    label.setAttribute('fill','#1a1a2e'); label.textContent = room.name;
+    group.appendChild(label);
+
+    // resize handles (se selecionado)
+    if (state.selectedId === room.id && state.tool === 'select') {
+      const htypes = [
+        {r:'nw', x:rx,     y:ry},
+        {r:'ne', x:rx+rw,  y:ry},
+        {r:'sw', x:rx,     y:ry+rh},
+        {r:'se', x:rx+rw,  y:ry+rh},
+        {r:'n',  x:rx+rw/2,y:ry},
+        {r:'s',  x:rx+rw/2,y:ry+rh},
+        {r:'w',  x:rx,     y:ry+rh/2},
+        {r:'e',  x:rx+rw,  y:ry+rh/2}
+      ];
+      const cursors = {nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',w:'ew-resize',e:'ew-resize'};
+      for (const {r:ht,x:hx,y:hy} of htypes) {
+        const h = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        h.setAttribute('x', hx-4); h.setAttribute('y', hy-4);
+        h.setAttribute('width',8); h.setAttribute('height',8);
+        h.setAttribute('fill','#fff'); h.setAttribute('stroke','#2563eb');
+        h.setAttribute('stroke-width',2); h.setAttribute('rx',1);
+        h.style.cursor = cursors[ht];
+        h.addEventListener('mousedown', e => { e.stopPropagation(); startResize(room.id, ht, e); });
+        group.appendChild(h);
+      }
+    }
+
+    g.appendChild(group);
+  }
+
+  // status
+  document.getElementById('status-rooms').textContent = `Cômodos: ${state.rooms.length}`;
+  document.getElementById('status-area').textContent = `Área: ${(totalArea/10000).toFixed(1)} m²`;
+  document.getElementById('global-title').value = state.title;
+  renderProperties();
+}
+
+function openingOnWall(wall, rx, ry, rw, rh, off, wid) {
+  switch(wall) {
+    case 'north': return {sx:rx+off, sy:ry, ex:rx+off+wid, ey:ry};
+    case 'south': return {sx:rx+off, sy:ry+rh, ex:rx+off+wid, ey:ry+rh};
+    case 'east': return {sx:rx+rw, sy:ry+off, ex:rx+rw, ey:ry+off+wid};
+    case 'west': return {sx:rx, sy:ry+off, ex:rx, ey:ry+off+wid};
+  }
+}
+
+function swingArc(d, sx, sy, ex, ey, dw) {
+  if (d.type === 'sliding') return [];
+  let ix=0, iy=0;
+  switch(d.wall){case'north':iy=1;break;case'south':iy=-1;break;case'east':ix=-1;break;case'west':ix=1;break}
+  const hl = d.swing === 'left';
+  return [buildArc(hl?sx:ex, hl?sy:ey, dw, hl?ex:sx, hl?ey:sy, ix, iy, dw)];
+}
+
+function buildArc(cx, cy, r, clX, clY, ix, iy, id) {
+  const ox=cx+ix*id, oy=cy+iy*id;
+  return {cx,cy,r,x1:clX,y1:clY,x2:ox,y2:oy,sweep:(clX-cx)*(oy-cy)-(clY-cy)*(ox-cx)>0?0:1};
+}
+
+// ═══════════════════════════════════════════════════
+//  INTERACTIONS
+// ═══════════════════════════════════════════════════
+
+const canvasWrap = document.getElementById('canvas-wrap');
+
+// pan (middle mouse or space+drag)
+let isPanning = false, panStart = {x:0,y:0, ox:0, oy:0};
+canvasWrap.addEventListener('mousedown', e => {
+  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    e.preventDefault(); isPanning = true; hasDragged = false;
+    panStart = {x:e.clientX-state.panX, y:e.clientY-state.panY, ox:e.clientX, oy:e.clientY};
+    canvasWrap.classList.add('panning');
+    return;
+  }
+});
+canvasWrap.addEventListener('contextmenu', e => {
+  if (isPanning) e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (isPanning) {
+    state.panX = e.clientX - panStart.x; state.panY = e.clientY - panStart.y;
+    if (Math.abs(e.clientX - panStart.ox) > 2 || Math.abs(e.clientY - panStart.oy) > 2) hasDragged = true;
+    render(); return;
+  }
+  // update coords
+  const svg = document.getElementById('canvas-svg');
+  if (svg) {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM(); if (!ctm) return;
+    const svgPt = pt.matrixTransform(ctm.inverse());
+    document.getElementById('status-coords').textContent = `x:${Math.round(svgPt.x/state.scale)} y:${Math.round(svgPt.y/state.scale)} cm`;
+  }
+});
+document.addEventListener('mouseup', () => { isPanning = false; canvasWrap.classList.remove('panning'); });
+
+// zoom
+canvasWrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.1 : 0.1;
+  state.zoom = Math.max(0.2, Math.min(3, state.zoom + delta));
+  updateZoomLabel();
+  render();
+}, {passive:false});
+
+function zoomIn() { state.zoom = Math.min(3, state.zoom + 0.15); updateZoomLabel(); render(); }
+function zoomOut() { state.zoom = Math.max(0.2, state.zoom - 0.15); updateZoomLabel(); render(); }
+function zoomReset() { state.zoom = 1; updateZoomLabel(); render(); }
+function updateZoomLabel() {
+  document.getElementById('zoom-label').textContent = Math.round(state.zoom*100)+'%';
+  document.getElementById('status-zoom').textContent = 'Zoom: '+Math.round(state.zoom*100)+'%';
+}
+
+// select room
+let hasDragged = false;
+canvasWrap.addEventListener('click', e => {
+  if (hasDragged) { hasDragged = false; return; }
+  const g = e.target.closest('[data-id]');
+  const roomId = g ? g.getAttribute('data-id') : null;
+
+  if (!roomId) {
+    if (state.tool === 'select') { state.selectedId = null; render(); }
+    return;
+  }
+
+  if (state.tool === 'door' || state.tool === 'window') {
+    addOpening(roomId, e);
+    return;
+  }
+
+  state.selectedId = state.selectedId === roomId ? null : roomId;
+  render();
+});
+
+// move room
+let moveState = null, moveOrigin = null;
+canvasWrap.addEventListener('mousedown', e => {
+  if (isPanning || e.button !== 0 || state.tool !== 'select') return;
+  const g = e.target.closest('[data-id]');
+  if (!g || e.target.closest('rect[fill="#fff"]')) return; // skip handles
+  const room = state.rooms.find(r => r.id === g.getAttribute('data-id'));
+  if (!room) return;
+  hasDragged = false;
+  state.selectedId = room.id;
+  moveState = { id: room.id, sx: e.clientX, sy: e.clientY, ox: room.x, oy: room.y };
+  moveOrigin = { x: room.x, y: room.y };
+  e.preventDefault();
+});
+
+let resizeState = null, resizeOrigin = null;
+function startResize(roomId, handleType, e) {
+  const room = state.rooms.find(r => r.id === roomId);
+  if (!room) return;
+  hasDragged = false;
+  resizeState = {
+    id: roomId,
+    sx: e.clientX, sy: e.clientY,
+    ox: room.x, oy: room.y, ow: room.width, oh: room.height,
+    handle: handleType
+  };
+  resizeOrigin = { x: room.x, y: room.y, w: room.width, h: room.height };
+  e.preventDefault(); e.stopPropagation();
+}
+
+document.addEventListener('mousemove', e => {
+  if (moveState) {
+    const dx = (e.clientX - moveState.sx) / (state.scale * state.zoom);
+    const dy = (e.clientY - moveState.sy) / (state.scale * state.zoom);
+    const room = state.rooms.find(r => r.id === moveState.id);
+    if (!room) return;
+    const snap = state.gridVisible ? state.gridSize : 1;
+    const nx = Math.round(Math.max(0, moveState.ox + dx) / snap) * snap;
+    const ny = Math.round(Math.max(0, moveState.oy + dy) / snap) * snap;
+    const pxDelta = Math.abs(e.clientX - moveState.sx) + Math.abs(e.clientY - moveState.sy);
+    if (pxDelta > 3 && (nx !== moveOrigin.x || ny !== moveOrigin.y)) hasDragged = true;
+    room.x = nx; room.y = ny;
+    render();
+  }
+  if (resizeState) {
+    const dx = (e.clientX - resizeState.sx) / (state.scale * state.zoom);
+    const dy = (e.clientY - resizeState.sy) / (state.scale * state.zoom);
+    const room = state.rooms.find(r => r.id === resizeState.id);
+    if (!room) return;
+    let {ox, oy, ow, oh} = resizeState;
+    const ht = resizeState.handle;
+    let nx=ox, ny=oy, nw=ow, nh=oh;
+    if (ht.includes('w')) { nw = Math.max(50, ow - dx); nx = ox + ow - nw; }
+    if (ht.includes('e')) { nw = Math.max(50, ow + dx); }
+    if (ht.includes('n')) { nh = Math.max(50, oh - dy); ny = oy + oh - nh; }
+    if (ht.includes('s')) { nh = Math.max(50, oh + dy); }
+    if (nx < 0) { nw += nx; nx = 0; }
+    if (ny < 0) { nh += ny; ny = 0; }
+    room.x = Math.round(nx); room.y = Math.round(ny);
+    room.width = Math.round(nw); room.height = Math.round(nh);
+    if (room.x !== resizeOrigin.x || room.y !== resizeOrigin.y || room.width !== resizeOrigin.w || room.height !== resizeOrigin.h) hasDragged = true;
+    render();
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; }
+  if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; }
+});
+
+// palette drag to canvas
+function onPaletteDrag(ev, name, w, h) {
+  ev.dataTransfer.setData('text/plain', JSON.stringify({name,w,h}));
+}
+canvasWrap.addEventListener('dragover', e => e.preventDefault());
+canvasWrap.addEventListener('drop', e => {
+  e.preventDefault();
+  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+  if (!data.name) return;
+  saveUndo();
+  const svg = document.getElementById('canvas-svg');
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const ctm = svg.getScreenCTM(); if (!ctm) return;
+  const svgPt = pt.matrixTransform(ctm.inverse());
+  const x = Math.round(Math.max(0, svgPt.x / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
+  const y = Math.round(Math.max(0, svgPt.y / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
+  state.rooms.push({ id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [] });
+  state.selectedId = state.rooms[state.rooms.length-1].id;
+  render();
+  toast(`➕ ${data.name} adicionado`);
+});
+
+// add door/window via tool
+function addOpening(roomId, e) {
+  const room = state.rooms.find(r => r.id === roomId);
+  if (!room) return;
+  const svg = document.getElementById('canvas-svg');
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const ctm = svg.getScreenCTM(); if (!ctm) return;
+  const p = pt.matrixTransform(ctm.inverse());
+  const sc = state.scale;
+  const wt = state.wallThickness * state.scale;
+  const rx = room.x * sc, ry = room.y * sc, rw = room.width * sc, rh = room.height * sc;
+
+  // find closest wall (only consider edges within reasonable proximity)
+  const nearNorth = p.y >= ry - wt && p.y <= ry + wt && p.x >= rx && p.x <= rx + rw;
+  const nearSouth = p.y >= ry + rh - wt && p.y <= ry + rh + wt && p.x >= rx && p.x <= rx + rw;
+  const nearWest  = p.x >= rx - wt && p.x <= rx + wt && p.y >= ry && p.y <= ry + rh;
+  const nearEast  = p.x >= rx + rw - wt && p.x <= rx + rw + wt && p.y >= ry && p.y <= ry + rh;
+
+  const distNorth = nearNorth ? Math.abs(p.y - ry) : Infinity;
+  const distSouth = nearSouth ? Math.abs(p.y - (ry+rh)) : Infinity;
+  const distWest  = nearWest  ? Math.abs(p.x - rx) : Infinity;
+  const distEast  = nearEast  ? Math.abs(p.x - (rx+rw)) : Infinity;
+  const minD = Math.min(distNorth, distSouth, distWest, distEast);
+  if (!isFinite(minD)) { toast('⬜ Clique em uma parede'); return; }
+
+  let wall, offsetPx, maxLen;
+  if (minD === distNorth) { wall='north'; offsetPx=p.x-rx; maxLen=rw; }
+  else if (minD === distSouth) { wall='south'; offsetPx=p.x-rx; maxLen=rw; }
+  else if (minD === distWest) { wall='west'; offsetPx=p.y-ry; maxLen=rh; }
+  else { wall='east'; offsetPx=p.y-ry; maxLen=rh; }
+
+  const openingW = state.tool === 'door' ? 80 : 100;
+  let offsetCm = Math.round(offsetPx / sc);
+  offsetCm = Math.max(0, Math.min(offsetCm, Math.round(maxLen / sc) - openingW));
+  if (offsetCm < 0 || maxLen / sc < openingW) { toast('⬜ Parede muito curta'); return; }
+
+  saveUndo();
+  if (state.tool === 'door') {
+    room.doors.push({ wall, offset: offsetCm, width: openingW, type: 'pivot', swing: 'left' });
+    toast('🚪 Porta adicionada');
+  } else {
+    room.windows.push({ wall, offset: offsetCm, width: openingW, height: 120, sill: 110 });
+    toast('🪟 Janela adicionada');
+  }
+  setTool('select');
+  render();
+}
+
+// delete
+function deleteSelected() {
+  if (!state.selectedId) return;
+  saveUndo();
+  state.rooms = state.rooms.filter(r => r.id !== state.selectedId);
+  state.selectedId = null;
+  render();
+  toast('🗑 Cômodo removido');
+}
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+  const editable = tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement.isContentEditable;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !editable) { e.preventDefault(); deleteSelected(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !editable) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey||e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z')) && !editable) { e.preventDefault(); redo(); }
+});
+
+// ═══════════════════════════════════════════════════
+//  PROPERTIES PANEL
+// ═══════════════════════════════════════════════════
+
+function renderProperties() {
+  const el = document.getElementById('props-content');
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) { el.innerHTML = '<div class="empty-state">Selecione um cômodo no canvas</div>'; return; }
+
+  let html = `<div class="prop-group"><label>Nome</label><input value="${escAttr(room.name)}" onchange="updateProp('name',this.value)"></div>`;
+  html += `<div class="prop-group"><label>Dimensões (cm)</label><div class="prop-row"><div class="half"><label>X</label><input type=number value="${room.x}" onchange="updateProp('x',+this.value)"></div><div class="half"><label>Y</label><input type=number value="${room.y}" onchange="updateProp('y',+this.value)"></div></div><div class="prop-row"><div class="half"><label>Largura</label><input type=number value="${room.width}" onchange="updateProp('width',+this.value)"></div><div class="half"><label>Altura</label><input type=number value="${room.height}" onchange="updateProp('height',+this.value)"></div></div></div>`;
+
+  // doors
+  html += `<div class="prop-group"><label>🚪 Portas (${room.doors.length})</label>`;
+  room.doors.forEach((d,i) => {
+    html += `<div class="door-entry"><div class="del-btn" onclick="removeOpening('doors',${i})">×</div>`;
+    html += `<label>Parede</label><select onchange="updateDoor(${i},'wall',this.value)"><option value=north ${d.wall==='north'?'selected':''}>Norte</option><option value=south ${d.wall==='south'?'selected':''}>Sul</option><option value=east ${d.wall==='east'?'selected':''}>Leste</option><option value=west ${d.wall==='west'?'selected':''}>Oeste</option></select>`;
+    html += `<div class="prop-row"><div class="half"><label>Offset</label><input type=number value="${d.offset}" onchange="updateDoor(${i},'offset',+this.value)"></div><div class="half"><label>Largura</label><input type=number value="${d.width}" onchange="updateDoor(${i},'width',+this.value)"></div></div>`;
+    html += `<select onchange="updateDoor(${i},'type',this.value)"><option value=pivot ${d.type==='pivot'?'selected':''}>Pivot</option><option value=sliding ${d.type==='sliding'?'selected':''}>Sliding</option><option value=double ${d.type==='double'?'selected':''}>Double</option></select> <select onchange="updateDoor(${i},'swing',this.value)"><option value=left ${d.swing==='left'?'selected':''}>Left</option><option value=right ${d.swing==='right'?'selected':''}>Right</option></select>`;
+    html += `</div>`;
+  });
+  html += `<button class="add-btn" onclick="addDoor()">+ Adicionar Porta</button></div>`;
+
+  // windows
+  html += `<div class="prop-group"><label>🪟 Janelas (${room.windows.length})</label>`;
+  room.windows.forEach((w,i) => {
+    html += `<div class="window-entry"><div class="del-btn" onclick="removeOpening('windows',${i})">×</div>`;
+    html += `<label>Parede</label><select onchange="updateWindow(${i},'wall',this.value)"><option value=north ${w.wall==='north'?'selected':''}>Norte</option><option value=south ${w.wall==='south'?'selected':''}>Sul</option><option value=east ${w.wall==='east'?'selected':''}>Leste</option><option value=west ${w.wall==='west'?'selected':''}>Oeste</option></select>`;
+    html += `<div class="prop-row"><div class="half"><label>Offset</label><input type=number value="${w.offset}" onchange="updateWindow(${i},'offset',+this.value)"></div><div class="half"><label>Largura</label><input type=number value="${w.width}" onchange="updateWindow(${i},'width',+this.value)"></div></div>`;
+    html += `</div>`;
+  });
+  html += `<button class="add-btn" onclick="addWindow()">+ Adicionar Janela</button></div>`;
+
+  html += `<div class="prop-group"><label>Área</label><strong>${(room.width*room.height/10000).toFixed(1)} m²</strong></div>`;
+
+  el.innerHTML = html;
+}
+
+function updateProp(prop, val) {
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) return;
+  saveUndo();
+  room[prop] = val;
+  render();
+}
+
+function updateDoor(idx, prop, val) {
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) return;
+  saveUndo();
+  room.doors[idx][prop] = val;
+  render();
+}
+
+function updateWindow(idx, prop, val) {
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) return;
+  saveUndo();
+  room.windows[idx][prop] = val;
+  render();
+}
+
+function addDoor() {
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) return;
+  saveUndo();
+  room.doors.push({wall:'south', offset:Math.round(room.width/2-40), width:80, type:'pivot', swing:'left'});
+  render();
+}
+
+function addWindow() {
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) return;
+  saveUndo();
+  room.windows.push({wall:'north', offset:Math.round(room.width/2-50), width:100, height:120, sill:110});
+  render();
+}
+
+function removeOpening(type, idx) {
+  const room = state.rooms.find(r => r.id === state.selectedId);
+  if (!room) return;
+  saveUndo();
+  room[type].splice(idx, 1);
+  render();
+}
+
+// ═══════════════════════════════════════════════════
+//  TOOLS & ACTIONS
+// ═══════════════════════════════════════════════════
+
+function setTool(tool) {
+  state.tool = tool;
+  document.querySelectorAll('#left-panel .add-btn').forEach(b => b.style.background = '');
+  document.getElementById('tool-'+tool).style.background = '#eff6ff';
+  document.getElementById('tool-'+tool).style.borderColor = 'var(--accent)';
+  render();
+}
+
+function toggleGrid() { state.gridVisible = !state.gridVisible; render(); }
+function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
+
+function newProject() {
+  if (state.rooms.length && !confirm('Criar novo projeto? Alterações não salvas serão perdidas.')) return;
+  state = {...state, title:'', rooms:[], selectedId:null, zoom:1, panX:0, panY:0, nextId:1};
+  undoStack=[]; redoStack=[];
+  document.getElementById('file-name').textContent = '🌳 Sem título';
+  render();
+}
+
+// ═══════════════════════════════════════════════════
+//  IMPORT / EXPORT
+// ═══════════════════════════════════════════════════
+
+function importYAML() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.yaml,.yml';
+  input.onchange = async e => {
+    const text = await e.target.files[0].text();
+    try {
+      const raw = jsyaml.load(text);
+      if (!raw.rooms) throw new Error('YAML inválido: sem rooms');
+      state.title = raw.title || '';
+      state.scale = raw.scale || DEFAULT_SCALE;
+      state.wallThickness = raw.wallThickness || 15;
+      state.gridSize = raw.grid || 100;
+      state.gridVisible = raw.grid !== false;
+      state.rooms = raw.rooms.map(r => ({
+        id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+        width: r.width||300, height: r.height||300,
+        doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+        windows: r.windows || []
+      }));
+      undoStack=[]; redoStack=[]; state.selectedId=null;
+      document.getElementById('file-name').textContent = '📂 ' + (e.target.files[0].name);
+      document.getElementById('global-title').value = state.title;
+      render();
+      toast('📥 Projeto carregado!');
+    } catch(err) { toast('❌ Erro: '+err.message); }
+  };
+  input.click();
+}
+
+function exportYAML() {
+  const out = {
+    version: 1, title: state.title || 'Planta Baixa',
+    scale: state.scale, wallThickness: state.wallThickness,
+    grid: state.gridVisible ? state.gridSize : false,
+    rooms: state.rooms.map(r => ({
+      id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
+      doors: r.doors.length ? r.doors.map(d => ({wall:d.wall,offset:d.offset,width:d.width,type:d.type,swing:d.swing})) : undefined,
+      windows: r.windows.length ? r.windows : undefined
+    }))
+  };
+  downloadFile('planta.yaml', jsyaml.dump(out, {lineWidth:-1, noCompatMode:true}), 'text/yaml');
+  toast('📤 YAML exportado!');
+}
+
+function exportSVG() {
+  const yaml = jsyaml.dump({
+    version:1, title:state.title||'Planta Baixa', scale:state.scale,
+    wallThickness:state.wallThickness, grid:state.gridVisible?state.gridSize:false,
+    rooms: state.rooms.map(r => ({
+      id:r.id, name:r.name, x:r.x, y:r.y, width:r.width, height:r.height,
+      doors: r.doors.length ? r.doors : undefined,
+      windows: r.windows.length ? r.windows : undefined
+    }))
+  }, {lineWidth:-1, noCompatMode:true});
+
+  // Use the existing engine to render SVG
+  const input = parseFloorplanInput(yaml);
+  const resolved = resolveFloorplanLayout(input);
+  const svgStr = renderFloorplanSVG(resolved);
+  downloadFile('planta.svg', svgStr, 'image/svg+xml');
+  toast('⬇ SVG exportado!');
+}
+
+// Embedded floorplan engine (minimal for export)
+function parseFloorplanInput(yamlStr) {
+  const raw = jsyaml.load(yamlStr);
+  return {
+    title: raw.title, scale: raw.scale || 2, wallThickness: raw.wallThickness || 15,
+    grid: raw.grid !== undefined ? raw.grid : 100,
+    rooms: raw.rooms.map(r => ({
+      id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
+      doors: (r.doors||[]).map(d=>({wall:d.wall,offset:d.offset,width:d.width,type:d.type||'pivot',swing:d.swing||'left'})),
+      windows: (r.windows||[]).map(w=>({wall:w.wall,offset:w.offset,width:w.width,height:w.height||120,sill:w.sill||110}))
+    })), walls: raw.walls || [], lot: raw.lot || null
+  };
+}
+
+function resolveFloorplanLayout(input) {
+  const sc=input.scale, wt=input.wallThickness*sc;
+  const rooms=input.rooms.map(room=>{
+    const r={x:room.x*sc,y:room.y*sc,w:room.width*sc,h:room.height*sc};
+    const doors=(room.doors||[]).map(d=>{
+      const op=opWall(d.wall,r,d.offset*sc,d.width*sc);
+      const dw=(d.wall==='north'||d.wall==='south')?op.e.x-op.s.x:op.e.y-op.s.y;
+      return{wall:d.wall,s:op.s,e:op.e,swing:swingArc2(d,op.s,op.e,dw),type:d.type};
+    });
+    const windows=(room.windows||[]).map(w=>{const op=opWall(w.wall,r,w.offset*sc,w.width*sc);return{wall:w.wall,s:op.s,e:op.e};});
+    return{id:room.id,name:room.name,rect:r,wallSegs:wallSegments2(r,doors,windows),doors,windows,lp:{x:r.x+r.w/2,y:r.y+r.h/2}};
+  });
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const r of rooms){minX=Math.min(minX,r.rect.x);minY=Math.min(minY,r.rect.y);maxX=Math.max(maxX,r.rect.x+r.rect.w);maxY=Math.max(maxY,r.rect.y+r.rect.h);}
+  const off=40;
+  return{title:input.title,rooms,wallThicknessPx:wt,grid:input.grid===false?false:(input.grid||100)*sc,
+    dimensions:[{x1:minX,y1:maxY+off,x2:maxX,y2:maxY+off,value:((maxX-minX)/sc/100).toFixed(2)+' m'},
+    {x1:maxX+off,y1:minY,x2:maxX+off,y2:maxY,value:((maxY-minY)/sc/100).toFixed(2)+' m'}]};
+}
+function opWall(w,r,off,wid){const s={},e={};switch(w){case'north':s.x=r.x+off;s.y=r.y;e.x=s.x+wid;e.y=r.y;break;case'south':s.x=r.x+off;s.y=r.y+r.h;e.x=s.x+wid;e.y=r.y+r.h;break;case'east':s.x=r.x+r.w;s.y=r.y+off;e.x=r.x+r.w;e.y=s.y+wid;break;case'west':s.x=r.x;s.y=r.y+off;e.x=r.x;e.y=s.y+wid;break}return{s,e};}
+function swingArc2(d,s,e,dw){if(d.type==='sliding')return[];let ix=0,iy=0;switch(d.wall){case'north':iy=1;break;case'south':iy=-1;break;case'east':ix=-1;break;case'west':ix=1;break}const hl=d.swing==='left';return[buildArc2(hl?s.x:e.x,hl?s.y:e.y,dw,hl?e.x:s.x,hl?e.y:s.y,ix,iy,dw)];}
+function buildArc2(cx,cy,r,clX,clY,ix,iy,id){const ox=cx+ix*id,oy=cy+iy*id;return{cx,cy,r,x1:clX,y1:clY,x2:ox,y2:oy,sweep:(clX-cx)*(oy-cy)-(clY-cy)*(ox-cx)>0?0:1};}
+function wallSegments2(r,doors,windows){const s=[],ops=[...doors.map(d=>({w:d.wall,s:d.s,e:d.e})),...windows.map(w=>({w:w.wall,s:w.s,e:w.e}))];const ed=[{d:'north',f:{x:r.x,y:r.y},t:{x:r.x+r.w,y:r.y}},{d:'south',f:{x:r.x,y:r.y+r.h},t:{x:r.x+r.w,y:r.y+r.h}},{d:'west',f:{x:r.x,y:r.y},t:{x:r.x,y:r.y+r.h}},{d:'east',f:{x:r.x+r.w,y:r.y},t:{x:r.x+r.w,y:r.y+r.h}}];for(const e of ed){const o=ops.filter(o=>o.w===e.d).sort((a,b)=>(e.d==='north'||e.d==='south')?a.s.x-b.s.x:a.s.y-b.s.y);if(!o.length){s.push({x1:e.f.x,y1:e.f.y,x2:e.t.x,y2:e.t.y,dir:e.d});continue}const isH=e.d==='north'||e.d==='south';let c=isH?e.f.x:e.f.y;const m=isH?e.t.x:e.t.y;for(const op of o){const os=isH?op.s.x:op.s.y,oe=isH?op.e.x:op.e.y;if(os>c)s.push({x1:isH?c:e.f.x,y1:isH?e.f.y:c,x2:isH?os:e.f.x,y2:isH?e.f.y:os,dir:e.d});c=Math.max(c,oe)}if(c<m)s.push({x1:isH?c:e.f.x,y1:isH?e.f.y:c,x2:e.t.x,y2:e.t.y,dir:e.d})}return s;}
+
+function renderFloorplanSVG(input) {
+  const {rooms,wallThicknessPx:wt,grid,dimensions,title}=input;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const r of rooms){minX=Math.min(minX,r.rect.x);minY=Math.min(minY,r.rect.y);maxX=Math.max(maxX,r.rect.x+r.rect.w);maxY=Math.max(maxY,r.rect.y+r.rect.h);}
+  for(const d of dimensions){minX=Math.min(minX,d.x1,d.x2);minY=Math.min(minY,d.y1,d.y2);maxX=Math.max(maxX,d.x1,d.x2);maxY=Math.max(maxY,d.y1,d.y2);}
+  const m=80,vbX=minX-m,vbY=minY-m,vbW=maxX-minX+m*2,vbH=maxY-minY+m*2;
+  const C={w:'#2d2d2d',ws:'#1a1a1a',rb:'#fafafa',dp:'#2d2d2d',da:'#555',wf:'#4a90d9',dl:'#b71c1c',dt:'#b71c1c',gd:'#e0e0e0',lb:'#1a1a1a',tt:'#1a1a1a'};
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%"><style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style>`;
+  s+=`<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
+  if(title)s+=`<text x="${(minX+maxX)/2}" y="${minY-45}" class="ttl">${esc(title)}</text>`;
+  for(const r of rooms)s+=`<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb"/>`;
+  const hS=new Map(),hO=new Map(),vS=new Map(),vO=new Map();
+  for(const r of rooms){
+    for(const seg of r.wallSegs){const isH=seg.dir==='north'||seg.dir==='south';if(isH){const m=hS.get(seg.y1)||[];m.push({a:Math.min(seg.x1,seg.x2),b:Math.max(seg.x1,seg.x2)});hS.set(seg.y1,m)}else{const m=vS.get(seg.x1)||[];m.push({a:Math.min(seg.y1,seg.y2),b:Math.max(seg.y1,seg.y2)});vS.set(seg.x1,m)}}
+    for(const d of r.doors){const isH=d.wall==='north'||d.wall==='south',y=isH?d.s.y:d.s.x,a=isH?Math.min(d.s.x,d.e.x):Math.min(d.s.y,d.e.y),b=isH?Math.max(d.s.x,d.e.x):Math.max(d.s.y,d.e.y);const m=(isH?hO:vO).get(y)||[];m.push({a,b});(isH?hO:vO).set(y,m)}
+    for(const w of r.windows){const isH=w.wall==='north'||w.wall==='south',y=isH?w.s.y:w.s.x,a=isH?Math.min(w.s.x,w.e.x):Math.min(w.s.y,w.e.y),b=isH?Math.max(w.s.x,w.e.x):Math.max(w.s.y,w.e.y);const m=(isH?hO:vO).get(y)||[];m.push({a,b});(isH?hO:vO).set(y,m)}
+  }
+  const hw=wt/2;
+  for(const[y,sol]of hS){const ops=mgSp(hO.get(y)||[]);for(const sp of subOp(mgSp(sol),ops))if(sp.b-sp.a>0)s+=`<rect x="${rnd(sp.a)}" y="${rnd(y-hw)}" width="${rnd(sp.b-sp.a)}" height="${rnd(wt)}" class="wf"/>`}
+  for(const[x,sol]of vS){const ops=mgSp(vO.get(x)||[]);for(const sp of subOp(mgSp(sol),ops))if(sp.b-sp.a>0)s+=`<rect x="${rnd(x-hw)}" y="${rnd(sp.a)}" width="${rnd(wt)}" height="${rnd(sp.b-sp.a)}" class="wf"/>`}
+  for(const r of rooms)for(const w of r.windows){
+    const isH=w.wall==='north'||w.wall==='south',g=2;
+    if(isH){s+=`<rect x="${w.s.x+g}" y="${w.s.y-hw}" width="${w.e.x-w.s.x-g*2}" height="${wt}" fill="${C.rb}" stroke="none"/>`;for(let i=-1;i<=1;i++)s+=`<line x1="${w.s.x}" y1="${w.s.y+hw*0.6*i}" x2="${w.e.x}" y2="${w.s.y+hw*0.6*i}" class="wfr"/>`;s+=`<line x1="${w.s.x}" y1="${w.s.y-hw}" x2="${w.s.x}" y2="${w.s.y+hw}" class="wfr"/><line x1="${w.e.x}" y1="${w.s.y-hw}" x2="${w.e.x}" y2="${w.s.y+hw}" class="wfr"/>`}
+    else{s+=`<rect x="${w.s.x-hw}" y="${w.s.y+g}" width="${wt}" height="${w.e.y-w.s.y-g*2}" fill="${C.rb}" stroke="none"/>`;for(let i=-1;i<=1;i++)s+=`<line x1="${w.s.x+hw*0.6*i}" y1="${w.s.y}" x2="${w.s.x+hw*0.6*i}" y2="${w.e.y}" class="wfr"/>`;s+=`<line x1="${w.s.x-hw}" y1="${w.s.y}" x2="${w.s.x+hw}" y2="${w.s.y}" class="wfr"/><line x1="${w.s.x-hw}" y1="${w.e.y}" x2="${w.s.x+hw}" y2="${w.e.y}" class="wfr"/>`}
+  }
+  for(const r of rooms)for(const d of r.doors){
+    const isH=d.wall==='north'||d.wall==='south';if(isH){const sg=d.wall==='north'?-1:1;s+=`<line x1="${d.s.x}" y1="${d.s.y-hw*sg}" x2="${d.s.x}" y2="${d.s.y+hw*sg}" class="jb"/><line x1="${d.e.x}" y1="${d.e.y-hw*sg}" x2="${d.e.x}" y2="${d.e.y+hw*sg}" class="jb"/>`}else{const sg=d.wall==='west'?-1:1;s+=`<line x1="${d.s.x-hw*sg}" y1="${d.s.y}" x2="${d.s.x+hw*sg}" y2="${d.s.y}" class="jb"/><line x1="${d.e.x-hw*sg}" y1="${d.e.y}" x2="${d.e.x+hw*sg}" y2="${d.e.y}" class="jb"/>`}
+    if(d.type==='sliding'){s+=`<line x1="${d.s.x}" y1="${d.s.y}" x2="${d.e.x}" y2="${d.e.y}" class="dp" stroke-dasharray="6 3"/>`;continue}
+    for(const arc of d.swing)if(arc.r>0){s+=`<line x1="${arc.cx}" y1="${arc.cy}" x2="${arc.x2}" y2="${arc.y2}" class="dp"/><path d="M${arc.x1},${arc.y1}A${arc.r},${arc.r} 0 0 ${arc.sweep} ${arc.x2},${arc.y2}" class="da"/>`}
+  }
+  const cn=new Set();
+  for(const r of rooms){const pts=[[r.rect.x,r.rect.y],[r.rect.x+r.rect.w,r.rect.y],[r.rect.x,r.rect.y+r.rect.h],[r.rect.x+r.rect.w,r.rect.y+r.rect.h]];for(const[cx,cy]of pts){const k=`${rnd(cx)},${rnd(cy)}`;if(!cn.has(k)){cn.add(k);s+=`<rect x="${rnd(cx-hw)}" y="${rnd(cy-hw)}" width="${rnd(wt)}" height="${rnd(wt)}" class="wf"/>`}}}
+  for(const r of rooms)s+=`<text x="${r.lp.x}" y="${r.lp.y}" class="rn">${esc(r.name)}</text>`;
+  for(const d of dimensions){const isH=Math.abs(d.y2-d.y1)<Math.abs(d.x2-d.x1);s+=`<line x1="${d.x1}" y1="${d.y1}" x2="${d.x2}" y2="${d.y2}" class="dl"/>`;if(isH){s+=`<line x1="${d.x1}" y1="${d.y1-7}" x2="${d.x1}" y2="${d.y1+7}" class="dtk"/><line x1="${d.x2}" y1="${d.y2-7}" x2="${d.x2}" y2="${d.y2+7}" class="dtk"/>`}else{s+=`<line x1="${d.x1-7}" y1="${d.y1}" x2="${d.x1+7}" y2="${d.y1}" class="dtk"/><line x1="${d.x2-7}" y1="${d.y2}" x2="${d.x2+7}" y2="${d.y2}" class="dtk"/>`}s+=`<text x="${isH?(d.x1+d.x2)/2:(d.x1+d.x2)/2+14}" y="${isH?(d.y1+d.y2)/2-14:(d.y1+d.y2)/2}" class="dtx">${esc(d.value)}</text>`}
+  return s+'</svg>';
+}
+function mgSp(sp){if(!sp.length)return[];const srt=[...sp].sort((a,b)=>a.a-b.a),res=[srt[0]];for(let i=1;i<srt.length;i++){const l=res[res.length-1];if(srt[i].a<=l.b)l.b=Math.max(l.b,srt[i].b);else res.push(srt[i])}return res}
+function subOp(sol,ops){if(!ops.length)return sol;const res=[];for(const s of sol){let cur=s.a;for(const op of ops){if(op.b<=cur)continue;if(op.a>=s.b)break;const gs=Math.max(cur,op.a),ge=Math.min(s.b,op.b);if(gs>cur)res.push({a:cur,b:gs});cur=Math.max(cur,ge)}if(cur<s.b)res.push({a:cur,b:s.b})}return res}
+function rnd(n){return Math.round(n*10)/10}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ═══════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════
+
+function downloadFile(name, content, type) {
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=name; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// init
+initPalette();
+render();
+</script>
+</body>
+</html>

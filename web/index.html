@@ -7,6 +7,7 @@
 <meta name="description" content="Descreva plantas baixas em YAML e renderize como SVG profissional">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -102,6 +103,21 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 #summary-panel .close-btn{display:block;width:100%;padding:10px;margin-top:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
 
 /* ── mobile ── */
+/* ── quick actions ── */
+#toolbar .qa-btn{font-size:12px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all var(--transition);white-space:nowrap;border:1px solid var(--border);background:var(--surface);color:var(--text);display:inline-flex;align-items:center;gap:4px}
+#toolbar .qa-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── status line ── */
+#status-line{display:flex;align-items:center;padding:4px 12px;background:#252526;color:#ccc;font-size:11px;font-family:'JetBrains Mono','Cascadia Code','Fira Code','Consolas',monospace;border-top:1px solid #333;gap:12px;flex-shrink:0}
+#status-line .status-pos{color:#888}
+#status-line .status-valid{color:#4caf50;font-weight:600}
+#status-line .status-error{color:#f44336;font-weight:600}
+#status-line .status-saved{color:#888;margin-left:auto;opacity:0;transition:opacity 0.3s;font-size:10px}
+#status-line .status-saved.visible{opacity:1}
+
+/* ── error line highlight ── */
+.CodeMirror .line-error{background:rgba(255,0,0,0.12)!important}
+
 @media(max-width:768px){
   #sidebar{position:absolute;height:100%;z-index:30}
   #sidebar.collapsed{transform:translateX(-100%)}
@@ -168,12 +184,18 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
       <button onclick="toggleTheme()" title="Alternar tema">🌓 Tema</button>
       <button onclick="showSummary()" title="Resumo executivo">📊 Resumo</button>
       <div class="sep"></div>
+      <button class="qa-btn" onclick="insertSnippet('room')" title="Inserir cômodo">＋ Cômodo</button>
+      <button class="qa-btn" onclick="insertSnippet('door')" title="Inserir porta">🚪 Porta</button>
+      <button class="qa-btn" onclick="insertSnippet('window')" title="Inserir janela">🪟 Janela</button>
+      <button class="qa-btn" onclick="insertSnippet('lot')" title="Inserir lote">📐 Lote</button>
+      <div class="sep"></div>
       <button onclick="resetEditor()" title="Voltar ao exemplo original">↺ Reset</button>
     </div>
     <div id="workspace">
       <div id="editor-pane">
         <div id="editor-wrap"></div>
         <div id="error-bar"></div>
+        <div id="status-line"><span class="status-pos">Ln 1, Col 1</span><span class="status-valid">✓ Válido</span><span class="status-error" style="display:none">✗ Erro</span><span class="status-saved">💾 Salvo</span></div>
       </div>
       <div id="resize-handle" title="Redimensionar"></div>
       <div id="preview-pane">
@@ -198,6 +220,7 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 
 <script>
@@ -644,8 +667,100 @@ function renderFloorplan(yamlStr) {
 //  APP
 // ═══════════════════════════════════════════════════
 
-const editor = CodeMirror(document.getElementById('editor-wrap'), { value: '', mode: 'yaml', theme: 'material-darker', lineNumbers: true, tabSize: 2, indentUnit: 2, indentWithTabs: false, lineWrapping: false });
-let currentExample = 'apartamento', renderTimeout, showGrid = true, zoomLevel = 1;
+const editor = CodeMirror(document.getElementById('editor-wrap'), { value: '', mode: 'yaml', theme: 'material-darker', lineNumbers: true, tabSize: 2, indentUnit: 2, indentWithTabs: false, lineWrapping: false, extraKeys: { 'Ctrl-Space': 'autocomplete' } });
+let currentExample = 'apartamento', renderTimeout, showGrid = true, zoomLevel = 1, editorValid = true;
+
+// ── YAML autocomplete / hints ──
+const TOP_KEYS = ['version:', 'title:', 'scale:', 'wallThickness:', 'grid:', 'lot:', 'rooms:', 'walls:'];
+const ROOM_PROPS = ['id:', 'name:', 'x:', 'y:', 'width:', 'height:', 'doors:', 'windows:'];
+const DOOR_PROPS = ['wall:', 'offset:', 'width:', 'type:', 'swing:'];
+const WIN_PROPS = ['wall:', 'offset:', 'width:', 'height:', 'sill:'];
+const WALL_DIRS = ['north', 'south', 'east', 'west'];
+const DOOR_TYPES = ['pivot', 'sliding', 'double'];
+const SWING = ['left', 'right', 'none'];
+
+function floorplanHint(cm) {
+  const cursor = cm.getCursor();
+  const line = cm.getLine(cursor.line) || '';
+  const token = cm.getTokenAt(cursor);
+  const curWord = token.string;
+  const linePre = line.slice(0, cursor.ch).trimEnd();
+  const indent = line.match(/^(\s*)/)[1].length;
+  const allText = cm.getValue();
+  const textBefore = allText.slice(0, cm.indexFromPos(cursor));
+
+  let suggestions = [];
+
+  // Top-level keys
+  if (indent <= 2 && !linePre.includes(':')) {
+    suggestions = suggestions.concat(TOP_KEYS);
+  }
+
+  // Inside rooms block
+  if (allText.includes('\nrooms:')) {
+    // Room entry (indent 2)
+    if (indent === 2 && /^\s*- /.test(line)) {
+      suggestions = suggestions.concat(['- id:']);
+    }
+    // Room properties (indent 4, after a room entry)
+    if (indent >= 2) {
+      const lastRoomIdx = textBefore.lastIndexOf('\n  - id:');
+      const lastTopKey = Math.max(
+        textBefore.lastIndexOf('\nrooms:'),
+        textBefore.lastIndexOf('\nlot:'),
+        textBefore.lastIndexOf('\nwalls:')
+      );
+      if (lastRoomIdx > lastTopKey) {
+        if (indent === 4 && !/^\s*- /.test(line)) {
+          suggestions = suggestions.concat(ROOM_PROPS);
+        }
+        // Inside doors/windows sub-block (indent 6+)
+        if (indent >= 6) {
+          const sectionBefore = textBefore.slice(lastRoomIdx);
+          const inDoors = sectionBefore.lastIndexOf('\n    doors:') > sectionBefore.lastIndexOf('\n    windows:');
+          const inWindows = sectionBefore.lastIndexOf('\n    windows:') > sectionBefore.lastIndexOf('\n    doors:');
+          if (/^\s*- wall/.test(linePre)) { suggestions = suggestions.concat(WALL_DIRS); }
+          else if (/type:/.test(line)) { suggestions = suggestions.concat(DOOR_TYPES); }
+          else if (/swing:/.test(line)) { suggestions = suggestions.concat(SWING); }
+          else if (/^\s*- /.test(line) || indent === 6) {
+            suggestions = suggestions.concat(inDoors ? DOOR_PROPS : WIN_PROPS);
+          }
+        }
+      }
+    }
+  }
+
+  // In lot block
+  if (textBefore.includes('\nlot:') && indent >= 2) {
+    const lastLot = textBefore.lastIndexOf('\nlot:');
+    const lastOther = Math.max(textBefore.lastIndexOf('\nrooms:'), textBefore.lastIndexOf('\nwalls:'));
+    if (lastLot > lastOther) {
+      suggestions = suggestions.concat(['width:', 'height:']);
+    }
+  }
+
+  const filtered = curWord ? suggestions.filter(s => s.toLowerCase().startsWith(curWord.toLowerCase())) : suggestions;
+  if (!filtered.length) return { list: [], from: cursor, to: cursor };
+  return {
+    list: filtered,
+    from: CodeMirror.Pos(cursor.line, cursor.ch - curWord.length),
+    to: CodeMirror.Pos(cursor.line, cursor.ch)
+  };
+}
+
+editor.on('inputRead', (cm, change) => {
+  if (change.text && change.text[0] === '-') { cm.showHint({ hint: floorplanHint, completeSingle: false }); return; }
+});
+
+CodeMirror.commands.autocomplete = function(cm) { cm.showHint({ hint: floorplanHint, completeSingle: false }); };
+
+// status line cursor tracker
+editor.on('cursorActivity', updateStatusLine);
+function updateStatusLine() {
+  const pos = editor.getCursor();
+  const posEl = document.querySelector('#status-line .status-pos');
+  if (posEl) posEl.textContent = `Ln ${pos.line + 1}, Col ${pos.ch + 1}`;
+}
 
 function loadExample(name) {
   currentExample = name;
@@ -660,6 +775,10 @@ function loadExample(name) {
 function doRender() {
   clearTimeout(renderTimeout);
   renderTimeout = setTimeout(() => {
+    // clear previous error highlights
+    for (let i = 0; i < editor.lineCount(); i++) {
+      editor.removeLineClass(i, 'background', 'line-error');
+    }
     try {
       let yaml = editor.getValue();
       if (!showGrid) {
@@ -672,14 +791,38 @@ function doRender() {
       wrap.innerHTML = svg + document.getElementById('zoom-controls').outerHTML;
       applyZoom();
       document.getElementById('error-bar').classList.remove('show');
+      editorValid = true;
+      const validEl = document.querySelector('#status-line .status-valid');
+      const errEl = document.querySelector('#status-line .status-error');
+      if (validEl) validEl.style.display = '';
+      if (errEl) errEl.style.display = 'none';
     } catch (e) {
       document.getElementById('error-bar').textContent = '⚠ ' + e.message;
       document.getElementById('error-bar').classList.add('show');
+      const lineMatch = e.message.match(/at line (\d+)/);
+      if (lineMatch && lineMatch[1]) {
+        const ln = parseInt(lineMatch[1]) - 1;
+        if (ln >= 0 && ln < editor.lineCount()) editor.addLineClass(ln, 'background', 'line-error');
+      }
+      editorValid = false;
+      const validEl = document.querySelector('#status-line .status-valid');
+      const errEl = document.querySelector('#status-line .status-error');
+      if (validEl) validEl.style.display = 'none';
+      if (errEl) errEl.style.display = '';
     }
   }, 200);
 }
 
-editor.on('change', () => { saveHash(); doRender(); });
+// ── auto-save to localStorage ──
+const LS_KEY = 'floorplan-yaml';
+let saveIndicatorTimeout;
+function saveToLocalStorage() {
+  try { localStorage.setItem(LS_KEY, editor.getValue()); } catch (e) {}
+  const el = document.querySelector('#status-line .status-saved');
+  if (el) { el.classList.add('visible'); clearTimeout(saveIndicatorTimeout); saveIndicatorTimeout = setTimeout(() => el.classList.remove('visible'), 1500); }
+}
+
+editor.on('change', () => { saveHash(); saveToLocalStorage(); doRender(); });
 
 // zoom
 function applyZoom() {
@@ -712,6 +855,29 @@ window.toggleGrid = () => { showGrid = !showGrid; document.getElementById('btn-g
 
 // theme
 window.toggleTheme = () => { document.body.classList.toggle('dark'); document.body.style.background = document.body.classList.contains('dark') ? 'var(--bg)' : ''; };
+
+// ── quick action snippets ──
+window.insertSnippet = function(type) {
+  const cursor = editor.getCursor();
+  let snippet = '';
+  switch (type) {
+    case 'room':
+      snippet = '  - id: comodo\n    name: Novo Cômodo\n    x: 0\n    y: 0\n    width: 400\n    height: 300\n    doors:\n      - wall: south; offset: 160; width: 80; type: pivot; swing: left\n    windows:\n      - wall: north; offset: 100; width: 150; height: 120; sill: 110\n';
+      break;
+    case 'door':
+      snippet = '      - wall: south; offset: 100; width: 80; type: pivot; swing: left\n';
+      break;
+    case 'window':
+      snippet = '      - wall: north; offset: 80; width: 120; height: 120; sill: 110\n';
+      break;
+    case 'lot':
+      snippet = 'lot:\n  width: 2000\n  height: 1500\n';
+      break;
+  }
+  editor.replaceRange(snippet, cursor);
+  editor.focus();
+  doRender();
+};
 
 // download
 window.downloadSVG = () => { try { const svg = renderFloorplan(editor.getValue()); const b = new Blob([svg], { type: 'image/svg+xml' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'planta.svg'; a.click(); URL.revokeObjectURL(u); } catch (e) { toast('Erro: ' + e.message); } };
@@ -942,8 +1108,11 @@ function init() {
     document.querySelectorAll('.example-card').forEach(c => c.classList.remove('active'));
     document.getElementById('file-name').textContent = 'Compartilhado';
   } else {
+    // try restore from localStorage
+    try { const saved = localStorage.getItem(LS_KEY); if (saved && saved.trim()) { editor.setValue(saved); currentExample = 'custom'; document.querySelectorAll('.example-card').forEach(c => c.classList.remove('active')); document.getElementById('file-name').textContent = 'Restaurado'; updateStatusLine(); doRender(); return; } } catch (e) {}
     loadExample('apartamento');
   }
+  updateStatusLine();
 }
 init();
 </script>
