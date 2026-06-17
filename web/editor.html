@@ -335,6 +335,7 @@ body.dark #canvas-wrap{
   background-size:24px 24px;
 }
 #canvas-wrap.panning{cursor:grabbing}
+#canvas-wrap.hand-tool{cursor:grab}
 #canvas-wrap.wall-tool{cursor:crosshair}
 #canvas-wrap.room-tool{cursor:crosshair}
 #canvas-wrap.stair-tool{cursor:crosshair}
@@ -834,6 +835,10 @@ body.dark #canvas-wrap{
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 14h4v-4h4V6h4V2"/></svg>
           Escada
         </button>
+        <button class="tool-btn" id="tool-hand" onclick="setTool('hand')" data-tooltip="Mão — arrastar a tela (ou Espaço+arrastar)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v7M5.5 3.5V4a1 1 0 0 0-1 1v1M5.5 3.5a1 1 0 0 0-2 0V7M10.5 3.5V4a1 1 0 0 1 1 1v1M10.5 3.5a1 1 0 0 1 2 0v3.5c0 2.5-1.5 5-4 5s-4-2.5-4-5V6"/></svg>
+          Mão
+        </button>
       </div>
 
       <div class="panel-divider"></div>
@@ -1205,11 +1210,13 @@ function render() {
   const rooms = floor.rooms || [];
   let totalArea = 0;
 
-  // Create two layers
-  const wallsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  // Three-layer rendering: fills (behind) → walls → content/gaps (top)
   const fillsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
-  g.appendChild(wallsLayer);
+  const wallsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const topLayer   = document.createElementNS('http://www.w3.org/2000/svg','g');
   g.appendChild(fillsLayer);
+  g.appendChild(wallsLayer);
+  g.appendChild(topLayer);
 
   for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
@@ -1252,16 +1259,24 @@ function render() {
     group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
     if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
-    // room fill (covers interior, naturally hides inner halves of adjacent wall rects)
-    if (state.layers.rooms) {
-      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
-      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
-      // Border comes from wall rects; only show stroke when selected
-      rect.setAttribute('stroke', isSelected ? '#2563eb' : 'none');
-      rect.setAttribute('stroke-width', isSelected ? 2 : 0);
-      group.appendChild(rect);
+    // Room fill goes to fillsLayer (BEHIND walls so walls are always visible)
+    {
+      const fillRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      fillRect.setAttribute('x', rx); fillRect.setAttribute('y', ry);
+      fillRect.setAttribute('width', rw); fillRect.setAttribute('height', rh);
+      fillRect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
+      fillRect.setAttribute('pointer-events', 'none');
+      fillsLayer.appendChild(fillRect);
+    }
+    // Transparent hit-rect inside topLayer group (captures clicks over room interior)
+    {
+      const hitRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hitRect.setAttribute('x', rx); hitRect.setAttribute('y', ry);
+      hitRect.setAttribute('width', rw); hitRect.setAttribute('height', rh);
+      hitRect.setAttribute('fill', 'transparent');
+      hitRect.setAttribute('stroke', isSelected ? '#2563eb' : 'none');
+      hitRect.setAttribute('stroke-width', isSelected ? 2 : 0);
+      group.appendChild(hitRect);
     }
 
     // doors
@@ -1400,7 +1415,7 @@ function render() {
       }
     }
 
-    fillsLayer.appendChild(group);
+    topLayer.appendChild(group);
   }
 
   // stairs
@@ -1541,10 +1556,13 @@ function buildArc(cx, cy, r, clX, clY, ix, iy, id) {
 
 const canvasWrap = document.getElementById('canvas-wrap');
 
-// pan (middle mouse or space+drag)
+// pan (middle mouse | alt+drag | hand tool | space+drag)
 let isPanning = false, panStart = {x:0,y:0, ox:0, oy:0};
+let spaceDown = false;
 canvasWrap.addEventListener('mousedown', e => {
-  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+  const panTrigger = e.button === 1 || (e.button === 0 && e.altKey)
+                  || (e.button === 0 && (state.tool === 'hand' || spaceDown));
+  if (panTrigger) {
     e.preventDefault(); isPanning = true; hasDragged = false;
     panStart = {x:e.clientX-state.panX, y:e.clientY-state.panY, ox:e.clientX, oy:e.clientY};
     canvasWrap.classList.add('panning');
@@ -1683,7 +1701,7 @@ let moveState = null, moveOrigin = null;
 canvasWrap.addEventListener('mousedown', e => {
   if (openingDragState) return; // guard: don't start room move while dragging an opening
   if (isPanning || e.button !== 0) return;
-  if (e.altKey) return; // pan is handled separately
+  if (e.altKey || state.tool === 'hand' || spaceDown) return; // pan is handled separately
 
   // ── wall tool: ignore mousedown (handled via click) ──
   if (state.tool === 'wall') return;
@@ -2050,9 +2068,17 @@ function alignSelected(dir) {
   toast('📐 Alinhado!');
 }
 
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space') {
+    spaceDown = false;
+    if (state.tool !== 'hand') canvasWrap.classList.remove('hand-tool');
+  }
+});
+
 document.addEventListener('keydown', e => {
   const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
   const editable = tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement.isContentEditable;
+  if (e.code === 'Space' && !editable) { e.preventDefault(); if (!spaceDown) { spaceDown = true; canvasWrap.classList.add('hand-tool'); } return; }
   if ((e.key === 'Delete' || e.key === 'Backspace') && !editable) { e.preventDefault(); deleteSelected(); }
   if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !e.shiftKey && !editable) { e.preventDefault(); undo(); }
   if ((e.ctrlKey||e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z')) && !editable) { e.preventDefault(); redo(); }
@@ -2073,6 +2099,7 @@ document.addEventListener('keydown', e => {
     else if (e.key === '4') { setTool('door'); e.preventDefault(); }
     else if (e.key === '5') { setTool('window'); e.preventDefault(); }
     else if (e.key === '6') { setTool('stair'); e.preventDefault(); }
+    else if (e.key === '7' || e.key === 'h' || e.key === 'H') { setTool('hand'); e.preventDefault(); }
     else if (e.key === '[') { toggleSidebar(); e.preventDefault(); }
   }
 });
@@ -2410,8 +2437,15 @@ function setTool(tool) {
     canvasWrap.classList.remove('wall-tool','room-tool');
     document.getElementById('wall-hint').style.display = 'none';
     renderPreview();
-  } else {
+  } else if (tool === 'hand') {
+    canvasWrap.classList.add('hand-tool');
     canvasWrap.classList.remove('wall-tool','room-tool','stair-tool');
+    document.getElementById('wall-hint').style.display = 'none';
+    wallState.vertices = []; wallState.active = false;
+    roomDrawState = null; stairDrawState = null;
+    renderPreview(); renderRoomPreview();
+  } else {
+    canvasWrap.classList.remove('wall-tool','room-tool','stair-tool','hand-tool');
     document.getElementById('wall-hint').style.display = 'none';
     wallState.vertices = []; wallState.active = false;
     roomDrawState = null;
