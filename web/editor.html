@@ -115,6 +115,9 @@ body.dark{
 }
 .tb-btn-icon:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
 .tb-btn-icon.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.tb-grid-step{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted)}
+.tb-grid-step input{width:46px;height:28px;padding:0 4px;font-size:11px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);text-align:right;}
+.tb-grid-step input:focus{outline:none;border-color:var(--accent)}
 .tb-group{display:flex;align-items:center;gap:1px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:2px}
 .tb-group .tb-btn-icon{border:none;border-radius:4px;width:28px;height:28px}
 .tb-group .tb-btn-icon:hover{background:var(--surface);color:var(--text)}
@@ -417,6 +420,43 @@ body.dark #canvas-wrap{
 .del-btn:hover{background:var(--danger-bg);color:var(--danger)}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
 .add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
+/* ── PROPS MODE TOGGLE ── */
+.rp-header{display:flex;align-items:center;justify-content:space-between}
+.rp-mode-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;
+  font-size:9px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
+  border:1px solid var(--border2);border-radius:12px;
+  background:transparent;color:var(--text3);
+  cursor:pointer;transition:all var(--transition);font-family:inherit;
+}
+.rp-mode-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.rp-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* ── YAML PROPS EDITOR ── */
+.props-yaml-wrap{display:flex;flex-direction:column;flex:1;padding:10px;gap:8px}
+#props-yaml-ta{
+  flex:1;min-height:320px;resize:vertical;
+  font-family:'Cascadia Code','Fira Code','SF Mono','Consolas',monospace;
+  font-size:11.5px;line-height:1.6;
+  padding:10px;
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface2);color:var(--text);
+  outline:none;
+  transition:border-color var(--transition);
+  tab-size:2;
+}
+#props-yaml-ta:focus{border-color:var(--accent)}
+.dark #props-yaml-ta{background:#0f172a}
+.props-yaml-actions{display:flex;align-items:center;gap:6px}
+.props-yaml-apply{
+  flex:1;padding:6px 0;
+  font-size:11px;font-weight:600;font-family:inherit;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:var(--radius-sm);
+  cursor:pointer;transition:background var(--transition);
+}
+.props-yaml-apply:hover{background:var(--accent2)}
+.props-yaml-err{font-size:10px;color:var(--danger);flex:1;line-height:1.3}
 /* ── LAYERS PANEL ── */
 .layer-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
 .layer-row:last-child{border-bottom:none}
@@ -425,7 +465,8 @@ body.dark #canvas-wrap{
 .layer-eye.active{color:var(--accent)}
 .layer-label{font-size:12px;color:var(--text2);flex:1}
 /* ── PRINT MODAL ── */
-#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:300}
+#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:300}
+#print-modal.show{display:flex}
 .print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
 .print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
@@ -568,13 +609,23 @@ body.dark #canvas-wrap{
 [data-tooltip]{position:relative}
 [data-tooltip]:hover::after{
   content:attr(data-tooltip);
-  position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
-  background:var(--text);color:var(--surface);
-  font-size:10px;font-weight:500;
-  padding:4px 8px;border-radius:var(--radius-sm);
-  white-space:nowrap;z-index:100;pointer-events:none;
-  box-shadow:var(--shadow);
+  position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#1e293b;color:#f8fafc;
+  font-size:11px;font-weight:500;
+  padding:5px 9px;border-radius:var(--radius-sm);
+  white-space:nowrap;z-index:300;pointer-events:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  letter-spacing:0.01em;
+  animation:tip-in 0.1s ease both;
 }
+[data-tooltip]:hover::before{
+  content:'';
+  position:absolute;top:calc(100% + 1px);left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-bottom-color:#1e293b;
+  z-index:301;pointer-events:none;
+  animation:tip-in 0.1s ease both;
+}
+@keyframes tip-in{from{opacity:0;transform:translateX(-50%) translateY(-3px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* distance indicator */
 .dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
@@ -668,10 +719,14 @@ body.dark #canvas-wrap{
       </button>
     </div>
 
-    <!-- Grid toggle -->
+    <!-- Grid toggle + step -->
     <button class="tb-btn-icon" id="btn-grid" onclick="toggleGrid()" data-tooltip="Alternar grade">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="0.5"/><rect x="9" y="1" width="6" height="6" rx="0.5"/><rect x="1" y="9" width="6" height="6" rx="0.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg>
     </button>
+    <div class="tb-grid-step" data-tooltip="Passo da grade (cm)">
+      <input type="number" id="grid-step" min="10" max="1000" step="10" value="50" onchange="setGridSize(+this.value)">
+      <span>cm</span>
+    </div>
     <!-- Theme toggle -->
     <button class="tb-btn-icon" onclick="toggleTheme()" data-tooltip="Alternar tema">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><line x1="8" y1="1" x2="8" y2="2.5"/><line x1="8" y1="13.5" x2="8" y2="15"/><line x1="1" y1="8" x2="2.5" y2="8"/><line x1="13.5" y1="8" x2="15" y2="8"/><line x1="2.9" y1="2.9" x2="4" y2="4"/><line x1="12" y1="12" x2="13.1" y2="13.1"/><line x1="2.9" y1="13.1" x2="4" y2="12"/><line x1="12" y1="4" x2="13.1" y2="2.9"/></svg>
@@ -846,7 +901,13 @@ body.dark #canvas-wrap{
 
     <!-- RIGHT PANEL -->
     <div id="right-panel">
-      <div class="rp-header">Propriedades</div>
+      <div class="rp-header">
+        Propriedades
+        <button class="rp-mode-btn" id="btn-props-mode" onclick="togglePropsMode()" data-tooltip="Editar como YAML" style="display:none">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="1,4 4,1 4,11"/><polyline points="8,1 11,4 11,11"/><line x1="1" y1="8" x2="11" y2="8"/></svg>
+          YAML
+        </button>
+      </div>
       <div id="props-content" class="empty-state">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"><rect x="4" y="8" width="18" height="16" rx="2"/><path d="M8 13h10M8 17h7"/></svg>
         Selecione um elemento no canvas
@@ -943,7 +1004,7 @@ let state = {
   activeFloor: 'terreo',
   scale: DEFAULT_SCALE,
   wallThickness: 15,
-  gridSize: 100,
+  gridSize: 50,
   selectedId: null,
   selectedIds: new Set(),
   tool: 'select',
@@ -1028,31 +1089,34 @@ function generateSymbolId() { return 'sym_' + (state.nextSymId++); }
 // ═══════════════════════════════════════════════════
 
 function getSharedWalls(rooms) {
+  // Maps roomId → Set of wall sides that are hidden because the adjacent room
+  // already draws that wall. Only ONE side per shared boundary is suppressed
+  // (the "inner" room absorbs into the "outer" room's wall) so no gap appears.
   const shared = {};
   for (const r of rooms) shared[r.id] = new Set();
   const tol = 2; // cm tolerance
   for (let i = 0; i < rooms.length; i++) {
     for (let j = i + 1; j < rooms.length; j++) {
       const a = rooms[i], b = rooms[j];
-      // A east / B west
+      // A east / B west → A keeps its east wall, B suppresses its west wall
       if (Math.abs((a.x + a.width) - b.x) <= tol) {
         const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
-        if (bot > top + tol) { shared[a.id].add('east'); shared[b.id].add('west'); }
+        if (bot > top + tol) { shared[b.id].add('west'); }
       }
-      // B east / A west
+      // B east / A west → B keeps its east wall, A suppresses its west wall
       if (Math.abs((b.x + b.width) - a.x) <= tol) {
         const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
-        if (bot > top + tol) { shared[b.id].add('east'); shared[a.id].add('west'); }
+        if (bot > top + tol) { shared[a.id].add('west'); }
       }
-      // A south / B north
+      // A south / B north → A keeps its south wall, B suppresses its north wall
       if (Math.abs((a.y + a.height) - b.y) <= tol) {
         const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
-        if (right > left + tol) { shared[a.id].add('south'); shared[b.id].add('north'); }
+        if (right > left + tol) { shared[b.id].add('north'); }
       }
-      // B south / A north
+      // B south / A north → B keeps its south wall, A suppresses its north wall
       if (Math.abs((b.y + b.height) - a.y) <= tol) {
         const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
-        if (right > left + tol) { shared[b.id].add('south'); shared[a.id].add('north'); }
+        if (right > left + tol) { shared[a.id].add('north'); }
       }
     }
   }
@@ -1089,36 +1153,23 @@ function render() {
     }
   }
 
-  // rooms
+  // rooms — two-layer rendering: walls behind, fills/content in front
   const floor = getFloor();
   const rooms = floor.rooms || [];
-  const sharedWalls = getSharedWalls(rooms);
   let totalArea = 0;
+
+  // Create two layers
+  const wallsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const fillsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(wallsLayer);
+  g.appendChild(fillsLayer);
+
   for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
     const rw = room.width * state.scale, rh = room.height * state.scale;
     totalArea += room.width * room.height;
-    
-    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
-    group.setAttribute('data-id', room.id);
-    group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
-    const isSelected = state.selectedIds.has(room.id);
-    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
-    // room fill
-    if (state.layers.rooms) {
-      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
-      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
-      rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
-      rect.setAttribute('stroke-width', isSelected ? 2 : 1);
-      group.appendChild(rect);
-    }
-
-    // walls (4 thick border rects — top/right/bottom/left)
     const hw = wt / 2;
-    const sw = sharedWalls[room.id] || new Set();
     // wall style colors
     const wallStyle = room.wallStyle || 'alvenaria';
     let wallFill, wallStroke, wallDash;
@@ -1137,16 +1188,39 @@ function render() {
       if (wallDash) r.setAttribute('stroke-dasharray', wallDash);
       return r;
     }
+
+    // Add all 4 wall rects to wallsLayer (no shared-wall suppression needed —
+    // the fill rects in fillsLayer naturally cover the inner halves of adjacent walls)
     if (state.layers.walls) {
-      if (!sw.has('north')) group.appendChild(makeWallRect(rx - hw, ry - hw, rw + wt, wt));
-      if (!sw.has('south')) group.appendChild(makeWallRect(rx - hw, ry + rh - hw, rw + wt, wt));
-      if (!sw.has('west'))  group.appendChild(makeWallRect(rx - hw, ry - hw, wt, rh + wt));
-      if (!sw.has('east'))  group.appendChild(makeWallRect(rx + rw - hw, ry - hw, wt, rh + wt));
+      wallsLayer.appendChild(makeWallRect(rx - hw, ry - hw, rw + wt, wt));        // north
+      wallsLayer.appendChild(makeWallRect(rx - hw, ry + rh - hw, rw + wt, wt));   // south
+      wallsLayer.appendChild(makeWallRect(rx - hw, ry - hw, wt, rh + wt));        // west
+      wallsLayer.appendChild(makeWallRect(rx + rw - hw, ry - hw, wt, rh + wt));   // east
+    }
+
+    // Fill group goes into fillsLayer (has data-id for event handling)
+    const isSelected = state.selectedIds.has(room.id);
+    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+    group.setAttribute('data-id', room.id);
+    group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
+    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+
+    // room fill (covers interior, naturally hides inner halves of adjacent wall rects)
+    if (state.layers.rooms) {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
+      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
+      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
+      // Border comes from wall rects; only show stroke when selected
+      rect.setAttribute('stroke', isSelected ? '#2563eb' : 'none');
+      rect.setAttribute('stroke-width', isSelected ? 2 : 0);
+      group.appendChild(rect);
     }
 
     // doors
     if (state.layers.doors) {
-      for (const d of (room.doors || [])) {
+      for (let i = 0; i < (room.doors || []).length; i++) {
+        const d = room.doors[i];
         const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
         const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
         const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
@@ -1175,13 +1249,34 @@ function render() {
           gap.setAttribute('height', op.ey-op.sy);
         }
         gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
+        // drag handle (select tool only)
+        if (state.tool === 'select') {
+          const hcx = (op.sx + op.ex) / 2;
+          const hcy = (op.sy + op.ey) / 2;
+          const handle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          handle.setAttribute('cx', hcx);
+          handle.setAttribute('cy', hcy);
+          handle.setAttribute('r', 5 / state.zoom);
+          handle.setAttribute('fill', '#3b82f6');
+          handle.setAttribute('stroke', '#fff');
+          handle.setAttribute('stroke-width', 1.5 / state.zoom);
+          handle.style.cursor = (d.wall==='north'||d.wall==='south') ? 'ew-resize' : 'ns-resize';
+          handle.addEventListener('mousedown', ev => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            hasDragged = false;
+            openingDragState = { roomId: room.id, type: 'door', index: i };
+          });
+          doorG.appendChild(handle);
+        }
         group.appendChild(doorG);
       }
     }
 
     // windows
     if (state.layers.windows) {
-      for (const w of (room.windows || [])) {
+      for (let i = 0; i < (room.windows || []).length; i++) {
+        const w = room.windows[i];
         const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
         const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
         const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -1199,6 +1294,26 @@ function render() {
         frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
         frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
         winG.appendChild(frame);
+        // drag handle (select tool only)
+        if (state.tool === 'select') {
+          const hcx = (op.sx + op.ex) / 2;
+          const hcy = (op.sy + op.ey) / 2;
+          const handle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          handle.setAttribute('cx', hcx);
+          handle.setAttribute('cy', hcy);
+          handle.setAttribute('r', 5 / state.zoom);
+          handle.setAttribute('fill', '#3b82f6');
+          handle.setAttribute('stroke', '#fff');
+          handle.setAttribute('stroke-width', 1.5 / state.zoom);
+          handle.style.cursor = (w.wall==='north'||w.wall==='south') ? 'ew-resize' : 'ns-resize';
+          handle.addEventListener('mousedown', ev => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            hasDragged = false;
+            openingDragState = { roomId: room.id, type: 'window', index: i };
+          });
+          winG.appendChild(handle);
+        }
         group.appendChild(winG);
       }
     }
@@ -1238,7 +1353,7 @@ function render() {
       }
     }
 
-    g.appendChild(group);
+    fillsLayer.appendChild(group);
   }
 
   // stairs
@@ -1317,13 +1432,19 @@ function render() {
       inner.innerHTML = def.svg;
       group.appendChild(inner);
       if (isSelected) {
+        const selG = document.createElementNS('http://www.w3.org/2000/svg','g');
+        if (sym.rotation) {
+          const cx = sx + sw / 2, cy = sy + sh / 2;
+          selG.setAttribute('transform', `rotate(${sym.rotation} ${cx} ${cy})`);
+        }
         const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
         selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
         selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
         selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
         selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
         selRect.setAttribute('pointer-events','none');
-        group.appendChild(selRect);
+        selG.appendChild(selRect);
+        group.appendChild(selG);
       }
       g.appendChild(group);
     }
@@ -1476,9 +1597,9 @@ canvasWrap.addEventListener('click', e => {
       else state.selectedIds.add(sym.id);
       state.selectedId = sym.id;
     } else {
-      state.selectedId = state.selectedId === sym.id ? null : sym.id;
+      state.selectedId = sym.id;
       state.selectedIds.clear();
-      if (state.selectedId) state.selectedIds.add(state.selectedId);
+      state.selectedIds.add(sym.id);
     }
     render();
     return;
@@ -1494,9 +1615,9 @@ canvasWrap.addEventListener('click', e => {
     else state.selectedIds.add(elId);
     state.selectedId = elId;
   } else {
-    state.selectedId = state.selectedId === elId ? null : elId;
+    state.selectedId = elId;
     state.selectedIds.clear();
-    if (state.selectedId) state.selectedIds.add(state.selectedId);
+    state.selectedIds.add(elId);
   }
   render();
 });
@@ -1508,9 +1629,12 @@ canvasWrap.addEventListener('dblclick', e => {
   }
 });
 
+let openingDragState = null; // { roomId, type:'door'|'window', index }
+
 // move room
 let moveState = null, moveOrigin = null;
 canvasWrap.addEventListener('mousedown', e => {
+  if (openingDragState) return; // guard: don't start room move while dragging an opening
   if (isPanning || e.button !== 0) return;
   if (e.altKey) return; // pan is handled separately
 
@@ -1579,6 +1703,40 @@ function startResize(roomId, handleType, e) {
 }
 
 document.addEventListener('mousemove', e => {
+  if (openingDragState) {
+    const { roomId, type, index } = openingDragState;
+    const floor = getFloor();
+    const room = (floor.rooms || []).find(r => r.id === roomId);
+    if (!room) { openingDragState = null; return; }
+    const opening = (type === 'door' ? room.doors : room.windows)[index];
+    if (!opening) { openingDragState = null; return; }
+
+    // Convert mouse to SVG coordinates
+    const svg = document.getElementById('canvas-svg');
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const svgPt = pt.matrixTransform(ctm.inverse());
+
+    const rx = room.x * state.scale, ry = room.y * state.scale;
+    const wall = opening.wall;
+    const isHoriz = wall === 'north' || wall === 'south';
+
+    // Raw offset: mouse position along wall minus half opening width
+    const rawOffset = isHoriz
+      ? (svgPt.x - rx) / state.scale - opening.width / 2
+      : (svgPt.y - ry) / state.scale - opening.width / 2;
+
+    const wallLen = isHoriz ? room.width : room.height;
+    const maxOffset = wallLen - opening.width;
+    const snap = state.gridVisible ? Math.max(1, Math.round(state.gridSize / 10)) : 1;
+
+    opening.offset = Math.round(Math.max(0, Math.min(rawOffset, maxOffset)) / snap) * snap;
+    hasDragged = true;
+    render();
+    return; // don't process move/resize while dragging opening
+  }
   if (moveState) {
     const dx = (e.clientX - moveState.sx) / (state.scale * state.zoom);
     const dy = (e.clientY - moveState.sy) / (state.scale * state.zoom);
@@ -1672,6 +1830,12 @@ document.addEventListener('mousemove', e => {
 });
 
 document.addEventListener('mouseup', e => {
+  if (openingDragState) {
+    if (hasDragged) saveUndo();
+    openingDragState = null;
+    hasDragged = false;
+    return;
+  }
   if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; }
   if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; }
   if (roomDrawState) {
@@ -1870,8 +2034,118 @@ document.addEventListener('keydown', e => {
 //  PROPERTIES PANEL
 // ═══════════════════════════════════════════════════
 
+let propsMode = 'basic'; // 'basic' | 'yaml'
+let _lastPropsSelId = null;
+
+function togglePropsMode() {
+  propsMode = propsMode === 'basic' ? 'yaml' : 'basic';
+  const btn = document.getElementById('btn-props-mode');
+  btn.classList.toggle('active', propsMode === 'yaml');
+  btn.setAttribute('data-tooltip', propsMode === 'yaml' ? 'Voltar ao modo básico' : 'Editar como YAML');
+  renderProperties();
+}
+
+function getSelectedObject() {
+  if (!state.selectedId) return null;
+  const sym = state.symbols.find(s => s.id === state.selectedId);
+  if (sym) return { type: 'symbol', obj: sym };
+  const stair = (getFloor().stairs || []).find(s => s.id === state.selectedId);
+  if (stair) return { type: 'stair', obj: stair };
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
+  if (room) return { type: 'room', obj: room };
+  return null;
+}
+
+function renderYAMLProps() {
+  const el = document.getElementById('props-content');
+  const sel = getSelectedObject();
+  if (!sel) { el.innerHTML = '<div class="empty-state">Selecione um elemento</div>'; return; }
+
+  // Serialize without id
+  const { id, ...rest } = sel.obj;
+  let yamlStr;
+  try { yamlStr = jsyaml.dump(rest, { indent: 2, lineWidth: 120 }); } catch(e) { yamlStr = ''; }
+
+  el.innerHTML = `
+    <div class="props-yaml-wrap">
+      <textarea id="props-yaml-ta" spellcheck="false" data-sel-type="${sel.type}">${escAttr(yamlStr)}</textarea>
+      <div class="props-yaml-actions">
+        <button class="props-yaml-apply" onclick="applyYAMLProps()">
+          Aplicar <kbd style="font-size:9px;opacity:0.7;background:rgba(255,255,255,0.2);padding:1px 4px;border-radius:3px;border:none">Ctrl+↵</kbd>
+        </button>
+      </div>
+      <div id="props-yaml-err" class="props-yaml-err"></div>
+    </div>`;
+
+  const ta = document.getElementById('props-yaml-ta');
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); applyYAMLProps(); }
+    // Tab inserts spaces
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = ta.selectionStart, end = ta.selectionEnd;
+      ta.value = ta.value.substring(0, s) + '  ' + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = s + 2;
+    }
+  });
+  ta.addEventListener('input', () => {
+    document.getElementById('props-yaml-err').textContent = '';
+  });
+}
+
+function applyYAMLProps() {
+  const ta = document.getElementById('props-yaml-ta');
+  const errEl = document.getElementById('props-yaml-err');
+  if (!ta || !errEl) return;
+  let parsed;
+  try {
+    parsed = jsyaml.load(ta.value);
+  } catch(e) {
+    errEl.textContent = '⚠ YAML inválido: ' + e.message.split('\n')[0];
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object') { errEl.textContent = '⚠ Conteúdo inválido'; return; }
+
+  const sel = getSelectedObject();
+  if (!sel) return;
+
+  // Basic validation per type
+  if (sel.type === 'room') {
+    if (typeof parsed.name !== 'string' || !parsed.name.trim()) { errEl.textContent = '⚠ Campo "name" obrigatório'; return; }
+    if (typeof parsed.width !== 'number' || parsed.width <= 0) { errEl.textContent = '⚠ "width" deve ser número positivo'; return; }
+    if (typeof parsed.height !== 'number' || parsed.height <= 0) { errEl.textContent = '⚠ "height" deve ser número positivo'; return; }
+  }
+
+  saveUndo();
+  const { id } = sel.obj; // preserve id
+  Object.keys(sel.obj).forEach(k => { if (k !== 'id') delete sel.obj[k]; });
+  Object.assign(sel.obj, parsed);
+  sel.obj.id = id; // restore id
+
+  errEl.textContent = '';
+  errEl.style.color = 'var(--accent)';
+  errEl.textContent = '✓ Aplicado';
+  setTimeout(() => { if (errEl) { errEl.textContent = ''; errEl.style.color = ''; } }, 1500);
+  render();
+}
+
 function renderProperties() {
   const el = document.getElementById('props-content');
+  const modeBtn = document.getElementById('btn-props-mode');
+
+  // Reset mode when selection changes
+  if (state.selectedId !== _lastPropsSelId) {
+    propsMode = 'basic';
+    _lastPropsSelId = state.selectedId;
+    if (modeBtn) { modeBtn.classList.remove('active'); modeBtn.setAttribute('data-tooltip','Editar como YAML'); }
+  }
+
+  // Show/hide the YAML toggle button based on whether something is selected
+  const hasSelection = !!state.selectedId;
+  if (modeBtn) modeBtn.style.display = hasSelection ? '' : 'none';
+
+  // Delegate to YAML mode if active
+  if (propsMode === 'yaml' && hasSelection) { renderYAMLProps(); return; }
 
   // symbol selected
   const sym = state.symbols.find(s => s.id === state.selectedId);
@@ -2424,6 +2698,11 @@ function filterPalette() {
 function toggleGrid() {
   state.gridVisible = !state.gridVisible;
   document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
+  render();
+}
+function setGridSize(val) {
+  state.gridSize = Math.max(10, Math.min(1000, val || state.gridSize));
+  document.getElementById('grid-step').value = state.gridSize;
   render();
 }
 function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
@@ -2990,6 +3269,7 @@ render = function() {
 initPalette();
 initSymbolPalette();
 document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
+document.getElementById('grid-step').value = state.gridSize;
 if (!loadAutoSave()) {
   // default starter room
   state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
