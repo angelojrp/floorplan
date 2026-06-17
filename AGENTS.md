@@ -32,7 +32,10 @@ When asked to create a floor plan:
 4. Common pitfalls: indentation (2 spaces), room adjacency (no gaps), door offset+width ≤ wall length
 
 ## Project structure
-- `src/` — TypeScript engine
-- `web/` — Web app (static)
+- `src/` — TypeScript engine (single source of truth: parse → layout → render → DXF/PDF)
+- `web/` — Web apps (editor + playground); JS/ESM importing the engine, bundled by Vite
+- `api/worker.ts` — Cloudflare Worker importing the engine
 - `docs/` — Documentation
 - `examples/` — Example YAML files
+
+Build: `npm run build` (web apps → `dist/`), `npm run build:lib` (engine/CLI npm package), `npm test` (Vitest).
