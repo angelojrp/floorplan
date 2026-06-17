@@ -74,6 +74,11 @@ export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
   const grid = input.grid === false ? false : (input.grid || 100) * scale;
   const dimensions = computeDimensions(rooms, scale, wt);
 
+  // terreno (lot) — ancorado na origem (0,0); cômodos são posicionados dentro dele
+  const lot = input.lot
+    ? { x: 0, y: 0, width: input.lot.width * scale, height: input.lot.height * scale }
+    : undefined;
+
   return {
     title: input.title,
     scale,
@@ -83,6 +88,7 @@ export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
     wallThicknessPx: wt,
     grid,
     dimensions,
+    lot,
   };
 }
 

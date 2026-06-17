@@ -33,10 +33,18 @@ const GRID_R = 0.6;
  * Gera SVG arquitetônico da planta baixa.
  */
 export function renderSvg(input: ResolvedFloorPlan): string {
-  const { rooms, stairs, freeWalls, wallThicknessPx, grid, dimensions, title } = input;
+  const { rooms, stairs, freeWalls, wallThicknessPx, grid, dimensions, title, lot } = input;
   const wt = wallThicknessPx;
 
-  const { minX, minY, maxX, maxY } = computeBounds(rooms, freeWalls, dimensions);
+  const bounds = computeBounds(rooms, freeWalls, dimensions);
+  // o terreno pode ser maior que a planta — garante que entre no viewBox
+  if (lot) {
+    bounds.minX = Math.min(bounds.minX, lot.x);
+    bounds.minY = Math.min(bounds.minY, lot.y);
+    bounds.maxX = Math.max(bounds.maxX, lot.x + lot.width);
+    bounds.maxY = Math.max(bounds.maxY, lot.y + lot.height);
+  }
+  const { minX, minY, maxX, maxY } = bounds;
   const margin = 70;
   const vbX = minX - margin;
   const vbY = minY - margin;
@@ -60,12 +68,14 @@ export function renderSvg(input: ResolvedFloorPlan): string {
     `  .dim-tick { stroke: ${C.dimLine}; stroke-width: ${DIM_LINE_W}; }`,
     `  .dim-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; fill: ${C.dimText}; text-anchor: middle; }`,
     `  .room-name { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; font-weight: 600; fill: ${C.label}; text-anchor: middle; dominant-baseline: middle; }`,
-    `  .room-area { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; fill: ${C.areaLabel}; text-anchor: middle; dominant-baseline: middle; }`,
+    `  .room-area { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; font-weight: 500; fill: ${C.areaLabel}; text-anchor: middle; dominant-baseline: middle; }`,
+    `  .room-dim { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; fill: ${C.dimText}; text-anchor: middle; dominant-baseline: middle; }`,
     `  .title-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 20px; font-weight: 700; fill: ${C.title}; text-anchor: middle; }`,
     `  .grid-dot { fill: ${C.gridDot}; }`,
     `  .free-wall-fill { fill: ${C.freeWall}; stroke: ${C.freeWallStroke}; stroke-width: ${WALL_STROKE}; }`,
     `  .stair-fill { fill: #f5f0e8; stroke: #8a7b6b; stroke-width: 1.5; }`,
     `  .stair-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; font-weight: 700; fill: #6d5d4b; text-anchor: middle; dominant-baseline: middle; }`,
+    `  .lot { fill: #f0f4e8; stroke: #8a9b68; stroke-width: 1.5; stroke-dasharray: 8 4; }`,
     '</style>',
     '<defs>',
     `  <pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8">
@@ -102,6 +112,11 @@ export function renderSvg(input: ResolvedFloorPlan): string {
   // background
   out.push(`<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#ffffff"/>`);
 
+  // terreno (lot) — borda tracejada desenhada antes da planta
+  if (lot) {
+    out.push(`<rect x="${rnd(lot.x)}" y="${rnd(lot.y)}" width="${rnd(lot.width)}" height="${rnd(lot.height)}" class="lot"/>`);
+  }
+
   // grid (pontos)
   if (grid !== false) {
     out.push(renderGrid(vbX, vbY, vbW, vbH, grid));
@@ -115,9 +130,9 @@ export function renderSvg(input: ResolvedFloorPlan): string {
   // fundo dos cômodos
   for (const room of rooms) {
     if (room.hatch && room.hatch !== 'solid') {
-      out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" fill="url(#hatch-${room.hatch})"/>`);
+      out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" fill="url(#hatch-${room.hatch})" data-room-id="${esc(room.id)}"/>`);
     } else {
-      out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" class="room-bg"/>`);
+      out.push(`<rect x="${room.rect.x}" y="${room.rect.y}" width="${room.rect.width}" height="${room.rect.height}" class="room-bg" data-room-id="${esc(room.id)}"/>`);
     }
   }
 
@@ -155,7 +170,7 @@ export function renderSvg(input: ResolvedFloorPlan): string {
 
   // labels dos cômodos
   for (const room of rooms) {
-    out.push(renderRoomLabel(room));
+    out.push(renderRoomLabel(room, input.scale));
   }
 
   // stairs
@@ -429,18 +444,23 @@ function renderCornerFills(rooms: ResolvedRoom[], wt: number): string[] {
 
 // ── label do cômodo ──
 
-function renderRoomLabel(room: ResolvedRoom): string {
+function renderRoomLabel(room: ResolvedRoom, scale: number): string {
   const x = room.labelPos.x;
   const y = room.labelPos.y;
-  const parts = [`<text x="${x}" y="${y}" class="room-name">${esc(room.name)}</text>`];
+  // dimensões reais em cm (rect está em px = cm * scale)
+  const wCm = room.rect.width / scale;
+  const hCm = room.rect.height / scale;
+  const areaM2 = (wCm * hCm) / 10000;
+  // só mostra área/cotas em cômodos grandes o suficiente p/ caber o texto
+  const showInfo = room.rect.width > 130 && room.rect.height > 95;
 
-  // área calculada em m²
-  const areaM2 = (room.rect.width * room.rect.height) / 10000; // assumindo scale=2 px/cm => 1px = 0.5cm => 10000px² = 1m²... 
-  // Na verdade, as dimensões estão em px = cm * scale. A área em px² = cm² * scale².
-  // Não temos scale aqui. Vamos só mostrar se tiver area explícita por enquanto.
-  // Podemos inferir: a escala foi multiplicada. Vamos deixar sem área por padrão.
-  // Opção: calcular sabendo que o input tinha scale.
-
+  const parts = [
+    `<text x="${x}" y="${showInfo ? y - 10 : y}" class="room-name">${esc(room.name)}</text>`,
+  ];
+  if (showInfo) {
+    parts.push(`<text x="${x}" y="${y + 7}" class="room-area">${areaM2.toFixed(1)} m²</text>`);
+    parts.push(`<text x="${x}" y="${y + 22}" class="room-dim">${(wCm / 100).toFixed(2)} × ${(hCm / 100).toFixed(2)} m</text>`);
+  }
   return parts.join('\n');
 }
 

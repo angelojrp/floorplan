@@ -150,6 +150,7 @@ export interface ResolvedFloorPlan {
   wallThicknessPx: number;  // espessura da parede em px
   grid: number | false;     // px do grid
   dimensions: Dimension[];  // cotas calculadas
+  lot?: { x: number; y: number; width: number; height: number }; // terreno em px (ancorado na origem)
 }
 
 export interface Dimension {
