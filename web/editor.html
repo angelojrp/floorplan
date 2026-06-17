@@ -575,6 +575,17 @@ body.dark #canvas-wrap{
 .print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .print-modal-title svg{color:var(--accent)}
 
+/* ── PASTE YAML MODAL ── */
+#paste-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:300}
+#paste-modal.show{display:flex}
+.paste-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:min(640px,95vw);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:14px}
+.paste-modal-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.paste-modal-title svg{color:var(--accent)}
+#paste-yaml-input{width:100%;height:260px;resize:vertical;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);outline:none;transition:border-color .15s}
+#paste-yaml-input:focus{border-color:var(--accent)}
+#paste-yaml-input::placeholder{color:var(--text3)}
+.paste-modal-hint{font-size:11px;color:var(--text3);line-height:1.5}
+
 /* ── SHORTCUTS OVERLAY ── */
 #shortcuts-overlay{
   display:none;position:fixed;top:0;left:0;width:100%;height:100%;
@@ -657,6 +668,10 @@ body.dark #canvas-wrap{
     <button class="tb-btn" onclick="importYAML()" data-tooltip="Abrir arquivo YAML">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
       Abrir
+    </button>
+    <button class="tb-btn" onclick="showPasteModal()" data-tooltip="Colar YAML gerado por IA">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+      Colar YAML
     </button>
     <div class="tb-export-wrap" id="export-wrap">
       <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
@@ -926,6 +941,38 @@ body.dark #canvas-wrap{
 
 <!-- TOAST -->
 <div id="toast"></div>
+
+<!-- PASTE YAML MODAL -->
+<div id="paste-modal" onclick="if(event.target===this) hidePasteModal()">
+  <div class="paste-modal-box">
+    <div class="paste-modal-title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+      Colar YAML
+    </div>
+    <textarea id="paste-yaml-input" placeholder="Cole o YAML gerado pela IA aqui…
+
+version: 1
+title: Minha Planta
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: sala
+    name: Sala
+    ..."></textarea>
+    <div class="paste-modal-hint">
+      Cole o YAML gerado por uma IA (Claude, ChatGPT, Gemini…) ou copie de um arquivo de texto.<br>
+      Atalho: <strong>Ctrl+Enter</strong> para carregar.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="tb-btn" style="flex:1" onclick="hidePasteModal()">Cancelar</button>
+      <button class="tb-btn accent" style="flex:1" onclick="applyPastedYAML()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3,8 6,11 13,4"/></svg>
+        Carregar planta
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- PRINT MODAL -->
 <div id="print-modal" onclick="if(event.target===this) hidePrintModal()">
@@ -3033,6 +3080,27 @@ function calculateTotalArea() {
 
 function showPrintModal() { document.getElementById('print-modal').classList.add('show'); }
 function hidePrintModal() { document.getElementById('print-modal').classList.remove('show'); }
+
+function showPasteModal() {
+  document.getElementById('paste-yaml-input').value = '';
+  document.getElementById('paste-modal').classList.add('show');
+  setTimeout(() => document.getElementById('paste-yaml-input').focus(), 50);
+}
+function hidePasteModal() { document.getElementById('paste-modal').classList.remove('show'); }
+function applyPastedYAML() {
+  const text = document.getElementById('paste-yaml-input').value.trim();
+  if (!text) { toast('⚠️ Cole um YAML válido'); return; }
+  try {
+    saveUndo();
+    loadYAMLString(text);
+    hidePasteModal();
+    toast('📐 Planta carregada!');
+  } catch(e) { toast('❌ YAML inválido: ' + e.message); }
+}
+document.getElementById('paste-yaml-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); applyPastedYAML(); }
+});
+
 function doPrint() {
   hidePrintModal();
   const scaleN = parseInt(document.getElementById('print-scale').value);
