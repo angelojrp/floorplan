@@ -446,6 +446,54 @@ body.dark #canvas-wrap{
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── EXPORT DROPDOWN ── */
+.tb-export-wrap{position:relative;flex-shrink:0}
+.tb-export-menu{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:4px;
+  z-index:200;
+  box-shadow:var(--shadow-lg);
+  min-width:190px;
+}
+.tb-export-menu.open{display:block}
+.export-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;cursor:pointer;
+  border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;
+  color:var(--text2);
+  transition:all var(--transition);
+}
+.export-item:hover{background:var(--accent-bg);color:var(--accent)}
+.export-item-accent{color:var(--accent)}
+.export-item-accent:hover{background:var(--accent);color:#fff}
+.export-item-hint{margin-left:auto;font-size:10px;font-weight:400;color:var(--text3)}
+.export-item:hover .export-item-hint{color:inherit;opacity:0.7}
+.export-sep{height:1px;background:var(--border);margin:3px 4px}
+
+/* ── CANVAS EMPTY STATE ── */
+#canvas-empty{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;pointer-events:none;
+  color:var(--text3);
+}
+#canvas-empty svg{opacity:0.25}
+#canvas-empty .ce-title{font-size:14px;font-weight:600;color:var(--text2);opacity:0.5}
+#canvas-empty .ce-sub{font-size:12px;opacity:0.5;text-align:center;max-width:240px;line-height:1.5}
+#canvas-empty .ce-keys{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+#canvas-empty kbd{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:2px 7px;border-radius:4px;
+  font-size:11px;font-weight:600;font-family:inherit;
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--text2);opacity:0.6;
+  box-shadow:0 1px 0 var(--border2);
+}
+
 /* ── CONTEXT MENU ── */
 #context-menu{
   display:none;position:fixed;
@@ -541,17 +589,41 @@ body.dark #canvas-wrap{
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
       Abrir
     </button>
-    <button class="tb-btn" onclick="exportYAML()" data-tooltip="Exportar YAML">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
-      YAML
-    </button>
-    <button class="tb-btn accent" onclick="exportSVG()" data-tooltip="Exportar SVG">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
-      SVG
-    </button>
-    <button class="tb-btn" onclick="exportDXF()" data-tooltip="Exportar DXF (AutoCAD)">DXF</button>
-    <button class="tb-btn" onclick="exportPDF()" data-tooltip="Imprimir PDF">PDF</button>
-    <button class="tb-btn" onclick="exportPNG()" data-tooltip="Exportar PNG">PNG</button>
+    <div class="tb-export-wrap" id="export-wrap">
+      <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+        Exportar
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+      </button>
+      <div class="tb-export-menu" id="export-menu">
+        <div class="export-item" onclick="exportYAML();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
+          YAML
+          <span class="export-item-hint">Editar no playground</span>
+        </div>
+        <div class="export-item export-item-accent" onclick="exportSVG();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+          SVG
+          <span class="export-item-hint">Vetor escalável</span>
+        </div>
+        <div class="export-item" onclick="exportPNG();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><polyline points="1.5,10 5,6.5 7.5,9 10,7 14.5,12"/><circle cx="11.5" cy="6.5" r="1.5"/></svg>
+          PNG
+          <span class="export-item-hint">Imagem rasterizada</span>
+        </div>
+        <div class="export-sep"></div>
+        <div class="export-item" onclick="exportDXF();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h4l2 8h4"/><path d="M10 4h4M2 12h4"/></svg>
+          DXF
+          <span class="export-item-hint">AutoCAD</span>
+        </div>
+        <div class="export-item" onclick="exportPDF();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/><path d="M5.5 9.5h1a1 1 0 0 0 0-2h-1v4M9.5 7.5h1.5a1 1 0 0 1 1 1.5 1 1 0 0 1-1 1.5H9.5"/></svg>
+          PDF
+          <span class="export-item-hint">Imprimir / PDF</span>
+        </div>
+      </div>
+    </div>
 
     <div class="tb-sep"></div>
 
@@ -712,6 +784,21 @@ body.dark #canvas-wrap{
       <svg id="canvas-svg"></svg>
       <div id="minimap" onclick="focusMinimap(event)"><svg id="minimap-svg"></svg></div>
       <div id="wall-hint" style="display:none">Clique para iniciar · Duplo clique ou Enter para finalizar · Esc para cancelar</div>
+      <div id="canvas-empty">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="8" y="16" width="32" height="32" rx="2"/>
+          <rect x="24" y="8" width="32" height="32" rx="2"/>
+          <line x1="8" y1="30" x2="40" y2="30"/>
+          <line x1="24" y1="30" x2="24" y2="48"/>
+        </svg>
+        <span class="ce-title">Canvas vazio</span>
+        <span class="ce-sub">Adicione cômodos usando o painel lateral ou selecione uma ferramenta</span>
+        <div class="ce-keys">
+          <kbd>R</kbd><span style="font-size:11px;opacity:0.4">Cômodo</span>
+          <kbd>W</kbd><span style="font-size:11px;opacity:0.4">Parede</span>
+          <kbd>D</kbd><span style="font-size:11px;opacity:0.4">Porta</span>
+        </div>
+      </div>
     </div>
 
     <!-- Context menu (inside main so it does not affect layout) -->
@@ -1137,6 +1224,12 @@ function render() {
   document.getElementById('status-rooms').textContent = `Cômodos: ${rooms.length} | Símbolos: ${state.symbols.length}`;
   document.getElementById('status-area').textContent = `Área: ${(totalArea/10000).toFixed(1)} m²`;
   document.getElementById('global-title').value = state.title;
+
+  // canvas empty state
+  const isEmpty = rooms.length === 0 && (state.symbols || []).length === 0;
+  const emptyEl = document.getElementById('canvas-empty');
+  if (emptyEl) emptyEl.style.display = isEmpty ? 'flex' : 'none';
+
   renderProperties();
   updateMinimap();
   updateFloorTabs();
@@ -2179,7 +2272,11 @@ function filterPalette() {
   });
 }
 
-function toggleGrid() { state.gridVisible = !state.gridVisible; render(); }
+function toggleGrid() {
+  state.gridVisible = !state.gridVisible;
+  document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
+  render();
+}
 function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
 
 function newProject() {
@@ -2246,6 +2343,18 @@ function importYAML() {
     } catch(err) { toast('❌ Erro: '+err.message); }
   };
   input.click();
+}
+
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('export-menu');
+  const isOpen = menu.classList.toggle('open');
+  if (isOpen) {
+    setTimeout(() => document.addEventListener('click', closeExportMenu, {once:true}), 0);
+  }
+}
+function closeExportMenu() {
+  document.getElementById('export-menu').classList.remove('open');
 }
 
 function exportYAML() {
@@ -2719,6 +2828,7 @@ render = function() {
 // init
 initPalette();
 initSymbolPalette();
+document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
 if (!loadAutoSave()) {
   // default starter room
   state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
