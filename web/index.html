@@ -1074,6 +1074,7 @@ ENTREGUE:
 3. O link pronto para abrir no editor:
    ${EDITOR_URL}?yaml=BASE64_AQUI`;
 
+// Full prompts (with inline schema) — used for the Copy button
 const PROMPTS = {
   residencial: `Você é um assistente especializado em plantas baixas.
 Gere uma planta baixa residencial no formato YAML da ferramenta Floorplan.
@@ -1104,6 +1105,40 @@ DESCRIÇÃO DO ESPAÇO:
 - Área aproximada: [ex: 80m²]
 - Cômodos necessários: [liste os cômodos]
 - Observações: [circulação, estilo, restrições, etc.]
+${LINK_INSTRUCTIONS}`
+};
+
+// Short prompts (URL reference only) — used for deep links to avoid HTTP 431
+const SHORT_PROMPTS = {
+  residencial: `Você é um assistente especializado em plantas baixas.
+Gere uma planta baixa RESIDENCIAL no formato YAML da ferramenta Floorplan.
+
+Leia a documentação completa do formato em: ${AI_GUIDE_URL}
+
+O QUE QUERO: [DESCREVA AQUI — ex: "apartamento de 2 quartos, ~75m², sala integrada com cozinha, 1 banheiro social e 1 suíte"]
+
+${LINK_INSTRUCTIONS}`,
+
+  comercial: `Você é um assistente especializado em plantas baixas.
+Gere uma planta baixa COMERCIAL no formato YAML da ferramenta Floorplan.
+
+Leia a documentação completa do formato em: ${AI_GUIDE_URL}
+
+O QUE QUERO: [DESCREVA AQUI — ex: "escritório para 20 pessoas, recepção, sala de reuniões, área open-plan, 2 salas privativas e banheiro"]
+
+${LINK_INSTRUCTIONS}`,
+
+  personalizado: `Você é um assistente especializado em plantas baixas.
+Gere uma planta baixa no formato YAML da ferramenta Floorplan para o espaço descrito abaixo.
+
+Leia a documentação completa do formato em: ${AI_GUIDE_URL}
+
+DESCRIÇÃO DO ESPAÇO:
+- Tipo: [residencial / comercial / industrial / outro]
+- Área aproximada: [ex: 80m²]
+- Cômodos necessários: [liste os cômodos]
+- Observações: [circulação, estilo, restrições, etc.]
+
 ${LINK_INSTRUCTIONS}`
 };
 
@@ -1138,7 +1173,7 @@ function buildOpenInRow(promptId) {
   OPEN_IN.forEach(btn => {
     const a = document.createElement('a');
     a.className = `open-in-btn ${btn.id}`;
-    a.href = btn.buildUrl(PROMPTS[promptId]);
+    a.href = btn.buildUrl(SHORT_PROMPTS[promptId] || PROMPTS[promptId]);
     a.target = btn.id === 'chatgpt' ? '_blank' : '_self';
     a.rel = 'noopener';
     if (btn.note) a.title = btn.note;
