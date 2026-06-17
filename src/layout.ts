@@ -4,6 +4,7 @@ import type {
   ResolvedRoom,
   ResolvedDoor,
   ResolvedWindow,
+  ResolvedStair,
   ResolvedFreeWall,
   WallSegment,
   Point,
@@ -21,9 +22,48 @@ const DOOR_OFFSET = 5; // px de folga entre parede e batente
  */
 export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
   const scale = input.scale;
-  const wt = input.wallThickness! * scale; // wall thickness in px
+  const wt = input.wallThickness! * scale;
 
-  const rooms: ResolvedRoom[] = input.rooms.map((room) => resolveRoom(room, scale, wt));
+  const rooms: ResolvedRoom[] = [];
+  const stairs: ResolvedStair[] = [];
+  let floorOffsetY = 0;
+  const floorMargin = 200; // px entre pavimentos
+
+  // Process floors sequentially, offsetting each floor below the previous
+  const floors = input.floors || [{ id: 'main', name: 'Térreo', level: 0, rooms: input.rooms, stairs: [] }];
+
+  for (const floor of floors) {
+    // Offset rooms
+    for (const room of (floor.rooms || [])) {
+      const offsetRoom = { ...room, y: room.y + floorOffsetY / scale };
+      rooms.push(resolveRoom(offsetRoom, scale, wt));
+    }
+    // Offset stairs
+    for (const stair of (floor.stairs || [])) {
+      stairs.push({
+        id: stair.id,
+        x: stair.x * scale,
+        y: stair.y * scale + floorOffsetY,
+        width: stair.width * scale,
+        height: stair.height * scale,
+        direction: stair.direction || 'up',
+        connectsTo: stair.connectsTo,
+      });
+    }
+    // Calculate next floor offset
+    if (floor.rooms && floor.rooms.length > 0) {
+      const maxRoomY = Math.max(...floor.rooms.map(r => r.y + r.height));
+      floorOffsetY += (maxRoomY + floorMargin / scale) * scale;
+    }
+  }
+
+  // Legacy flat rooms (no floors)
+  if (!input.floors && input.rooms) {
+    rooms.length = 0;
+    for (const room of input.rooms) {
+      rooms.push(resolveRoom(room, scale, wt));
+    }
+  }
 
   const freeWalls: ResolvedFreeWall[] = (input.walls || []).map((w) => ({
     from: toPoint(w.from, scale),
@@ -38,6 +78,7 @@ export function resolveLayout(input: FloorPlanInput): ResolvedFloorPlan {
     title: input.title,
     scale,
     rooms,
+    stairs: stairs.length ? stairs : undefined,
     freeWalls,
     wallThicknessPx: wt,
     grid,

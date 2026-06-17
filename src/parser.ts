@@ -47,14 +47,35 @@ const freeWallSchema = z.object({
   thickness: z.number().positive().optional(),
 });
 
+const stairSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().optional(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  direction: z.enum(['up', 'down']).default('up'),
+  connectsTo: z.string().optional(),
+});
+
+const floorSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  level: z.number().int().default(0),
+  rooms: z.array(roomSchema).min(1),
+  stairs: z.array(stairSchema).optional().default([]),
+});
+
 const floorPlanSchema = z.object({
   version: z.literal(1),
   title: z.string().optional(),
   scale: z.number().positive(),
   wallThickness: z.number().positive().optional().default(15),
   grid: z.union([z.number().positive(), z.literal(false)]).optional().default(100),
-  rooms: z.array(roomSchema).min(1),
+  rooms: z.array(roomSchema).optional(),
+  floors: z.array(floorSchema).optional(),
   walls: z.array(freeWallSchema).optional().default([]),
+  lot: z.object({ width: z.number().positive(), height: z.number().positive() }).optional(),
 });
 
 // ── Funções públicas ──
@@ -64,7 +85,30 @@ export function parseFloorPlanYaml(yamlString: string): FloorPlanInput {
   if (raw === null || raw === undefined) {
     throw new Error('YAML vazio ou inválido');
   }
-  return floorPlanSchema.parse(raw) as FloorPlanInput;
+  const parsed = floorPlanSchema.parse(raw) as any;
+  
+  // Normalize: if flat rooms (old format), auto-wrap into floors
+  if (parsed.rooms && !parsed.floors) {
+    parsed.floors = [{
+      id: 'main',
+      name: 'Térreo',
+      level: 0,
+      rooms: parsed.rooms,
+      stairs: []
+    }];
+  }
+  
+  // Flatten all rooms for backward compat access
+  if (parsed.floors) {
+    parsed.rooms = [];
+    for (const floor of parsed.floors) {
+      for (const room of (floor.rooms || [])) {
+        parsed.rooms.push(room);
+      }
+    }
+  }
+  
+  return parsed as FloorPlanInput;
 }
 
 export function parseFloorPlanJson(jsonString: string): FloorPlanInput {

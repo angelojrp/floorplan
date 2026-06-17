@@ -41,6 +41,25 @@ export interface FreeWall {
   thickness?: number;     // cm — padrão = 15
 }
 
+export interface Stair {
+  id: string;
+  name?: string;
+  x: number;        // cm
+  y: number;        // cm
+  width: number;    // cm
+  height: number;   // cm
+  direction: 'up' | 'down';
+  connectsTo?: string; // id do pavimento de destino
+}
+
+export interface Floor {
+  id: string;
+  name: string;
+  level: number;
+  rooms: Room[];
+  stairs?: Stair[];
+}
+
 export interface FloorPlanInput {
   version: number;
   title?: string;
@@ -48,7 +67,9 @@ export interface FloorPlanInput {
   wallThickness?: number; // cm — padrão = 15
   grid?: number | false;  // espaçamento do grid em cm — false desabilita
   rooms: Room[];
+  floors?: Floor[];
   walls?: FreeWall[];     // paredes avulsas (ex: muros externos)
+  lot?: { width: number; height: number };
 }
 
 // ── Tipos geométricos internos (pós-layout) ──
@@ -112,10 +133,19 @@ export interface ResolvedFreeWall {
   thickness: number;
 }
 
+export interface ResolvedStair {
+  id: string;
+  x: number; y: number;   // px
+  width: number; height: number; // px
+  direction: 'up' | 'down';
+  connectsTo?: string;
+}
+
 export interface ResolvedFloorPlan {
   title?: string;
   scale: number;
   rooms: ResolvedRoom[];
+  stairs?: ResolvedStair[];
   freeWalls: ResolvedFreeWall[];
   wallThicknessPx: number;  // espessura da parede em px
   grid: number | false;     // px do grid
