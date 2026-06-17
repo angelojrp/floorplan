@@ -1016,6 +1016,20 @@ function openTemplate(id) {
 // ── AI Prompts ──
 const AI_GUIDE_URL = 'https://raw.githubusercontent.com/angelojrp/floorplan/refs/heads/main/docs/AI_GUIDE.md';
 
+const EDITOR_URL = `${window.location.origin}/editor.html`;
+
+const LINK_INSTRUCTIONS = `
+Após gerar o YAML, crie um link direto para abrir a planta no editor:
+
+1. Codifique o YAML em base64 (UTF-8):
+   - JavaScript: btoa(unescape(encodeURIComponent(yaml)))
+   - Python:     import base64; base64.b64encode(yaml.encode()).decode()
+
+2. Monte o link:
+   ${EDITOR_URL}?yaml=BASE64_AQUI
+
+3. Apresente o YAML gerado E o link clicável.`;
+
 const PROMPTS = {
   residencial: `Leia a documentação da ferramenta Floorplan em:
 ${AI_GUIDE_URL}
@@ -1023,8 +1037,7 @@ ${AI_GUIDE_URL}
 Com base nela, gere uma planta baixa residencial em formato YAML.
 
 Quero: [DESCREVA AQUI — ex: "apartamento de 2 quartos, ~75m², sala integrada com cozinha, 1 banheiro social e 1 suíte"]
-
-Gere APENAS o YAML completo, sem explicações adicionais.`,
+${LINK_INSTRUCTIONS}`,
 
   comercial: `Leia a documentação da ferramenta Floorplan em:
 ${AI_GUIDE_URL}
@@ -1032,8 +1045,7 @@ ${AI_GUIDE_URL}
 Com base nela, gere uma planta baixa comercial em formato YAML.
 
 Quero: [DESCREVA AQUI — ex: "escritório para 20 pessoas, recepção, sala de reuniões, área open-plan, 2 salas privativas e banheiro"]
-
-Gere APENAS o YAML completo, sem explicações adicionais.`,
+${LINK_INSTRUCTIONS}`,
 
   personalizado: `Leia a documentação da ferramenta Floorplan em:
 ${AI_GUIDE_URL}
@@ -1045,8 +1057,7 @@ Descrição:
 - Área aproximada: [ex: 80m²]
 - Cômodos necessários: [liste os cômodos]
 - Observações: [circulação, estilo, restrições, etc.]
-
-Gere APENAS o YAML completo, sem explicações adicionais.`
+${LINK_INSTRUCTIONS}`
 };
 
 // Render prompt texts

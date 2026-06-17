@@ -3274,14 +3274,28 @@ initPalette();
 initSymbolPalette();
 document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
 document.getElementById('grid-step').value = state.gridSize;
-const _templateYaml = localStorage.getItem('floorplan-load-template');
-if (_templateYaml) {
-  localStorage.removeItem('floorplan-load-template');
-  try { loadYAMLString(_templateYaml); toast('📐 Template carregado!'); }
-  catch(e) { loadAutoSave() || state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] }); }
-} else if (!loadAutoSave()) {
-  // default starter room
-  state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
+// Priority: ?yaml= URL param > localStorage template > autosave > default
+const _defaultRoom = () => state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
+const _urlYaml = new URLSearchParams(window.location.search).get('yaml');
+if (_urlYaml) {
+  try {
+    const decoded = decodeURIComponent(escape(atob(_urlYaml)));
+    loadYAMLString(decoded);
+    toast('📐 Planta carregada do link!');
+    history.replaceState({}, '', window.location.pathname);
+  } catch(e) {
+    toast('❌ Link inválido: ' + e.message);
+    loadAutoSave() || _defaultRoom();
+  }
+} else {
+  const _templateYaml = localStorage.getItem('floorplan-load-template');
+  if (_templateYaml) {
+    localStorage.removeItem('floorplan-load-template');
+    try { loadYAMLString(_templateYaml); toast('📐 Template carregado!'); }
+    catch(e) { loadAutoSave() || _defaultRoom(); }
+  } else if (!loadAutoSave()) {
+    _defaultRoom();
+  }
 }
 render();
 </script>
