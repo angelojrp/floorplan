@@ -1,0 +1,124 @@
+version: 1
+title: "Casa Pequena (~70m²)"
+scale: 2
+wallThickness: 15
+grid: 100
+rooms:
+  - id: living
+    name: "Sala de Estar"
+    x: 15
+    y: 15
+    width: 500
+    height: 380
+    doors:
+      - wall: south
+        offset: 170
+        width: 160
+        type: double
+        swing: right
+      - wall: north
+        offset: 200
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: west
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110
+      - wall: south
+        offset: 370
+        width: 100
+        height: 120
+        sill: 100
+  - id: kitchen
+    name: "Cozinha"
+    x: 530
+    y: 15
+    width: 415
+    height: 380
+    doors:
+      - wall: west
+        offset: 120
+        width: 150
+        type: sliding
+        swing: left
+      - wall: north
+        offset: 300
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: east
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110
+      - wall: south
+        offset: 100
+        width: 120
+        height: 120
+        sill: 110
+  - id: corridor
+    name: "Corredor"
+    x: 15
+    y: 410
+    width: 930
+    height: 120
+    doors: []
+    windows: []
+  - id: bed1
+    name: "Quarto 1"
+    x: 15
+    y: 545
+    width: 350
+    height: 330
+    doors:
+      - wall: south
+        offset: 130
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: north
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
+  - id: bath
+    name: "Banheiro"
+    x: 380
+    y: 545
+    width: 200
+    height: 330
+    doors:
+      - wall: south
+        offset: 50
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 50
+        width: 80
+        height: 60
+        sill: 200
+  - id: bed2
+    name: "Quarto 2"
+    x: 595
+    y: 545
+    width: 350
+    height: 330
+    doors:
+      - wall: south
+        offset: 130
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110

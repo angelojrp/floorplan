@@ -118,6 +118,9 @@ body.dark{
 .tb-grid-step{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted)}
 .tb-grid-step input{width:46px;height:28px;padding:0 4px;font-size:11px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);text-align:right;}
 .tb-grid-step input:focus{outline:none;border-color:var(--accent)}
+.tb-template-select{height:32px;padding:0 8px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);cursor:pointer;max-width:200px;outline:none;transition:border-color var(--transition)}
+.tb-template-select:hover{border-color:var(--text3)}
+.tb-template-select:focus{border-color:var(--accent)}
 .tb-group{display:flex;align-items:center;gap:1px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:2px}
 .tb-group .tb-btn-icon{border:none;border-radius:4px;width:28px;height:28px}
 .tb-group .tb-btn-icon:hover{background:var(--surface);color:var(--text)}
@@ -335,6 +338,7 @@ body.dark #canvas-wrap{
   background-size:24px 24px;
 }
 #canvas-wrap.panning{cursor:grabbing}
+#canvas-wrap.hand-tool{cursor:grab}
 #canvas-wrap.wall-tool{cursor:crosshair}
 #canvas-wrap.room-tool{cursor:crosshair}
 #canvas-wrap.stair-tool{cursor:crosshair}
@@ -575,6 +579,17 @@ body.dark #canvas-wrap{
 .print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .print-modal-title svg{color:var(--accent)}
 
+/* ── PASTE YAML MODAL ── */
+#paste-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:300}
+#paste-modal.show{display:flex}
+.paste-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:min(640px,95vw);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:14px}
+.paste-modal-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.paste-modal-title svg{color:var(--accent)}
+#paste-yaml-input{width:100%;height:260px;resize:vertical;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);outline:none;transition:border-color .15s}
+#paste-yaml-input:focus{border-color:var(--accent)}
+#paste-yaml-input::placeholder{color:var(--text3)}
+.paste-modal-hint{font-size:11px;color:var(--text3);line-height:1.5}
+
 /* ── SHORTCUTS OVERLAY ── */
 #shortcuts-overlay{
   display:none;position:fixed;top:0;left:0;width:100%;height:100%;
@@ -658,6 +673,13 @@ body.dark #canvas-wrap{
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
       Abrir
     </button>
+    <button class="tb-btn" onclick="showPasteModal()" data-tooltip="Colar YAML gerado por IA">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+      Colar YAML
+    </button>
+    <select id="template-select" class="tb-template-select" title="Abrir template" onchange="loadTemplateFromSelect(this)">
+      <option value="">📂 Templates</option>
+    </select>
     <div class="tb-export-wrap" id="export-wrap">
       <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
@@ -819,6 +841,10 @@ body.dark #canvas-wrap{
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 14h4v-4h4V6h4V2"/></svg>
           Escada
         </button>
+        <button class="tool-btn" id="tool-hand" onclick="setTool('hand')" data-tooltip="Mão — arrastar a tela (ou Espaço+arrastar)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v7M5.5 3.5V4a1 1 0 0 0-1 1v1M5.5 3.5a1 1 0 0 0-2 0V7M10.5 3.5V4a1 1 0 0 1 1 1v1M10.5 3.5a1 1 0 0 1 2 0v3.5c0 2.5-1.5 5-4 5s-4-2.5-4-5V6"/></svg>
+          Mão
+        </button>
       </div>
 
       <div class="panel-divider"></div>
@@ -926,6 +952,38 @@ body.dark #canvas-wrap{
 
 <!-- TOAST -->
 <div id="toast"></div>
+
+<!-- PASTE YAML MODAL -->
+<div id="paste-modal" onclick="if(event.target===this) hidePasteModal()">
+  <div class="paste-modal-box">
+    <div class="paste-modal-title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+      Colar YAML
+    </div>
+    <textarea id="paste-yaml-input" placeholder="Cole o YAML gerado pela IA aqui…
+
+version: 1
+title: Minha Planta
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: sala
+    name: Sala
+    ..."></textarea>
+    <div class="paste-modal-hint">
+      Cole o YAML gerado por uma IA (Claude, ChatGPT, Gemini…) ou copie de um arquivo de texto.<br>
+      Atalho: <strong>Ctrl+Enter</strong> para carregar.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="tb-btn" style="flex:1" onclick="hidePasteModal()">Cancelar</button>
+      <button class="tb-btn accent" style="flex:1" onclick="applyPastedYAML()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3,8 6,11 13,4"/></svg>
+        Carregar planta
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- PRINT MODAL -->
 <div id="print-modal" onclick="if(event.target===this) hidePrintModal()">
@@ -1158,11 +1216,13 @@ function render() {
   const rooms = floor.rooms || [];
   let totalArea = 0;
 
-  // Create two layers
-  const wallsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  // Three-layer rendering: fills (behind) → walls → content/gaps (top)
   const fillsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
-  g.appendChild(wallsLayer);
+  const wallsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const topLayer   = document.createElementNS('http://www.w3.org/2000/svg','g');
   g.appendChild(fillsLayer);
+  g.appendChild(wallsLayer);
+  g.appendChild(topLayer);
 
   for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
@@ -1205,16 +1265,24 @@ function render() {
     group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
     if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
-    // room fill (covers interior, naturally hides inner halves of adjacent wall rects)
-    if (state.layers.rooms) {
-      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
-      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
-      // Border comes from wall rects; only show stroke when selected
-      rect.setAttribute('stroke', isSelected ? '#2563eb' : 'none');
-      rect.setAttribute('stroke-width', isSelected ? 2 : 0);
-      group.appendChild(rect);
+    // Room fill goes to fillsLayer (BEHIND walls so walls are always visible)
+    {
+      const fillRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      fillRect.setAttribute('x', rx); fillRect.setAttribute('y', ry);
+      fillRect.setAttribute('width', rw); fillRect.setAttribute('height', rh);
+      fillRect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
+      fillRect.setAttribute('pointer-events', 'none');
+      fillsLayer.appendChild(fillRect);
+    }
+    // Transparent hit-rect inside topLayer group (captures clicks over room interior)
+    {
+      const hitRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hitRect.setAttribute('x', rx); hitRect.setAttribute('y', ry);
+      hitRect.setAttribute('width', rw); hitRect.setAttribute('height', rh);
+      hitRect.setAttribute('fill', 'transparent');
+      hitRect.setAttribute('stroke', isSelected ? '#2563eb' : 'none');
+      hitRect.setAttribute('stroke-width', isSelected ? 2 : 0);
+      group.appendChild(hitRect);
     }
 
     // doors
@@ -1353,7 +1421,7 @@ function render() {
       }
     }
 
-    fillsLayer.appendChild(group);
+    topLayer.appendChild(group);
   }
 
   // stairs
@@ -1494,10 +1562,13 @@ function buildArc(cx, cy, r, clX, clY, ix, iy, id) {
 
 const canvasWrap = document.getElementById('canvas-wrap');
 
-// pan (middle mouse or space+drag)
+// pan (middle mouse | alt+drag | hand tool | space+drag)
 let isPanning = false, panStart = {x:0,y:0, ox:0, oy:0};
+let spaceDown = false;
 canvasWrap.addEventListener('mousedown', e => {
-  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+  const panTrigger = e.button === 1 || (e.button === 0 && e.altKey)
+                  || (e.button === 0 && (state.tool === 'hand' || spaceDown));
+  if (panTrigger) {
     e.preventDefault(); isPanning = true; hasDragged = false;
     panStart = {x:e.clientX-state.panX, y:e.clientY-state.panY, ox:e.clientX, oy:e.clientY};
     canvasWrap.classList.add('panning');
@@ -1636,7 +1707,7 @@ let moveState = null, moveOrigin = null;
 canvasWrap.addEventListener('mousedown', e => {
   if (openingDragState) return; // guard: don't start room move while dragging an opening
   if (isPanning || e.button !== 0) return;
-  if (e.altKey) return; // pan is handled separately
+  if (e.altKey || state.tool === 'hand' || spaceDown) return; // pan is handled separately
 
   // ── wall tool: ignore mousedown (handled via click) ──
   if (state.tool === 'wall') return;
@@ -2003,9 +2074,17 @@ function alignSelected(dir) {
   toast('📐 Alinhado!');
 }
 
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space') {
+    spaceDown = false;
+    if (state.tool !== 'hand') canvasWrap.classList.remove('hand-tool');
+  }
+});
+
 document.addEventListener('keydown', e => {
   const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
   const editable = tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement.isContentEditable;
+  if (e.code === 'Space' && !editable) { e.preventDefault(); if (!spaceDown) { spaceDown = true; canvasWrap.classList.add('hand-tool'); } return; }
   if ((e.key === 'Delete' || e.key === 'Backspace') && !editable) { e.preventDefault(); deleteSelected(); }
   if ((e.ctrlKey||e.metaKey) && e.key === 'z' && !e.shiftKey && !editable) { e.preventDefault(); undo(); }
   if ((e.ctrlKey||e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z')) && !editable) { e.preventDefault(); redo(); }
@@ -2026,6 +2105,7 @@ document.addEventListener('keydown', e => {
     else if (e.key === '4') { setTool('door'); e.preventDefault(); }
     else if (e.key === '5') { setTool('window'); e.preventDefault(); }
     else if (e.key === '6') { setTool('stair'); e.preventDefault(); }
+    else if (e.key === '7' || e.key === 'h' || e.key === 'H') { setTool('hand'); e.preventDefault(); }
     else if (e.key === '[') { toggleSidebar(); e.preventDefault(); }
   }
 });
@@ -2363,8 +2443,15 @@ function setTool(tool) {
     canvasWrap.classList.remove('wall-tool','room-tool');
     document.getElementById('wall-hint').style.display = 'none';
     renderPreview();
-  } else {
+  } else if (tool === 'hand') {
+    canvasWrap.classList.add('hand-tool');
     canvasWrap.classList.remove('wall-tool','room-tool','stair-tool');
+    document.getElementById('wall-hint').style.display = 'none';
+    wallState.vertices = []; wallState.active = false;
+    roomDrawState = null; stairDrawState = null;
+    renderPreview(); renderRoomPreview();
+  } else {
+    canvasWrap.classList.remove('wall-tool','room-tool','stair-tool','hand-tool');
     document.getElementById('wall-hint').style.display = 'none';
     wallState.vertices = []; wallState.active = false;
     roomDrawState = null;
@@ -2719,54 +2806,58 @@ function newProject() {
 //  IMPORT / EXPORT
 // ═══════════════════════════════════════════════════
 
+function loadYAMLString(text, titleHint) {
+  const raw = jsyaml.load(text);
+  state.title = raw.title || titleHint || '';
+  state.scale = raw.scale || DEFAULT_SCALE;
+  state.wallThickness = raw.wallThickness || 15;
+  state.gridSize = raw.grid || 100;
+  state.gridVisible = raw.grid !== false;
+
+  if (raw.floors) {
+    state.floors = raw.floors.map(f => ({
+      id: f.id || 'floor_' + (state.nextId++),
+      name: f.name || 'Pavimento',
+      level: f.level || 0,
+      rooms: (f.rooms || []).map(r => ({
+        id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+        width: r.width||300, height: r.height||300,
+        doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+        windows: r.windows || [],
+        hatch: r.hatch
+      })),
+      stairs: (f.stairs || []).map(s => ({
+        id: 'stair_' + (state.nextId++), x: s.x||0, y: s.y||0,
+        width: s.width||100, height: s.height||250,
+        direction: s.direction||'up', connectsTo: s.connectsTo||''
+      }))
+    }));
+  } else if (raw.rooms) {
+    state.floors = [{
+      id: 'terreo', name: 'Térreo', level: 0,
+      rooms: raw.rooms.map(r => ({
+        id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+        width: r.width||300, height: r.height||300,
+        doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+        windows: r.windows || [],
+        hatch: r.hatch
+      })),
+      stairs: []
+    }];
+  }
+  state.activeFloor = state.floors[0].id;
+  undoStack=[]; redoStack=[]; state.selectedId=null;
+  document.getElementById('file-name').textContent = '📂 ' + (state.title || 'Planta');
+  document.getElementById('global-title').value = state.title;
+  render();
+}
+
 function importYAML() {
   const input = document.createElement('input'); input.type='file'; input.accept='.yaml,.yml';
   input.onchange = async e => {
     const text = await e.target.files[0].text();
     try {
-      const raw = jsyaml.load(text);
-      state.title = raw.title || '';
-      state.scale = raw.scale || DEFAULT_SCALE;
-      state.wallThickness = raw.wallThickness || 15;
-      state.gridSize = raw.grid || 100;
-      state.gridVisible = raw.grid !== false;
-
-      if (raw.floors) {
-        state.floors = raw.floors.map(f => ({
-          id: f.id || 'floor_' + (state.nextId++),
-          name: f.name || 'Pavimento',
-          level: f.level || 0,
-          rooms: (f.rooms || []).map(r => ({
-            id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
-            width: r.width||300, height: r.height||300,
-            doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
-            windows: r.windows || [],
-            hatch: r.hatch
-          })),
-          stairs: (f.stairs || []).map(s => ({
-            id: 'stair_' + (state.nextId++), x: s.x||0, y: s.y||0,
-            width: s.width||100, height: s.height||250,
-            direction: s.direction||'up', connectsTo: s.connectsTo||''
-          }))
-        }));
-      } else if (raw.rooms) {
-        state.floors = [{
-          id: 'terreo', name: 'Térreo', level: 0,
-          rooms: raw.rooms.map(r => ({
-            id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
-            width: r.width||300, height: r.height||300,
-            doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
-            windows: r.windows || [],
-            hatch: r.hatch
-          })),
-          stairs: []
-        }];
-      }
-      state.activeFloor = state.floors[0].id;
-      undoStack=[]; redoStack=[]; state.selectedId=null;
-      document.getElementById('file-name').textContent = '📂 ' + (e.target.files[0].name);
-      document.getElementById('global-title').value = state.title;
-      render();
+      loadYAMLString(text, e.target.files[0].name);
       toast('📥 Projeto carregado!');
     } catch(err) { toast('❌ Erro: '+err.message); }
   };
@@ -3027,8 +3118,62 @@ function calculateTotalArea() {
   return (total / 10000).toFixed(1);
 }
 
+// ── Template library ──
+(async function initTemplates() {
+  const sel = document.getElementById('template-select');
+  try {
+    const res = await fetch('templates/index.json');
+    if (!res.ok) return;
+    const list = await res.json();
+    list.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.file;
+      opt.textContent = t.name;
+      opt.title = t.description || '';
+      sel.appendChild(opt);
+    });
+  } catch(e) { /* silently ignore if running offline */ }
+})();
+
+async function loadTemplateFromSelect(sel) {
+  const file = sel.value;
+  if (!file) return;
+  sel.value = '';  // reset to placeholder
+  try {
+    const res = await fetch('templates/' + file);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    saveUndo();
+    loadYAMLString(text, file.replace('.yaml',''));
+    toast('📐 Template carregado!');
+  } catch(e) {
+    toast('❌ Erro ao carregar template: ' + e.message);
+  }
+}
+
 function showPrintModal() { document.getElementById('print-modal').classList.add('show'); }
 function hidePrintModal() { document.getElementById('print-modal').classList.remove('show'); }
+
+function showPasteModal() {
+  document.getElementById('paste-yaml-input').value = '';
+  document.getElementById('paste-modal').classList.add('show');
+  setTimeout(() => document.getElementById('paste-yaml-input').focus(), 50);
+}
+function hidePasteModal() { document.getElementById('paste-modal').classList.remove('show'); }
+function applyPastedYAML() {
+  const text = document.getElementById('paste-yaml-input').value.trim();
+  if (!text) { toast('⚠️ Cole um YAML válido'); return; }
+  try {
+    saveUndo();
+    loadYAMLString(text);
+    hidePasteModal();
+    toast('📐 Planta carregada!');
+  } catch(e) { toast('❌ YAML inválido: ' + e.message); }
+}
+document.getElementById('paste-yaml-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); applyPastedYAML(); }
+});
+
 function doPrint() {
   hidePrintModal();
   const scaleN = parseInt(document.getElementById('print-scale').value);
@@ -3270,9 +3415,28 @@ initPalette();
 initSymbolPalette();
 document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
 document.getElementById('grid-step').value = state.gridSize;
-if (!loadAutoSave()) {
-  // default starter room
-  state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
+// Priority: ?yaml= URL param > localStorage template > autosave > default
+const _defaultRoom = () => state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
+const _urlYaml = new URLSearchParams(window.location.search).get('yaml');
+if (_urlYaml) {
+  try {
+    const decoded = decodeURIComponent(escape(atob(_urlYaml)));
+    loadYAMLString(decoded);
+    toast('📐 Planta carregada do link!');
+    history.replaceState({}, '', window.location.pathname);
+  } catch(e) {
+    toast('❌ Link inválido: ' + e.message);
+    loadAutoSave() || _defaultRoom();
+  }
+} else {
+  const _templateYaml = localStorage.getItem('floorplan-load-template');
+  if (_templateYaml) {
+    localStorage.removeItem('floorplan-load-template');
+    try { loadYAMLString(_templateYaml); toast('📐 Template carregado!'); }
+    catch(e) { loadAutoSave() || _defaultRoom(); }
+  } else if (!loadAutoSave()) {
+    _defaultRoom();
+  }
 }
 render();
 </script>

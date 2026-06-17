@@ -1,0 +1,98 @@
+version: 1
+title: "Galpão Industrial (~150m²)"
+scale: 2
+wallThickness: 15
+grid: 100
+rooms:
+  - id: warehouse
+    name: "Área de Armazenagem"
+    x: 15
+    y: 15
+    width: 1300
+    height: 900
+    doors:
+      - wall: south
+        offset: 300
+        width: 500
+        type: sliding
+        swing: left
+      - wall: west
+        offset: 150
+        width: 400
+        type: sliding
+        swing: left
+    windows:
+      - wall: north
+        offset: 200
+        width: 200
+        height: 100
+        sill: 700
+      - wall: north
+        offset: 550
+        width: 200
+        height: 100
+        sill: 700
+      - wall: north
+        offset: 900
+        width: 200
+        height: 100
+        sill: 700
+  - id: dock
+    name: "Doca de Carga"
+    x: 15
+    y: 930
+    width: 1300
+    height: 240
+    doors:
+      - wall: south
+        offset: 300
+        width: 500
+        type: sliding
+        swing: left
+    windows:
+      - wall: west
+        offset: 100
+        width: 100
+        height: 80
+        sill: 150
+  - id: admin
+    name: "Escritório Administrativo"
+    x: 1330
+    y: 700
+    width: 250
+    height: 250
+    doors:
+      - wall: west
+        offset: 70
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: north
+        offset: 50
+        width: 150
+        height: 120
+        sill: 110
+      - wall: east
+        offset: 60
+        width: 120
+        height: 100
+        sill: 120
+  - id: bath
+    name: "Banheiro"
+    x: 1330
+    y: 400
+    width: 250
+    height: 285
+    doors:
+      - wall: west
+        offset: 80
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 50
+        width: 80
+        height: 60
+        sill: 200
