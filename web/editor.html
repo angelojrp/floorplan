@@ -189,14 +189,31 @@ body.dark{
 /* ── LEFT PANEL ── */
 #left-panel{
   width:240px;
+  min-width:0;
   background:var(--surface);
   border-right:1px solid var(--border);
   display:flex;
   flex-direction:column;
   flex-shrink:0;
+  overflow:hidden;
+  transition:width 0.22s ease, border-color 0.22s ease;
+}
+#left-panel.collapsed{
+  width:0;
+  border-right-color:transparent;
+}
+.left-panel-inner{
+  width:240px;
+  display:flex;
+  flex-direction:column;
+  flex:1;
   overflow-y:auto;
   overflow-x:hidden;
 }
+#btn-sidebar svg{transition:transform 0.22s ease}
+#left-panel.collapsed ~ * #btn-sidebar svg{transform:scaleX(-1)}
+/* simpler: target via body class */
+body.sidebar-collapsed #btn-sidebar svg{transform:scaleX(-1)}
 .panel-section-label{
   padding:10px 14px 6px;
   font-size:10px;
@@ -502,6 +519,11 @@ body.dark #canvas-wrap{
 
   <!-- ═══ TOOLBAR ═══ -->
   <div id="toolbar">
+    <!-- Sidebar toggle -->
+    <button class="tb-btn-icon" id="btn-sidebar" onclick="toggleSidebar()" data-tooltip="Painel lateral ( [ )">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="14" height="12" rx="1.5"/><line x1="5.5" y1="2" x2="5.5" y2="14"/></svg>
+    </button>
+
     <!-- Logo -->
     <div class="tb-logo">
       <div class="tb-logo-icon">
@@ -625,6 +647,7 @@ body.dark #canvas-wrap{
 
     <!-- LEFT PANEL -->
     <div id="left-panel">
+    <div class="left-panel-inner">
       <div class="panel-section-label">Ferramentas</div>
       <div class="tools-grid">
         <button class="tool-btn active" id="tool-select" onclick="setTool('select')">
@@ -681,7 +704,8 @@ body.dark #canvas-wrap{
         <summary>Elétrica / Portas</summary>
         <div class="palette-grid" id="sym-electrical"></div>
       </details>
-    </div>
+    </div><!-- /left-panel-inner -->
+    </div><!-- /left-panel -->
 
     <!-- CANVAS -->
     <div id="canvas-wrap">
@@ -752,6 +776,7 @@ body.dark #canvas-wrap{
       <tr><td>4</td><td>Ferramenta Porta</td></tr>
       <tr><td>5</td><td>Ferramenta Janela</td></tr>
       <tr><td>6</td><td>Ferramenta Escada</td></tr>
+      <tr><td>[</td><td>Retrair / expandir painel</td></tr>
     </table>
   </div>
 </div>
@@ -1634,6 +1659,7 @@ document.addEventListener('keydown', e => {
     else if (e.key === '4') { setTool('door'); e.preventDefault(); }
     else if (e.key === '5') { setTool('window'); e.preventDefault(); }
     else if (e.key === '6') { setTool('stair'); e.preventDefault(); }
+    else if (e.key === '[') { toggleSidebar(); e.preventDefault(); }
   }
 });
 
@@ -2568,6 +2594,15 @@ function toast(msg) {
 function toggleTheme() {
   document.body.classList.toggle('dark');
   toast(document.body.classList.contains('dark') ? '🌙 Modo escuro' : '☀️ Modo claro');
+}
+
+function toggleSidebar() {
+  const panel = document.getElementById('left-panel');
+  const collapsed = panel.classList.toggle('collapsed');
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  document.getElementById('btn-sidebar').setAttribute('data-tooltip',
+    collapsed ? 'Mostrar painel ( [ )' : 'Ocultar painel ( [ )');
+  setTimeout(render, 230);
 }
 
 // ── mini-map ──
