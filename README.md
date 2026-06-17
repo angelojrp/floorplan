@@ -37,17 +37,28 @@ floorplan input.yaml -o output.svg
 
 ### Web App
 
-Abra [`web/index.html`](web/index.html) no navegador — **sem instalação, sem build**.
+Dois apps compartilham a mesma engine (`src/`):
 
-Editor YAML à esquerda, preview SVG em tempo real à direita.
+- **Editor** (`web/editor/`) — editor visual completo (canvas, ferramentas, pavimentos, camadas, exports).
+- **Playground** (`web/playground/`) — sandbox YAML → SVG com preview ao vivo.
+
+Desenvolvimento local:
+
+```bash
+npm install
+npm run dev      # Vite dev server — /editor/ e /playground/
+```
 
 ### Deploy no Cloudflare Pages
 
+O build é feito pelo Vite e a saída vai para `dist-web/`.
+
 ```bash
-npx wrangler pages deploy web/
+npm run build
+npx wrangler pages deploy dist-web/
 ```
 
-Ou configure pelo dashboard apontando para o diretório `web/`.
+Ou configure pelo dashboard com **build command** `npm run build` e **output directory** `dist-web`.
 
 ---
 
@@ -110,21 +121,26 @@ walls:                # paredes avulsas (opcional)
 
 ```
 floorplan/
-├── src/            # Engine TypeScript
-│   ├── types.ts    # Tipos e interfaces
-│   ├── parser.ts   # Parser YAML + validação Zod
-│   ├── layout.ts   # Engine de geometria
-│   ├── renderer.ts # Renderizador SVG
-│   ├── cli.ts      # CLI
-│   └── index.ts    # API pública
-├── web/
-│   ├── index.html  # App web (autossuficiente)
-│   ├── _headers    # Cloudflare config
-│   └── _redirects
-├── examples/       # 5 exemplos YAML + SVGs
-├── playground.html # Playground standalone
-├── wrangler.toml   # Deploy config
-└── LICENSE         # MIT
+├── src/                # Engine TypeScript — ÚNICA fonte da verdade
+│   ├── types.ts        # Tipos e interfaces
+│   ├── parser.ts       # Parser YAML + validação Zod
+│   ├── layout.ts       # Engine de geometria
+│   ├── renderer.ts     # Renderizador SVG
+│   ├── dxf.ts          # Exportador DXF
+│   ├── pdf.ts          # Geração de HTML p/ PDF
+│   ├── cli.ts          # CLI
+│   └── index.ts        # API pública
+├── web/                # Apps web (JS + ESM, importam a engine de src/)
+│   ├── editor/         # Editor visual (index.html + editor.css + js/)
+│   ├── playground/     # Playground YAML→SVG (index.html + css + js)
+│   ├── shared/         # Símbolos e utilitários compartilhados
+│   └── public/         # _headers, _redirects, robots.txt, templates/
+├── api/
+│   └── worker.ts       # Cloudflare Worker (importa a engine)
+├── examples/           # Exemplos YAML
+├── vite.config.js      # Build dos apps web → dist-web/
+├── wrangler.toml       # Deploy config (Cloudflare Pages)
+└── LICENSE             # MIT
 ```
 
 ---
@@ -145,12 +161,16 @@ floorplan/
 
 ```bash
 npm install        # instalar dependências
-npm run build      # compilar TypeScript
+npm run dev        # Vite dev server (apps web)
+npm run build      # build dos apps web → dist-web/ (deploy Cloudflare Pages)
+npm run build:lib  # compilar a engine/CLI (pacote npm) com tsc → dist/
 npm run typecheck  # verificar tipos
+npm test           # testes (Vitest) da engine + worker
 ```
 
-A engine está em [`src/`](src/) (TypeScript, compila para `dist/`).  
-O app web em [`web/index.html`](web/index.html) contém a engine portada para JS inline — sem dependências de build.
+A engine está em [`src/`](src/) (TypeScript) e é a **única fonte da verdade**:
+os apps web ([`web/`](web/)) e o worker ([`api/worker.ts`](api/worker.ts)) importam dela.
+Vite (web) e Wrangler (worker) fazem o bundle — sem código de engine duplicado.
 
 ---
 

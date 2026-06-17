@@ -1,1053 +1,7 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Floorplan Editor</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f1f5f9;
-  --surface:#ffffff;
-  --surface2:#f8fafc;
-  --border:#e2e8f0;
-  --border2:#cbd5e1;
-  --text:#0f172a;
-  --text2:#475569;
-  --text3:#94a3b8;
-  --accent:#3b82f6;
-  --accent2:#2563eb;
-  --accent-bg:#eff6ff;
-  --danger:#ef4444;
-  --danger-bg:#fef2f2;
-  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:0 4px 12px rgba(0,0,0,0.1),0 2px 4px rgba(0,0,0,0.06);
-  --shadow-lg:0 10px 30px rgba(0,0,0,0.12),0 4px 8px rgba(0,0,0,0.06);
-  --radius:6px;
-  --radius-sm:4px;
-  --radius-lg:10px;
-  --transition:0.15s ease;
-}
-html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
-#app{display:flex;flex-direction:column;height:100%}
+// Floorplan Editor — UI sobre a engine canônica (src/)
+import { render as engineRender, resolveLayout, parseFloorPlan, exportDXF as engineExportDXF } from '../../../src/index';
+import { SYMBOLS, SYMBOL_CATEGORIES } from '../../shared/symbols.js';
 
-/* ── DARK MODE ── */
-body.dark{
-  --bg:#0f172a;
-  --surface:#1e293b;
-  --surface2:#162032;
-  --border:#334155;
-  --border2:#475569;
-  --text:#f1f5f9;
-  --text2:#94a3b8;
-  --text3:#475569;
-  --accent:#60a5fa;
-  --accent2:#3b82f6;
-  --accent-bg:#1e3a5f;
-  --danger:#f87171;
-  --danger-bg:#2d1515;
-  --shadow:0 1px 3px rgba(0,0,0,0.3),0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md:0 4px 12px rgba(0,0,0,0.4),0 2px 4px rgba(0,0,0,0.2);
-  --shadow-lg:0 10px 30px rgba(0,0,0,0.5),0 4px 8px rgba(0,0,0,0.3);
-}
-
-/* ── TOOLBAR ── */
-#toolbar{
-  height:52px;
-  display:flex;
-  align-items:center;
-  padding:0 12px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  gap:2px;
-  flex-shrink:0;
-  z-index:20;
-}
-.tb-logo{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  padding-right:12px;
-  border-right:1px solid var(--border);
-  margin-right:6px;
-  flex-shrink:0;
-}
-.tb-logo-icon{
-  width:28px;height:28px;
-  background:var(--accent);
-  border-radius:7px;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-}
-.tb-logo-icon svg{color:#fff}
-#file-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
-.tb-sep{width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0}
-.tb-btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  padding:0 9px;height:32px;
-  font-size:12px;font-weight:500;
-  border:1px solid transparent;
-  background:transparent;
-  color:var(--text2);
-  border-radius:var(--radius);
-  cursor:pointer;
-  white-space:nowrap;
-  transition:all var(--transition);
-  flex-shrink:0;
-}
-.tb-btn:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
-.tb-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
-.tb-btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
-.tb-btn.accent:hover{background:var(--accent2)}
-.tb-btn.danger{background:var(--danger-bg);color:var(--danger);border-color:transparent}
-.tb-btn.danger:hover{border-color:var(--danger)}
-.tb-btn-icon{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:32px;height:32px;
-  border:1px solid transparent;
-  background:transparent;
-  color:var(--text2);
-  border-radius:var(--radius);
-  cursor:pointer;
-  transition:all var(--transition);
-  flex-shrink:0;
-}
-.tb-btn-icon:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
-.tb-btn-icon.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
-.tb-grid-step{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted)}
-.tb-grid-step input{width:46px;height:28px;padding:0 4px;font-size:11px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);text-align:right;}
-.tb-grid-step input:focus{outline:none;border-color:var(--accent)}
-.tb-template-select{height:32px;padding:0 8px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);cursor:pointer;max-width:200px;outline:none;transition:border-color var(--transition)}
-.tb-template-select:hover{border-color:var(--text3)}
-.tb-template-select:focus{border-color:var(--accent)}
-.tb-group{display:flex;align-items:center;gap:1px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:2px}
-.tb-group .tb-btn-icon{border:none;border-radius:4px;width:28px;height:28px}
-.tb-group .tb-btn-icon:hover{background:var(--surface);color:var(--text)}
-#global-title{
-  height:32px;padding:0 10px;
-  font-size:12px;font-family:inherit;font-weight:500;
-  border:1px solid var(--border);
-  background:var(--bg);
-  color:var(--text);
-  border-radius:var(--radius);
-  outline:none;
-  width:200px;
-  transition:border-color var(--transition);
-}
-#global-title:focus{border-color:var(--accent);background:var(--surface)}
-#global-title::placeholder{color:var(--text3)}
-#zoom-label{font-size:11px;font-weight:600;color:var(--text2);min-width:36px;text-align:center}
-
-/* ── FLOOR TABS ── */
-#floor-tabs{
-  height:36px;
-  display:flex;
-  align-items:center;
-  padding:0 12px;
-  gap:4px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-  z-index:15;
-}
-.ft-label{font-size:11px;color:var(--text3);margin-right:4px;flex-shrink:0}
-#floor-tab-list{display:flex;align-items:center;gap:3px;flex:1}
-.floor-tab{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:0 10px;height:26px;
-  font-size:11px;font-weight:500;
-  border:1px solid var(--border);
-  background:transparent;
-  color:var(--text2);
-  border-radius:var(--radius-sm);
-  cursor:pointer;
-  white-space:nowrap;
-  transition:all var(--transition);
-}
-.floor-tab:hover{background:var(--bg);color:var(--text)}
-.floor-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.floor-del{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:14px;height:14px;
-  font-size:13px;line-height:1;
-  opacity:0.6;cursor:pointer;border-radius:2px;
-  transition:all var(--transition);
-}
-.floor-del:hover{opacity:1;background:rgba(255,255,255,0.25)}
-.ft-add{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:26px;height:26px;
-  font-size:16px;font-weight:400;
-  border:1px dashed var(--border2);
-  background:transparent;
-  color:var(--accent);
-  border-radius:var(--radius-sm);
-  cursor:pointer;
-  transition:all var(--transition);
-  flex-shrink:0;
-}
-.ft-add:hover{background:var(--accent-bg);border-color:var(--accent)}
-
-/* ── MAIN LAYOUT ── */
-#main{flex:1;display:flex;overflow:hidden}
-
-/* ── LEFT PANEL ── */
-#left-panel{
-  width:240px;
-  min-width:0;
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  flex-shrink:0;
-  overflow:hidden;
-  transition:width 0.22s ease, border-color 0.22s ease;
-}
-#left-panel.collapsed{
-  width:0;
-  border-right-color:transparent;
-}
-.left-panel-inner{
-  width:240px;
-  display:flex;
-  flex-direction:column;
-  flex:1;
-  overflow-y:auto;
-  overflow-x:hidden;
-}
-#btn-sidebar svg{transition:transform 0.22s ease}
-#left-panel.collapsed ~ * #btn-sidebar svg{transform:scaleX(-1)}
-/* simpler: target via body class */
-body.sidebar-collapsed #btn-sidebar svg{transform:scaleX(-1)}
-.panel-section-label{
-  padding:10px 14px 6px;
-  font-size:10px;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:0.8px;
-  color:var(--text3);
-}
-.panel-divider{height:1px;background:var(--border);margin:4px 0}
-
-/* Tools grid */
-.tools-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:4px;
-  padding:4px 10px 8px;
-}
-.tool-btn{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;
-  padding:8px 4px;
-  font-size:10px;font-weight:500;
-  border:1px solid var(--border);
-  background:var(--surface2);
-  color:var(--text2);
-  border-radius:var(--radius);
-  cursor:pointer;
-  transition:all var(--transition);
-  user-select:none;
-  text-align:center;
-  line-height:1.2;
-}
-.tool-btn:hover{background:var(--bg);border-color:var(--border2);color:var(--text)}
-.tool-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
-.tool-btn svg{flex-shrink:0}
-
-/* Palette search */
-.palette-search-wrap{padding:6px 10px}
-#palette-search{
-  width:100%;
-  height:30px;
-  padding:0 10px 0 30px;
-  font-size:12px;font-family:inherit;
-  border:1px solid var(--border);
-  background:var(--surface2);
-  color:var(--text);
-  border-radius:var(--radius);
-  outline:none;
-  transition:border-color var(--transition);
-}
-#palette-search:focus{border-color:var(--accent);background:var(--surface)}
-#palette-search::placeholder{color:var(--text3)}
-.palette-search-icon{position:relative}
-.palette-search-icon svg{
-  position:absolute;left:18px;top:50%;transform:translateY(-50%);
-  color:var(--text3);pointer-events:none;
-}
-
-/* Palette grid */
-.palette-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px 10px 8px}
-.palette-item{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:8px 6px;
-  cursor:grab;
-  text-align:center;
-  transition:all var(--transition);
-  user-select:none;
-}
-.palette-item:hover{border-color:var(--accent);background:var(--accent-bg);transform:translateY(-1px);box-shadow:var(--shadow)}
-.palette-item:active{cursor:grabbing;transform:scale(0.97)}
-.pi-icon{font-size:18px;display:block;margin-bottom:3px;line-height:1}
-.pi-name{display:block;font-weight:600;font-size:10px;color:var(--text);line-height:1.2}
-.pi-size{display:block;color:var(--text3);font-size:9px;margin-top:2px}
-
-/* Collapsible symbol categories */
-.sym-details{border-top:1px solid var(--border)}
-.sym-details summary{
-  display:flex;align-items:center;gap:6px;
-  padding:8px 14px;
-  font-size:11px;font-weight:600;
-  color:var(--text2);
-  cursor:pointer;
-  list-style:none;
-  transition:all var(--transition);
-  user-select:none;
-}
-.sym-details summary::-webkit-details-marker{display:none}
-.sym-details summary:hover{background:var(--bg);color:var(--text)}
-.sym-details[open] summary{color:var(--accent)}
-.sym-details summary::after{
-  content:'';
-  margin-left:auto;
-  width:6px;height:6px;
-  border-right:1.5px solid currentColor;
-  border-bottom:1.5px solid currentColor;
-  transform:rotate(-45deg);
-  transition:transform var(--transition);
-  flex-shrink:0;
-}
-.sym-details[open] summary::after{transform:rotate(45deg)}
-
-/* ── CANVAS ── */
-#canvas-wrap{
-  flex:1;
-  overflow:hidden;
-  position:relative;
-  background:#ffffff;
-  background-image:radial-gradient(circle,#c8d3e0 1px,transparent 1px);
-  background-size:24px 24px;
-}
-body.dark #canvas-wrap{
-  background:#1a2332;
-  background-image:radial-gradient(circle,#2a3a52 1px,transparent 1px);
-  background-size:24px 24px;
-}
-#canvas-wrap.panning{cursor:grabbing}
-#canvas-wrap.hand-tool{cursor:grab}
-#canvas-wrap.wall-tool{cursor:crosshair}
-#canvas-wrap.room-tool{cursor:crosshair}
-#canvas-wrap.stair-tool{cursor:crosshair}
-#canvas-svg{width:100%;height:100%;display:block}
-
-/* wall preview classes */
-.wall-vertex{fill:#3b82f6;stroke:#2563eb;stroke-width:1.5}
-.wall-preview-line{stroke:#3b82f6;stroke-width:1.5;stroke-dasharray:6 4;pointer-events:none}
-.wall-preview-segment{stroke:#1e293b;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
-.room-preview{fill:rgba(59,130,246,0.1);stroke:#3b82f6;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
-.stair-preview{fill:rgba(100,100,100,0.12);stroke:#64748b;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
-
-/* stair rendered */
-.stair-fill{fill:#f5f0e8}
-.stair-outline{stroke:#8a7b6b;stroke-width:1.5;fill:none}
-.stair-diag{stroke:#c4b5a5;stroke-width:0.8}
-.stair-arrow{stroke:#6d5d4b;stroke-width:1.5;fill:none;marker-end:url(#arrowhead)}
-.stair-label{font-family:system-ui,sans-serif;font-size:10px;font-weight:700;fill:#6d5d4b;text-anchor:middle;dominant-baseline:middle}
-
-/* wall hint */
-#wall-hint{
-  position:absolute;top:12px;left:50%;transform:translateX(-50%);
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:6px 16px;
-  font-size:11px;font-weight:500;
-  color:var(--text2);
-  pointer-events:none;
-  z-index:5;
-  box-shadow:var(--shadow-md);
-  white-space:nowrap;
-}
-
-/* minimap */
-#minimap{
-  position:absolute;bottom:10px;right:10px;
-  width:150px;height:110px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  overflow:hidden;
-  box-shadow:var(--shadow-md);
-  z-index:5;cursor:pointer;
-  opacity:0.92;
-  transition:opacity var(--transition);
-}
-#minimap:hover{opacity:1}
-#minimap svg{width:100%;height:100%}
-#minimap .viewport{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 2}
-
-/* ── RIGHT PANEL ── */
-#right-panel{
-  width:260px;
-  background:var(--surface);
-  border-left:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  flex-shrink:0;
-  overflow-y:auto;
-  overflow-x:hidden;
-  font-size:12px;
-}
-.rp-header{
-  padding:12px 14px 8px;
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;
-  color:var(--text3);
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-}
-
-/* Dynamic props CSS (used by renderProperties JS) */
-.prop-group{padding:10px 14px;border-bottom:1px solid var(--border)}
-.prop-group label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text3);margin-bottom:5px}
-.prop-group input,.prop-group select{width:100%;padding:6px 8px;font-size:12px;font-family:inherit;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:var(--radius-sm);outline:none;margin-bottom:6px;transition:border-color var(--transition)}
-.prop-group input:focus,.prop-group select:focus{border-color:var(--accent);background:var(--surface)}
-.prop-group strong{font-weight:600;color:var(--text)}
-.prop-row{display:flex;gap:6px}
-.prop-row .half{flex:1;min-width:0}
-.door-entry,.window-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:4px;position:relative}
-.door-entry select,.window-entry select{font-size:11px}
-.del-btn{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);transition:all var(--transition)}
-.del-btn:hover{background:var(--danger-bg);color:var(--danger)}
-.add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
-.add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
-/* ── PROPS MODE TOGGLE ── */
-.rp-header{display:flex;align-items:center;justify-content:space-between}
-.rp-mode-btn{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 8px;
-  font-size:9px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
-  border:1px solid var(--border2);border-radius:12px;
-  background:transparent;color:var(--text3);
-  cursor:pointer;transition:all var(--transition);font-family:inherit;
-}
-.rp-mode-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.rp-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-/* ── YAML PROPS EDITOR ── */
-.props-yaml-wrap{display:flex;flex-direction:column;flex:1;padding:10px;gap:8px}
-#props-yaml-ta{
-  flex:1;min-height:320px;resize:vertical;
-  font-family:'Cascadia Code','Fira Code','SF Mono','Consolas',monospace;
-  font-size:11.5px;line-height:1.6;
-  padding:10px;
-  border:1px solid var(--border);border-radius:var(--radius);
-  background:var(--surface2);color:var(--text);
-  outline:none;
-  transition:border-color var(--transition);
-  tab-size:2;
-}
-#props-yaml-ta:focus{border-color:var(--accent)}
-.dark #props-yaml-ta{background:#0f172a}
-.props-yaml-actions{display:flex;align-items:center;gap:6px}
-.props-yaml-apply{
-  flex:1;padding:6px 0;
-  font-size:11px;font-weight:600;font-family:inherit;
-  background:var(--accent);color:#fff;
-  border:none;border-radius:var(--radius-sm);
-  cursor:pointer;transition:background var(--transition);
-}
-.props-yaml-apply:hover{background:var(--accent2)}
-.props-yaml-err{font-size:10px;color:var(--danger);flex:1;line-height:1.3}
-/* ── LAYERS PANEL ── */
-.layer-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
-.layer-row:last-child{border-bottom:none}
-.layer-eye{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:4px;cursor:pointer;color:var(--text3);transition:all var(--transition);flex-shrink:0;background:none}
-.layer-eye:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
-.layer-eye.active{color:var(--accent)}
-.layer-label{font-size:12px;color:var(--text2);flex:1}
-/* ── PRINT MODAL ── */
-#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:300}
-#print-modal.show{display:flex}
-.print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
-.print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px}
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
-
-/* ── STATUS BAR ── */
-#status-bar{
-  height:26px;
-  display:flex;align-items:center;
-  padding:0 12px;
-  background:var(--surface);
-  border-top:1px solid var(--border);
-  font-size:10px;font-weight:500;
-  color:var(--text3);
-  gap:14px;
-  flex-shrink:0;
-}
-#status-bar span{display:flex;align-items:center;gap:4px}
-
-/* ── TOAST ── */
-#toast{
-  position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(6px);
-  background:var(--text);color:var(--surface);
-  padding:8px 18px;border-radius:var(--radius-lg);
-  font-size:12px;font-weight:500;
-  z-index:200;opacity:0;pointer-events:none;
-  transition:opacity 0.2s ease,transform 0.2s ease;
-  white-space:nowrap;
-  box-shadow:var(--shadow-lg);
-}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── EXPORT DROPDOWN ── */
-.tb-export-wrap{position:relative;flex-shrink:0}
-.tb-export-menu{
-  display:none;position:absolute;top:calc(100% + 4px);left:0;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:4px;
-  z-index:200;
-  box-shadow:var(--shadow-lg);
-  min-width:190px;
-}
-.tb-export-menu.open{display:block}
-.export-item{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 10px;cursor:pointer;
-  border-radius:var(--radius-sm);
-  font-size:12px;font-weight:500;
-  color:var(--text2);
-  transition:all var(--transition);
-}
-.export-item:hover{background:var(--accent-bg);color:var(--accent)}
-.export-item-accent{color:var(--accent)}
-.export-item-accent:hover{background:var(--accent);color:#fff}
-.export-item-hint{margin-left:auto;font-size:10px;font-weight:400;color:var(--text3)}
-.export-item:hover .export-item-hint{color:inherit;opacity:0.7}
-.export-sep{height:1px;background:var(--border);margin:3px 4px}
-
-/* ── CANVAS EMPTY STATE ── */
-#canvas-empty{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;pointer-events:none;
-  color:var(--text3);
-}
-#canvas-empty svg{opacity:0.25}
-#canvas-empty .ce-title{font-size:14px;font-weight:600;color:var(--text2);opacity:0.5}
-#canvas-empty .ce-sub{font-size:12px;opacity:0.5;text-align:center;max-width:240px;line-height:1.5}
-#canvas-empty .ce-keys{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px}
-#canvas-empty kbd{
-  display:inline-flex;align-items:center;justify-content:center;
-  padding:2px 7px;border-radius:4px;
-  font-size:11px;font-weight:600;font-family:inherit;
-  background:var(--surface);border:1px solid var(--border2);
-  color:var(--text2);opacity:0.6;
-  box-shadow:0 1px 0 var(--border2);
-}
-
-/* ── CONTEXT MENU ── */
-#context-menu{
-  display:none;position:fixed;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:4px;
-  z-index:150;
-  box-shadow:var(--shadow-lg);
-  min-width:168px;
-}
-.ctx-item{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 10px;cursor:pointer;
-  border-radius:var(--radius-sm);
-  font-size:12px;font-weight:500;
-  color:var(--text2);
-  transition:all var(--transition);
-}
-.ctx-item:hover{background:var(--accent-bg);color:var(--accent)}
-.ctx-sep{height:1px;background:var(--border);margin:3px 4px}
-
-/* ── PRINT MODAL ── */
-#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:300}
-#print-modal.show{display:flex}
-.print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
-.print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.print-modal-title svg{color:var(--accent)}
-
-/* ── PASTE YAML MODAL ── */
-#paste-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:300}
-#paste-modal.show{display:flex}
-.paste-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:min(640px,95vw);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:14px}
-.paste-modal-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
-.paste-modal-title svg{color:var(--accent)}
-#paste-yaml-input{width:100%;height:260px;resize:vertical;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);outline:none;transition:border-color .15s}
-#paste-yaml-input:focus{border-color:var(--accent)}
-#paste-yaml-input::placeholder{color:var(--text3)}
-.paste-modal-hint{font-size:11px;color:var(--text3);line-height:1.5}
-
-/* ── SHORTCUTS OVERLAY ── */
-#shortcuts-overlay{
-  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);
-  z-index:180;align-items:center;justify-content:center;
-}
-#shortcuts-overlay.show{display:flex}
-#shortcuts-panel{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:24px 28px;
-  max-width:400px;width:92%;
-  box-shadow:var(--shadow-lg);
-  max-height:85vh;overflow-y:auto;
-  position:relative;
-}
-#shortcuts-panel h3{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);text-align:center}
-#shortcuts-panel table{width:100%;border-collapse:collapse}
-#shortcuts-panel td{padding:5px 8px;font-size:11px;border-bottom:1px solid var(--border);color:var(--text2)}
-#shortcuts-panel td:first-child{font-weight:700;color:var(--accent);width:100px;white-space:nowrap;font-family:monospace;font-size:12px}
-#shortcuts-close{
-  position:absolute;top:16px;right:16px;
-  background:none;border:none;cursor:pointer;
-  color:var(--text3);font-size:20px;line-height:1;
-  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-  border-radius:var(--radius-sm);transition:all var(--transition);
-}
-#shortcuts-close:hover{background:var(--bg);color:var(--text)}
-
-/* tooltip */
-[data-tooltip]{position:relative}
-[data-tooltip]:hover::after{
-  content:attr(data-tooltip);
-  position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
-  background:#1e293b;color:#f8fafc;
-  font-size:11px;font-weight:500;
-  padding:5px 9px;border-radius:var(--radius-sm);
-  white-space:nowrap;z-index:300;pointer-events:none;
-  box-shadow:0 4px 12px rgba(0,0,0,0.25);
-  letter-spacing:0.01em;
-  animation:tip-in 0.1s ease both;
-}
-[data-tooltip]:hover::before{
-  content:'';
-  position:absolute;top:calc(100% + 1px);left:50%;transform:translateX(-50%);
-  border:5px solid transparent;border-bottom-color:#1e293b;
-  z-index:301;pointer-events:none;
-  animation:tip-in 0.1s ease both;
-}
-@keyframes tip-in{from{opacity:0;transform:translateX(-50%) translateY(-3px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-/* distance indicator */
-.dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
-</style>
-</head>
-<body>
-<div id="app">
-
-  <!-- ═══ TOOLBAR ═══ -->
-  <div id="toolbar">
-    <!-- Sidebar toggle -->
-    <button class="tb-btn-icon" id="btn-sidebar" onclick="toggleSidebar()" data-tooltip="Painel lateral ( [ )">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="14" height="12" rx="1.5"/><line x1="5.5" y1="2" x2="5.5" y2="14"/></svg>
-    </button>
-
-    <!-- Logo -->
-    <div class="tb-logo">
-      <div class="tb-logo-icon">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="4" width="9" height="8" rx="1"/><rect x="6" y="2" width="9" height="8" rx="1" opacity="0.6"/></svg>
-      </div>
-      <span id="file-name">Sem título</span>
-    </div>
-
-    <!-- File ops -->
-    <button class="tb-btn" onclick="newProject()" data-tooltip="Novo projeto">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
-      Novo
-    </button>
-    <button class="tb-btn" onclick="importYAML()" data-tooltip="Abrir arquivo YAML">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
-      Abrir
-    </button>
-    <button class="tb-btn" onclick="showPasteModal()" data-tooltip="Colar YAML gerado por IA">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
-      Colar YAML
-    </button>
-    <select id="template-select" class="tb-template-select" title="Abrir template" onchange="loadTemplateFromSelect(this)">
-      <option value="">📂 Templates</option>
-    </select>
-    <div class="tb-export-wrap" id="export-wrap">
-      <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
-        Exportar
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
-      </button>
-      <div class="tb-export-menu" id="export-menu">
-        <div class="export-item" onclick="exportYAML();closeExportMenu()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
-          YAML
-          <span class="export-item-hint">Editar no playground</span>
-        </div>
-        <div class="export-item export-item-accent" onclick="exportSVG();closeExportMenu()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
-          SVG
-          <span class="export-item-hint">Vetor escalável</span>
-        </div>
-        <div class="export-item" onclick="exportPNG();closeExportMenu()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><polyline points="1.5,10 5,6.5 7.5,9 10,7 14.5,12"/><circle cx="11.5" cy="6.5" r="1.5"/></svg>
-          PNG
-          <span class="export-item-hint">Imagem rasterizada</span>
-        </div>
-        <div class="export-sep"></div>
-        <div class="export-item" onclick="exportDXF();closeExportMenu()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h4l2 8h4"/><path d="M10 4h4M2 12h4"/></svg>
-          DXF
-          <span class="export-item-hint">AutoCAD</span>
-        </div>
-        <div class="export-item" onclick="showPrintModal();closeExportMenu()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/><path d="M5.5 9.5h1a1 1 0 0 0 0-2h-1v4M9.5 7.5h1.5a1 1 0 0 1 1 1.5 1 1 0 0 1-1 1.5H9.5"/></svg>
-          PDF
-          <span class="export-item-hint">Imprimir / PDF</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="tb-sep"></div>
-
-    <!-- Undo/Redo -->
-    <div class="tb-group">
-      <button class="tb-btn-icon" onclick="undo()" data-tooltip="Desfazer (Ctrl+Z)">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7H9a3.5 3.5 0 1 1 0 7H6"/><polyline points="1.5,4 4.5,7 1.5,10"/></svg>
-      </button>
-      <button class="tb-btn-icon" onclick="redo()" data-tooltip="Refazer (Ctrl+Y)">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 7H7a3.5 3.5 0 1 0 0 7h3"/><polyline points="14.5,4 11.5,7 14.5,10"/></svg>
-      </button>
-    </div>
-
-    <div class="tb-sep"></div>
-
-    <!-- Zoom -->
-    <div class="tb-group">
-      <button class="tb-btn-icon" onclick="zoomOut()" data-tooltip="Zoom out">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="4"/><line x1="8.5" y1="8.5" x2="11" y2="11"/><line x1="3" y1="5" x2="7" y2="5"/></svg>
-      </button>
-      <button class="tb-btn-icon" onclick="zoomReset()" data-tooltip="Zoom 100%"><span id="zoom-label">100%</span></button>
-      <button class="tb-btn-icon" onclick="zoomIn()" data-tooltip="Zoom in">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="4"/><line x1="8.5" y1="8.5" x2="11" y2="11"/><line x1="3" y1="5" x2="7" y2="5"/><line x1="5" y1="3" x2="5" y2="7"/></svg>
-      </button>
-    </div>
-
-    <!-- Grid toggle + step -->
-    <button class="tb-btn-icon" id="btn-grid" onclick="toggleGrid()" data-tooltip="Alternar grade">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="0.5"/><rect x="9" y="1" width="6" height="6" rx="0.5"/><rect x="1" y="9" width="6" height="6" rx="0.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg>
-    </button>
-    <div class="tb-grid-step" data-tooltip="Passo da grade (cm)">
-      <input type="number" id="grid-step" min="10" max="1000" step="10" value="50" onchange="setGridSize(+this.value)">
-      <span>cm</span>
-    </div>
-    <!-- Theme toggle -->
-    <button class="tb-btn-icon" onclick="toggleTheme()" data-tooltip="Alternar tema">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><line x1="8" y1="1" x2="8" y2="2.5"/><line x1="8" y1="13.5" x2="8" y2="15"/><line x1="1" y1="8" x2="2.5" y2="8"/><line x1="13.5" y1="8" x2="15" y2="8"/><line x1="2.9" y1="2.9" x2="4" y2="4"/><line x1="12" y1="12" x2="13.1" y2="13.1"/><line x1="2.9" y1="13.1" x2="4" y2="12"/><line x1="12" y1="4" x2="13.1" y2="2.9"/></svg>
-    </button>
-    <!-- Shortcuts -->
-    <button class="tb-btn-icon" onclick="toggleShortcuts()" data-tooltip="Atalhos de teclado">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.5a2 2 0 1 1 2.5 2c-.5.3-0.5.7-0.5 1.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>
-    </button>
-
-    <div class="tb-sep"></div>
-
-    <!-- Edit ops -->
-    <button class="tb-btn-icon danger" onclick="deleteSelected()" data-tooltip="Deletar (Del)">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 14,4"/><path d="M5.5 4V2.5h5V4M6 7v5m4-5v5"/><path d="M3.5 4l1 10h7l1-10"/></svg>
-    </button>
-    <button class="tb-btn-icon" onclick="copySelected()" data-tooltip="Copiar (Ctrl+C)">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 5.5V2.5h-8v8h3"/></svg>
-    </button>
-    <button class="tb-btn-icon" onclick="pasteSelected()" data-tooltip="Colar (Ctrl+V)">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4.5" width="10" height="10" rx="1"/><path d="M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/></svg>
-    </button>
-
-    <div class="tb-sep"></div>
-
-    <!-- Align -->
-    <div class="tb-group">
-      <button class="tb-btn-icon" onclick="alignSelected('left')" data-tooltip="Alinhar esquerda">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="1" y1="0" x2="1" y2="12"/><rect x="2" y="1.5" width="6" height="2.5" rx="0.5"/><rect x="2" y="8" width="4" height="2.5" rx="0.5"/></svg>
-      </button>
-      <button class="tb-btn-icon" onclick="alignSelected('centerX')" data-tooltip="Centralizar horizontal">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="6" y1="0" x2="6" y2="12"/><rect x="2" y="1.5" width="8" height="2.5" rx="0.5"/><rect x="3" y="8" width="6" height="2.5" rx="0.5"/></svg>
-      </button>
-      <button class="tb-btn-icon" onclick="alignSelected('right')" data-tooltip="Alinhar direita">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="11" y1="0" x2="11" y2="12"/><rect x="4" y="1.5" width="6" height="2.5" rx="0.5"/><rect x="6" y="8" width="4" height="2.5" rx="0.5"/></svg>
-      </button>
-    </div>
-    <div class="tb-group">
-      <button class="tb-btn-icon" onclick="alignSelected('top')" data-tooltip="Alinhar topo">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="1" x2="12" y2="1"/><rect x="1.5" y="2" width="2.5" height="6" rx="0.5"/><rect x="8" y="2" width="2.5" height="4" rx="0.5"/></svg>
-      </button>
-      <button class="tb-btn-icon" onclick="alignSelected('centerY')" data-tooltip="Centralizar vertical">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="6" x2="12" y2="6"/><rect x="1.5" y="2" width="2.5" height="8" rx="0.5"/><rect x="8" y="3" width="2.5" height="6" rx="0.5"/></svg>
-      </button>
-      <button class="tb-btn-icon" onclick="alignSelected('bottom')" data-tooltip="Alinhar base">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="11" x2="12" y2="11"/><rect x="1.5" y="4" width="2.5" height="6" rx="0.5"/><rect x="8" y="6" width="2.5" height="4" rx="0.5"/></svg>
-      </button>
-    </div>
-
-    <!-- Title input pushed right -->
-    <div class="tb-sep" style="margin-left:auto"></div>
-    <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()">
-  </div>
-
-  <!-- ═══ FLOOR TABS ═══ -->
-  <div id="floor-tabs">
-    <span class="ft-label">Pavimentos</span>
-    <div id="floor-tab-list"></div>
-    <button class="ft-add" onclick="addFloor()" title="Adicionar pavimento">+</button>
-  </div>
-
-  <!-- ═══ MAIN ═══ -->
-  <div id="main">
-
-    <!-- LEFT PANEL -->
-    <div id="left-panel">
-    <div class="left-panel-inner">
-      <div class="panel-section-label">Ferramentas</div>
-      <div class="tools-grid">
-        <button class="tool-btn active" id="tool-select" onclick="setTool('select')">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l4.5 13L8.5 10l5 0.5L2 2z"/></svg>
-          Selecionar
-        </button>
-        <button class="tool-btn" id="tool-wall" onclick="setTool('wall')">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2l3.5 3.5-9 9H1.5v-3.5l9-9z"/><line x1="8.5" y1="4" x2="12" y2="7.5"/></svg>
-          Parede
-        </button>
-        <button class="tool-btn" id="tool-room" onclick="setTool('room')">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="12" height="8" rx="1"/></svg>
-          Cômodo
-        </button>
-        <button class="tool-btn" id="tool-door" onclick="setTool('door')">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="2" width="7" height="12" rx="0.5"/><path d="M10 2v12M7 8a3 3 0 0 0 3-3"/></svg>
-          Porta
-        </button>
-        <button class="tool-btn" id="tool-window" onclick="setTool('window')">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="5" width="12" height="6" rx="1"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></svg>
-          Janela
-        </button>
-        <button class="tool-btn" id="tool-stair" onclick="setTool('stair')">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 14h4v-4h4V6h4V2"/></svg>
-          Escada
-        </button>
-        <button class="tool-btn" id="tool-hand" onclick="setTool('hand')" data-tooltip="Mão — arrastar a tela (ou Espaço+arrastar)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v7M5.5 3.5V4a1 1 0 0 0-1 1v1M5.5 3.5a1 1 0 0 0-2 0V7M10.5 3.5V4a1 1 0 0 1 1 1v1M10.5 3.5a1 1 0 0 1 2 0v3.5c0 2.5-1.5 5-4 5s-4-2.5-4-5V6"/></svg>
-          Mão
-        </button>
-      </div>
-
-      <div class="panel-divider"></div>
-
-      <div class="panel-section-label" style="padding-bottom:4px">Cômodos</div>
-      <div class="palette-search-wrap palette-search-icon" style="position:relative">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1"><circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        <input type="text" id="palette-search" placeholder="Filtrar cômodos..." oninput="filterPalette()" autocomplete="off">
-      </div>
-      <div class="palette-grid" id="palette"></div>
-
-      <div class="panel-divider"></div>
-      <div class="panel-section-label">Símbolos</div>
-
-      <details class="sym-details" open>
-        <summary>Móveis</summary>
-        <div class="palette-grid" id="sym-furniture"></div>
-      </details>
-      <details class="sym-details">
-        <summary>Cozinha</summary>
-        <div class="palette-grid" id="sym-kitchen"></div>
-      </details>
-      <details class="sym-details">
-        <summary>Banheiro</summary>
-        <div class="palette-grid" id="sym-bathroom"></div>
-      </details>
-      <details class="sym-details">
-        <summary>Elétrica / Portas</summary>
-        <div class="palette-grid" id="sym-electrical"></div>
-      </details>
-      <div class="panel-divider"></div>
-      <!-- Layers -->
-      <div class="panel-section-label">
-        Camadas
-      </div>
-      <div id="layers-list" style="padding:0 14px 8px"></div>
-    </div><!-- /left-panel-inner -->
-    </div><!-- /left-panel -->
-
-    <!-- CANVAS -->
-    <div id="canvas-wrap">
-      <svg id="canvas-svg"></svg>
-      <div id="minimap" onclick="focusMinimap(event)"><svg id="minimap-svg"></svg></div>
-      <div id="wall-hint" style="display:none">Clique para iniciar · Duplo clique ou Enter para finalizar · Esc para cancelar</div>
-      <div id="canvas-empty">
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <rect x="8" y="16" width="32" height="32" rx="2"/>
-          <rect x="24" y="8" width="32" height="32" rx="2"/>
-          <line x1="8" y1="30" x2="40" y2="30"/>
-          <line x1="24" y1="30" x2="24" y2="48"/>
-        </svg>
-        <span class="ce-title">Canvas vazio</span>
-        <span class="ce-sub">Adicione cômodos usando o painel lateral ou selecione uma ferramenta</span>
-        <div class="ce-keys">
-          <kbd>R</kbd><span style="font-size:11px;opacity:0.4">Cômodo</span>
-          <kbd>W</kbd><span style="font-size:11px;opacity:0.4">Parede</span>
-          <kbd>D</kbd><span style="font-size:11px;opacity:0.4">Porta</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Context menu (inside main so it does not affect layout) -->
-    <div id="context-menu">
-      <div class="ctx-item" onclick="copySelected();hideContextMenu()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 5.5V2.5h-8v8h3"/></svg>
-        Copiar
-      </div>
-      <div class="ctx-item" onclick="pasteSelected();hideContextMenu()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4.5" width="10" height="10" rx="1"/><path d="M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/></svg>
-        Colar
-      </div>
-      <div class="ctx-sep"></div>
-      <div class="ctx-item" onclick="deleteSelected();hideContextMenu()" style="color:var(--danger)">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 14,4"/><path d="M5.5 4V2.5h5V4M6 7v5m4-5v5"/><path d="M3.5 4l1 10h7l1-10"/></svg>
-        Deletar
-      </div>
-      <div class="ctx-sep"></div>
-      <div class="ctx-item" onclick="zoomReset();hideContextMenu()">Zoom 100%</div>
-    </div>
-
-    <!-- RIGHT PANEL -->
-    <div id="right-panel">
-      <div class="rp-header">
-        Propriedades
-        <button class="rp-mode-btn" id="btn-props-mode" onclick="togglePropsMode()" data-tooltip="Editar como YAML" style="display:none">
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="1,4 4,1 4,11"/><polyline points="8,1 11,4 11,11"/><line x1="1" y1="8" x2="11" y2="8"/></svg>
-          YAML
-        </button>
-      </div>
-      <div id="props-content" class="empty-state">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"><rect x="4" y="8" width="18" height="16" rx="2"/><path d="M8 13h10M8 17h7"/></svg>
-        Selecione um elemento no canvas
-      </div>
-    </div>
-  </div>
-
-  <!-- STATUS BAR -->
-  <div id="status-bar">
-    <span id="status-coords">x:0 y:0</span>
-    <span id="status-zoom">Zoom: 100%</span>
-    <span id="status-rooms">Cômodos: 0</span>
-    <span id="status-area">Área: 0 m²</span>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div id="toast"></div>
-
-<!-- PASTE YAML MODAL -->
-<div id="paste-modal" onclick="if(event.target===this) hidePasteModal()">
-  <div class="paste-modal-box">
-    <div class="paste-modal-title">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
-      Colar YAML
-    </div>
-    <textarea id="paste-yaml-input" placeholder="Cole o YAML gerado pela IA aqui…
-
-version: 1
-title: Minha Planta
-scale: 2
-wallThickness: 15
-grid: 50
-rooms:
-  - id: sala
-    name: Sala
-    ..."></textarea>
-    <div class="paste-modal-hint">
-      Cole o YAML gerado por uma IA (Claude, ChatGPT, Gemini…) ou copie de um arquivo de texto.<br>
-      Atalho: <strong>Ctrl+Enter</strong> para carregar.
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="tb-btn" style="flex:1" onclick="hidePasteModal()">Cancelar</button>
-      <button class="tb-btn accent" style="flex:1" onclick="applyPastedYAML()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3,8 6,11 13,4"/></svg>
-        Carregar planta
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- PRINT MODAL -->
-<div id="print-modal" onclick="if(event.target===this) hidePrintModal()">
-  <div class="print-modal-box">
-    <div class="print-modal-title">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
-      Configurar impressão
-    </div>
-    <div class="prop-group">
-      <label>Escala</label>
-      <select id="print-scale" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
-        <option value="50">1:50 — detalhe</option>
-        <option value="100" selected>1:100 — padrão</option>
-        <option value="200">1:200 — visão geral</option>
-      </select>
-    </div>
-    <div class="prop-group">
-      <label>Papel</label>
-      <select id="print-paper" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
-        <option value="a4p">A4 Retrato (210×297mm)</option>
-        <option value="a4l" selected>A4 Paisagem (297×210mm)</option>
-        <option value="a3l">A3 Paisagem (420×297mm)</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="tb-btn" style="flex:1" onclick="hidePrintModal()">Cancelar</button>
-      <button class="tb-btn accent" style="flex:1" onclick="doPrint()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
-        Imprimir / PDF
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- SHORTCUTS OVERLAY -->
-<div id="shortcuts-overlay" onclick="if(event.target===this) hideShortcuts()">
-  <div id="shortcuts-panel">
-    <button id="shortcuts-close" onclick="hideShortcuts()">×</button>
-    <h3>Atalhos de Teclado</h3>
-    <table>
-      <tr><td>Delete</td><td>Remover selecionado</td></tr>
-      <tr><td>Ctrl+Z</td><td>Desfazer</td></tr>
-      <tr><td>Ctrl+Y</td><td>Refazer</td></tr>
-      <tr><td>Ctrl+C</td><td>Copiar</td></tr>
-      <tr><td>Ctrl+V</td><td>Colar</td></tr>
-      <tr><td>Shift+Click</td><td>Multi-seleção</td></tr>
-      <tr><td>Esc</td><td>Limpar seleção</td></tr>
-      <tr><td>Scroll</td><td>Zoom</td></tr>
-      <tr><td>Alt+Drag</td><td>Pan</td></tr>
-      <tr><td>1</td><td>Ferramenta Selecionar</td></tr>
-      <tr><td>2</td><td>Ferramenta Parede</td></tr>
-      <tr><td>3</td><td>Ferramenta Cômodo</td></tr>
-      <tr><td>4</td><td>Ferramenta Porta</td></tr>
-      <tr><td>5</td><td>Ferramenta Janela</td></tr>
-      <tr><td>6</td><td>Ferramenta Escada</td></tr>
-      <tr><td>[</td><td>Retrair / expandir painel</td></tr>
-    </table>
-  </div>
-</div>
-
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
-<script src="symbols.js"></script>
-<script>
 // ═══════════════════════════════════════════════════
 //  DATA MODEL
 // ═══════════════════════════════════════════════════
@@ -1069,6 +23,8 @@ let state = {
   zoom: 1,
   panX: 0, panY: 0,
   gridVisible: true,
+  showCotas: false,
+  lot: { enabled: true, width: 1000, height: 1000, front: 0, back: 0, left: 0, right: 0 },
   nextId: 1,
   nextSymId: 1,
   clipboard: null,
@@ -1208,6 +164,36 @@ function render() {
         c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 0.5);
         c.setAttribute('fill','#bbb'); g.appendChild(c);
       }
+    }
+  }
+
+  // terreno (lot) — borda tracejada ancorada na origem (0,0); desenhada atrás da planta
+  if (state.lot && state.lot.enabled) {
+    const sc2 = state.scale;
+    const lr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    lr.setAttribute('x', 0); lr.setAttribute('y', 0);
+    lr.setAttribute('width', state.lot.width * sc2);
+    lr.setAttribute('height', state.lot.height * sc2);
+    lr.setAttribute('fill', '#f0f4e8');
+    lr.setAttribute('stroke', '#8a9b68');
+    lr.setAttribute('stroke-width', 1.5);
+    lr.setAttribute('stroke-dasharray', '8 4');
+    lr.setAttribute('pointer-events', 'none');
+    g.appendChild(lr);
+
+    // área edificável (terreno menos recuos) — guia tracejada laranja
+    const bw = state.lot.width - state.lot.left - state.lot.right;
+    const bh = state.lot.height - state.lot.front - state.lot.back;
+    if (bw > 0 && bh > 0 && (state.lot.front || state.lot.back || state.lot.left || state.lot.right)) {
+      const br = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      br.setAttribute('x', state.lot.left * sc2); br.setAttribute('y', state.lot.front * sc2);
+      br.setAttribute('width', bw * sc2); br.setAttribute('height', bh * sc2);
+      br.setAttribute('fill', 'none');
+      br.setAttribute('stroke', '#d08a3e');
+      br.setAttribute('stroke-width', 1);
+      br.setAttribute('stroke-dasharray', '4 3');
+      br.setAttribute('pointer-events', 'none');
+      g.appendChild(br);
     }
   }
 
@@ -1386,14 +372,38 @@ function render() {
       }
     }
 
-    // label
+    // label: nome + área (m²) + dimensões (cotas)
     if (state.layers.rooms) {
-      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-      label.setAttribute('x', rx + rw/2); label.setAttribute('y', ry + rh/2);
+      const SVGNS = 'http://www.w3.org/2000/svg';
+      const cx = rx + rw/2, cy = ry + rh/2;
+      const showInfo = rw > 130 && rh > 95; // só mostra detalhes em cômodos grandes o suficiente
+      const label = document.createElementNS(SVGNS,'text');
+      label.setAttribute('x', cx); label.setAttribute('y', showInfo ? cy - 10 : cy);
       label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','middle');
       label.setAttribute('font-size', Math.min(14, rw/20)); label.setAttribute('font-weight','600');
       label.setAttribute('fill','#1a1a2e'); label.textContent = room.name;
       group.appendChild(label);
+      if (showInfo) {
+        const areaM2 = (room.width * room.height / 10000).toFixed(1);
+        const area = document.createElementNS(SVGNS,'text');
+        area.setAttribute('x', cx); area.setAttribute('y', cy + 7);
+        area.setAttribute('text-anchor','middle'); area.setAttribute('dominant-baseline','middle');
+        area.setAttribute('font-size', Math.min(11, rw/26)); area.setAttribute('font-weight','500');
+        area.setAttribute('fill','#4b5563'); area.textContent = `${areaM2} m²`;
+        group.appendChild(area);
+        // texto de dimensão — sempre visível
+        const dim = document.createElementNS(SVGNS,'text');
+        dim.setAttribute('x', cx); dim.setAttribute('y', cy + 21);
+        dim.setAttribute('text-anchor','middle'); dim.setAttribute('dominant-baseline','middle');
+        dim.setAttribute('font-size', Math.min(10, rw/30));
+        dim.setAttribute('fill','#9aa3ae'); dim.textContent = `${(room.width/100).toFixed(2)} × ${(room.height/100).toFixed(2)} m`;
+        group.appendChild(dim);
+      }
+    }
+
+    // cotas arquitetônicas (linhas com ticks) — alternadas pela toolbar
+    if (state.showCotas && rw > 70 && rh > 70) {
+      drawRoomCotas(topLayer, rx, ry, rw, rh, room.width, room.height);
     }
 
     // resize handles (se selecionado)
@@ -1875,6 +885,7 @@ document.addEventListener('mousemove', e => {
 
       if (pxDelta > 3 && (nx !== moveState.origins[id].x || ny !== moveState.origins[id].y)) { hasDragged = true; moved = true; }
       room.x = nx; room.y = ny;
+      clampRoomToLot(room);
     }
     if (moved) render();
   }
@@ -1895,6 +906,7 @@ document.addEventListener('mousemove', e => {
     if (ny < 0) { nh += ny; ny = 0; }
     room.x = Math.round(nx); room.y = Math.round(ny);
     room.width = Math.round(nw); room.height = Math.round(nh);
+    clampRoomToLot(room);
     if (room.x !== resizeOrigin.x || room.y !== resizeOrigin.y || room.width !== resizeOrigin.w || room.height !== resizeOrigin.h) hasDragged = true;
     render();
   }
@@ -1956,7 +968,9 @@ canvasWrap.addEventListener('drop', e => {
   const x = Math.round(Math.max(0, svgPt.x / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
   const y = Math.round(Math.max(0, svgPt.y / state.scale / (state.gridVisible ? state.gridSize : 1))) * (state.gridVisible ? state.gridSize : 1);
   const floor = ensureRooms();
-  floor.rooms.push({ id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [], hatch: data.hatch || undefined });
+  const newRoom = { id: generateId(), name: data.name, x, y, width: data.w, height: data.h, doors: [], windows: [], hatch: data.hatch || undefined };
+  clampRoomToLot(newRoom);
+  floor.rooms.push(newRoom);
   state.selectedId = floor.rooms[floor.rooms.length-1].id;
   render();
   toast(`➕ ${data.name} adicionado`);
@@ -2209,6 +1223,51 @@ function applyYAMLProps() {
   render();
 }
 
+function renderEmptyPanel(el) {
+  const lot = state.lot;
+  const buildW = lot.width - lot.left - lot.right;
+  const buildH = lot.height - lot.front - lot.back;
+  const fits = buildW > 0 && buildH > 0;
+  const scaleLabel = state.scale === 2 ? '1:50' : state.scale === 1 ? '1:100' : state.scale === 0.5 ? '1:200' : `1:${Math.round(100/state.scale)}`;
+  el.innerHTML = `
+    <div class="prop-group">
+      <label>📋 Planta</label>
+      <input value="${escAttr(state.title || '')}" placeholder="Título da planta" onchange="updateMeta('title',this.value)">
+      <div class="prop-row" style="margin-top:6px">
+        <div class="half"><label>Escala (px/cm)</label><input type=number min=0.2 step=0.1 value="${state.scale}" onchange="updateMeta('scale',+this.value)"></div>
+        <div class="half"><label>Parede (cm)</label><input type=number min=1 step=1 value="${state.wallThickness}" onchange="updateMeta('wallThickness',+this.value)"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Escala aproximada: ${scaleLabel}</div>
+    </div>
+    <div class="prop-group">
+      <label>📐 Terreno (cm)</label>
+      <div class="prop-row">
+        <div class="half"><label>Largura (cm)</label><input type=number min=50 step=10 value="${lot.width}" onchange="updateLotProp('width',+this.value)"></div>
+        <div class="half"><label>Profundidade (cm)</label><input type=number min=50 step=10 value="${lot.height}" onchange="updateLotProp('height',+this.value)"></div>
+      </div>
+    </div>
+    <div class="prop-group">
+      <label>↔ Recuos (cm)</label>
+      <div class="prop-row">
+        <div class="half"><label>Frontal</label><input type=number min=0 step=10 value="${lot.front}" onchange="updateLotProp('front',+this.value)"></div>
+        <div class="half"><label>Fundos</label><input type=number min=0 step=10 value="${lot.back}" onchange="updateLotProp('back',+this.value)"></div>
+      </div>
+      <div class="prop-row">
+        <div class="half"><label>Lateral esq.</label><input type=number min=0 step=10 value="${lot.left}" onchange="updateLotProp('left',+this.value)"></div>
+        <div class="half"><label>Lateral dir.</label><input type=number min=0 step=10 value="${lot.right}" onchange="updateLotProp('right',+this.value)"></div>
+      </div>
+    </div>
+    <div class="prop-group">
+      <label>Área total do terreno</label>
+      <strong>${lot.width} × ${lot.height} cm (${(lot.width*lot.height/10000).toFixed(1)} m²)</strong>
+    </div>
+    <div class="prop-group">
+      <label>Área edificável</label>
+      <strong style="color:${fits ? 'var(--text)' : 'var(--danger)'}">${fits ? `${buildW} × ${buildH} cm (${(buildW*buildH/10000).toFixed(1)} m²)` : 'recuos maiores que o terreno'}</strong>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">A planta é reposicionada para o canto frontal-esquerdo e os cômodos respeitam o limite do terreno (área tracejada).</div>
+    </div>`;
+}
+
 function renderProperties() {
   const el = document.getElementById('props-content');
   const modeBtn = document.getElementById('btn-props-mode');
@@ -2226,6 +1285,9 @@ function renderProperties() {
 
   // Delegate to YAML mode if active
   if (propsMode === 'yaml' && hasSelection) { renderYAMLProps(); return; }
+
+  // nada selecionado → metadados da planta + configurações do terreno (lote)
+  if (!hasSelection) { renderEmptyPanel(el); return; }
 
   // symbol selected
   const sym = state.symbols.find(s => s.id === state.selectedId);
@@ -2274,7 +1336,7 @@ function renderProperties() {
   if (!room) { el.innerHTML = '<div class="empty-state">Selecione um cômodo no canvas</div>'; return; }
 
   let html = `<div class="prop-group"><label>Nome</label><input value="${escAttr(room.name)}" onchange="updateProp('name',this.value)"></div>`;
-  html += `<div class="prop-group"><label>Dimensões (cm)</label><div class="prop-row"><div class="half"><label>X</label><input type=number value="${room.x}" onchange="updateProp('x',+this.value)"></div><div class="half"><label>Y</label><input type=number value="${room.y}" onchange="updateProp('y',+this.value)"></div></div><div class="prop-row"><div class="half"><label>Largura</label><input type=number value="${room.width}" onchange="updateProp('width',+this.value)"></div><div class="half"><label>Altura</label><input type=number value="${room.height}" onchange="updateProp('height',+this.value)"></div></div></div>`;
+  html += `<div class="prop-group"><label>Dimensões (cm)</label><div class="prop-row"><div class="half"><label>X (cm)</label><input type=number value="${room.x}" onchange="updateProp('x',+this.value)"></div><div class="half"><label>Y (cm)</label><input type=number value="${room.y}" onchange="updateProp('y',+this.value)"></div></div><div class="prop-row"><div class="half"><label>Largura (cm)</label><input type=number value="${room.width}" onchange="updateProp('width',+this.value)"></div><div class="half"><label>Profundidade (cm)</label><input type=number value="${room.height}" onchange="updateProp('height',+this.value)"></div></div></div>`;
 
   // doors
   html += `<div class="prop-group"><label>🚪 Portas (${room.doors.length})</label>`;
@@ -2330,6 +1392,7 @@ function updateProp(prop, val) {
   if (!room) return;
   saveUndo();
   room[prop] = (val === '' && prop === 'hatch') ? undefined : val;
+  clampRoomToLot(room);
   render();
 }
 
@@ -2684,9 +1747,9 @@ function finishRoomDraw() {
 
   saveUndo();
   const floor = ensureRooms();
-  floor.rooms.push({
-    id: generateId(), name: 'Cômodo', x: cmX, y: cmY, width: cmW, height: cmH, doors: [], windows: [], hatch: undefined
-  });
+  const newRoom = { id: generateId(), name: 'Cômodo', x: cmX, y: cmY, width: cmW, height: cmH, doors: [], windows: [], hatch: undefined };
+  clampRoomToLot(newRoom);
+  floor.rooms.push(newRoom);
   roomDrawState = null;
   setTool('select');
   render();
@@ -2787,16 +1850,106 @@ function toggleGrid() {
   document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
   render();
 }
+function toggleCotas() {
+  state.showCotas = !state.showCotas;
+  document.getElementById('btn-cotas').classList.toggle('active', state.showCotas);
+  render();
+}
+// Cotas arquitetônicas de um cômodo (largura no topo, altura à esquerda) com ticks.
+function drawRoomCotas(layer, rx, ry, rw, rh, wCm, hCm) {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const COL = '#b71c1c', inset = 30, pad = 10, tick = 5;
+  const line = (x1, y1, x2, y2, w) => {
+    const l = document.createElementNS(SVGNS, 'line');
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.setAttribute('stroke', COL); l.setAttribute('stroke-width', w || 0.8); l.setAttribute('pointer-events', 'none');
+    layer.appendChild(l);
+  };
+  const txt = (x, y, t, rot) => {
+    const e = document.createElementNS(SVGNS, 'text');
+    e.setAttribute('x', x); e.setAttribute('y', y); e.setAttribute('text-anchor', 'middle'); e.setAttribute('dominant-baseline', 'middle');
+    e.setAttribute('font-size', 9); e.setAttribute('fill', COL); e.setAttribute('pointer-events', 'none');
+    if (rot) e.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+    e.textContent = t; layer.appendChild(e);
+  };
+  // largura — linha horizontal afastada do topo; valor do lado interno (abaixo da linha)
+  const wy = ry + inset;
+  line(rx + pad, wy, rx + rw - pad, wy);
+  line(rx + pad, wy - tick, rx + pad, wy + tick);
+  line(rx + rw - pad, wy - tick, rx + rw - pad, wy + tick);
+  txt(rx + rw / 2, wy + 9, `${(wCm / 100).toFixed(2)} m`);
+  // altura — linha vertical afastada da esquerda; valor do lado interno (à direita da linha)
+  const hx = rx + inset;
+  line(hx, ry + pad, hx, ry + rh - pad);
+  line(hx - tick, ry + pad, hx + tick, ry + pad);
+  line(hx - tick, ry + rh - pad, hx + tick, ry + rh - pad);
+  txt(hx + 9, ry + rh / 2, `${(hCm / 100).toFixed(2)} m`, -90);
+}
 function setGridSize(val) {
   state.gridSize = Math.max(10, Math.min(1000, val || state.gridSize));
   document.getElementById('grid-step').value = state.gridSize;
   render();
 }
+function updateLotProp(key, val) {
+  state.lot[key] = Math.max(key === 'width' || key === 'height' ? 50 : 0, val || 0);
+  repositionPlanToSetbacks();
+  clampAllRoomsToLot();
+  render();
+}
+// Edição de metadados da planta (título, escala, espessura de parede)
+function updateMeta(key, val) {
+  if (key === 'title') {
+    state.title = val;
+    const t = document.getElementById('global-title'); if (t) t.value = val;
+    document.getElementById('file-name').textContent = '🏠 ' + (val || 'Sem título');
+  } else if (key === 'scale') {
+    state.scale = Math.max(0.2, val || DEFAULT_SCALE);
+  } else if (key === 'wallThickness') {
+    state.wallThickness = Math.max(1, val || 15);
+  } else if (key === 'gridSize') {
+    state.gridSize = Math.max(10, Math.min(1000, val || state.gridSize));
+    document.getElementById('grid-step').value = state.gridSize;
+  }
+  render();
+}
+// Move a planta (todos os pavimentos/escadas/símbolos) para respeitar os recuos:
+// o canto superior-esquerdo da planta passa a coincidir com (recuo esquerdo, recuo frontal).
+function repositionPlanToSetbacks() {
+  let minX = Infinity, minY = Infinity;
+  for (const f of state.floors) for (const r of (f.rooms || [])) { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); }
+  if (!isFinite(minX)) return; // nenhum cômodo
+  const dx = state.lot.left - minX, dy = state.lot.front - minY;
+  if (dx === 0 && dy === 0) return;
+  for (const f of state.floors) {
+    for (const r of (f.rooms || [])) { r.x += dx; r.y += dy; }
+    for (const s of (f.stairs || [])) { s.x += dx; s.y += dy; }
+  }
+  for (const sym of state.symbols) { sym.x += dx; sym.y += dy; }
+}
+// Garante que um cômodo respeite o limite do terreno (não ultrapasse a borda).
+function clampRoomToLot(room) {
+  if (!state.lot) return;
+  const W = state.lot.width, H = state.lot.height;
+  room.width = Math.min(room.width, W);
+  room.height = Math.min(room.height, H);
+  room.x = Math.max(0, Math.min(room.x, W - room.width));
+  room.y = Math.max(0, Math.min(room.y, H - room.height));
+}
+function clampAllRoomsToLot() {
+  for (const f of state.floors) for (const r of (f.rooms || [])) clampRoomToLot(r);
+}
+// Cresce o terreno (se necessário) para envolver toda a planta — usado ao carregar.
+function ensureLotEnclosesPlan() {
+  let maxX = 0, maxY = 0;
+  for (const f of state.floors) for (const r of (f.rooms || [])) { maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height); }
+  state.lot.width = Math.max(state.lot.width, maxX + (state.lot.right || 0));
+  state.lot.height = Math.max(state.lot.height, maxY + (state.lot.back || 0));
+}
 function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
 
 function newProject() {
   if ((getFloor().rooms || []).length && !confirm('Criar novo projeto? Alterações não salvas serão perdidas.')) return;
-  state = {...state, title:'', floors:[{ id: 'terreo', name: 'Térreo', level: 0, rooms: [], stairs: [] }], activeFloor:'terreo', symbols:[], selectedId:null, zoom:1, panX:0, panY:0, nextId:1};
+  state = {...state, title:'', floors:[{ id: 'terreo', name: 'Térreo', level: 0, rooms: [], stairs: [] }], activeFloor:'terreo', symbols:[], selectedId:null, zoom:1, panX:0, panY:0, nextId:1, lot:{ enabled:true, width:1000, height:1000, front:0, back:0, left:0, right:0 }};
   undoStack=[]; redoStack=[];
   document.getElementById('file-name').textContent = '🌳 Sem título';
   render();
@@ -2813,6 +1966,10 @@ function loadYAMLString(text, titleHint) {
   state.wallThickness = raw.wallThickness || 15;
   state.gridSize = raw.grid || 100;
   state.gridVisible = raw.grid !== false;
+  state.lot = raw.lot
+    ? { enabled: true, width: raw.lot.width || 1000, height: raw.lot.height || 1000,
+        front: raw.lot.front || 0, back: raw.lot.back || 0, left: raw.lot.left || 0, right: raw.lot.right || 0 }
+    : { enabled: true, width: 1000, height: 1000, front: 0, back: 0, left: 0, right: 0 };
 
   if (raw.floors) {
     state.floors = raw.floors.map(f => ({
@@ -2849,6 +2006,9 @@ function loadYAMLString(text, titleHint) {
   undoStack=[]; redoStack=[]; state.selectedId=null;
   document.getElementById('file-name').textContent = '📂 ' + (state.title || 'Planta');
   document.getElementById('global-title').value = state.title;
+  document.getElementById('grid-step').value = state.gridSize;
+  document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
+  ensureLotEnclosesPlan();
   render();
 }
 
@@ -2881,6 +2041,11 @@ function exportYAML() {
     version: 1, title: state.title || 'Planta Baixa',
     scale: state.scale, wallThickness: state.wallThickness,
     grid: state.gridVisible ? state.gridSize : false,
+    lot: state.lot.enabled ? {
+      width: state.lot.width, height: state.lot.height,
+      front: state.lot.front || undefined, back: state.lot.back || undefined,
+      left: state.lot.left || undefined, right: state.lot.right || undefined
+    } : undefined,
     floors: state.floors.map(f => ({
       id: f.id, name: f.name, level: f.level,
       rooms: (f.rooms || []).map(r => ({
@@ -2903,6 +2068,7 @@ function exportSVG() {
   const yaml = jsyaml.dump({
     version:1, title:state.title||'Planta Baixa', scale:state.scale,
     wallThickness:state.wallThickness, grid:state.gridVisible?state.gridSize:false,
+    lot: state.lot.enabled ? { width: state.lot.width, height: state.lot.height } : undefined,
     rooms: rooms.map(r => ({
       id:r.id, name:r.name, x:r.x, y:r.y, width:r.width, height:r.height,
       hatch: r.hatch || undefined,
@@ -2911,9 +2077,7 @@ function exportSVG() {
     }))
   }, {lineWidth:-1, noCompatMode:true});
 
-  const input = parseFloorplanInput(yaml);
-  const resolved = resolveFloorplanLayout(input);
-  let svgStr = renderFloorplanSVG(resolved);
+  let svgStr = engineRender(yaml);
 
   // append symbols
   if (state.symbols.length) {
@@ -2921,8 +2085,8 @@ function exportSVG() {
     for (const sym of state.symbols) {
       const def = SYMBOLS[sym.type];
       if (!def) continue;
-      const sx = sym.x * resolved.scale, sy = sym.y * resolved.scale;
-      const scX = sym.w * resolved.scale / def.w, scY = sym.h * resolved.scale / def.h;
+      const sx = sym.x * state.scale, sy = sym.y * state.scale;
+      const scX = sym.w * state.scale / def.w, scY = sym.h * state.scale / def.h;
       const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
       symSvg += `<g transform="translate(${sx},${sy}) scale(${scX},${scY})${rot}">${def.svg}</g>`;
     }
@@ -2931,162 +2095,6 @@ function exportSVG() {
 
   downloadFile('planta.svg', svgStr, 'image/svg+xml');
   toast('⬇ SVG exportado!');
-}
-
-// Embedded floorplan engine (minimal for export)
-function parseFloorplanInput(yamlStr) {
-  const raw = jsyaml.load(yamlStr);
-  return {
-    title: raw.title, scale: raw.scale || 2, wallThickness: raw.wallThickness || 15,
-    grid: raw.grid !== undefined ? raw.grid : 100,
-    rooms: raw.rooms.map(r => ({
-      id: r.id, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height,
-      doors: (r.doors||[]).map(d=>({wall:d.wall,offset:d.offset,width:d.width,type:d.type||'pivot',swing:d.swing||'left'})),
-      windows: (r.windows||[]).map(w=>({wall:w.wall,offset:w.offset,width:w.width,height:w.height||120,sill:w.sill||110})),
-      hatch: r.hatch
-    })), walls: raw.walls || [], lot: raw.lot || null
-  };
-}
-
-function resolveFloorplanLayout(input) {
-  const sc=input.scale, wt=input.wallThickness*sc;
-  const rooms=input.rooms.map(room=>{
-    const r={x:room.x*sc,y:room.y*sc,w:room.width*sc,h:room.height*sc};
-    const doors=(room.doors||[]).map(d=>{
-      const op=opWall(d.wall,r,d.offset*sc,d.width*sc);
-      const dw=(d.wall==='north'||d.wall==='south')?op.e.x-op.s.x:op.e.y-op.s.y;
-      return{wall:d.wall,s:op.s,e:op.e,swing:swingArc2(d,op.s,op.e,dw),type:d.type};
-    });
-    const windows=(room.windows||[]).map(w=>{const op=opWall(w.wall,r,w.offset*sc,w.width*sc);return{wall:w.wall,s:op.s,e:op.e};});
-    return{id:room.id,name:room.name,rect:r,wallSegs:wallSegments2(r,doors,windows),doors,windows,lp:{x:r.x+r.w/2,y:r.y+r.h/2},hatch:room.hatch};
-  });
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  for(const r of rooms){minX=Math.min(minX,r.rect.x);minY=Math.min(minY,r.rect.y);maxX=Math.max(maxX,r.rect.x+r.rect.w);maxY=Math.max(maxY,r.rect.y+r.rect.h);}
-  const off=40;
-  return{title:input.title,scale:sc,rooms,wallThicknessPx:wt,grid:input.grid===false?false:(input.grid||100)*sc,
-    dimensions:[{x1:minX,y1:maxY+off,x2:maxX,y2:maxY+off,value:((maxX-minX)/sc/100).toFixed(2)+' m'},
-    {x1:maxX+off,y1:minY,x2:maxX+off,y2:maxY,value:((maxY-minY)/sc/100).toFixed(2)+' m'}]};
-}
-function opWall(w,r,off,wid){const s={},e={};switch(w){case'north':s.x=r.x+off;s.y=r.y;e.x=s.x+wid;e.y=r.y;break;case'south':s.x=r.x+off;s.y=r.y+r.h;e.x=s.x+wid;e.y=r.y+r.h;break;case'east':s.x=r.x+r.w;s.y=r.y+off;e.x=r.x+r.w;e.y=s.y+wid;break;case'west':s.x=r.x;s.y=r.y+off;e.x=r.x;e.y=s.y+wid;break}return{s,e};}
-function swingArc2(d,s,e,dw){if(d.type==='sliding')return[];let ix=0,iy=0;switch(d.wall){case'north':iy=1;break;case'south':iy=-1;break;case'east':ix=-1;break;case'west':ix=1;break}const hl=d.swing==='left';return[buildArc2(hl?s.x:e.x,hl?s.y:e.y,dw,hl?e.x:s.x,hl?e.y:s.y,ix,iy,dw)];}
-function buildArc2(cx,cy,r,clX,clY,ix,iy,id){const ox=cx+ix*id,oy=cy+iy*id;return{cx,cy,r,x1:clX,y1:clY,x2:ox,y2:oy,sweep:(clX-cx)*(oy-cy)-(clY-cy)*(ox-cx)>0?0:1};}
-function wallSegments2(r,doors,windows){const s=[],ops=[...doors.map(d=>({w:d.wall,s:d.s,e:d.e})),...windows.map(w=>({w:w.wall,s:w.s,e:w.e}))];const ed=[{d:'north',f:{x:r.x,y:r.y},t:{x:r.x+r.w,y:r.y}},{d:'south',f:{x:r.x,y:r.y+r.h},t:{x:r.x+r.w,y:r.y+r.h}},{d:'west',f:{x:r.x,y:r.y},t:{x:r.x,y:r.y+r.h}},{d:'east',f:{x:r.x+r.w,y:r.y},t:{x:r.x+r.w,y:r.y+r.h}}];for(const e of ed){const o=ops.filter(o=>o.w===e.d).sort((a,b)=>(e.d==='north'||e.d==='south')?a.s.x-b.s.x:a.s.y-b.s.y);if(!o.length){s.push({x1:e.f.x,y1:e.f.y,x2:e.t.x,y2:e.t.y,dir:e.d});continue}const isH=e.d==='north'||e.d==='south';let c=isH?e.f.x:e.f.y;const m=isH?e.t.x:e.t.y;for(const op of o){const os=isH?op.s.x:op.s.y,oe=isH?op.e.x:op.e.y;if(os>c)s.push({x1:isH?c:e.f.x,y1:isH?e.f.y:c,x2:isH?os:e.f.x,y2:isH?e.f.y:os,dir:e.d});c=Math.max(c,oe)}if(c<m)s.push({x1:isH?c:e.f.x,y1:isH?e.f.y:c,x2:e.t.x,y2:e.t.y,dir:e.d})}return s;}
-
-function renderFloorplanSVG(input) {
-  const {rooms,wallThicknessPx:wt,grid,dimensions,title}=input;
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  for(const r of rooms){minX=Math.min(minX,r.rect.x);minY=Math.min(minY,r.rect.y);maxX=Math.max(maxX,r.rect.x+r.rect.w);maxY=Math.max(maxY,r.rect.y+r.rect.h);}
-  for(const d of dimensions){minX=Math.min(minX,d.x1,d.x2);minY=Math.min(minY,d.y1,d.y2);maxX=Math.max(maxX,d.x1,d.x2);maxY=Math.max(maxY,d.y1,d.y2);}
-  const m=80,vbX=minX-m,vbY=minY-m,vbW=maxX-minX+m*2,vbH=maxY-minY+m*2;
-  const C={w:'#2d2d2d',ws:'#1a1a1a',rb:'#fafafa',dp:'#2d2d2d',da:'#555',wf:'#4a90d9',dl:'#b71c1c',dt:'#b71c1c',gd:'#e0e0e0',lb:'#1a1a1a',tt:'#1a1a1a'};
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="100%"><style>.wf{fill:${C.w};stroke:${C.ws};stroke-width:0.8}.rb{fill:${C.rb}}.dp{stroke:${C.dp};stroke-width:1.8;stroke-linecap:round}.da{fill:none;stroke:${C.da};stroke-width:1.2;stroke-dasharray:5 4}.wfr{stroke:${C.wf};stroke-width:1.5}.jb{stroke:#2d2d2d;stroke-width:3;stroke-linecap:round}.dl{fill:none;stroke:${C.dl};stroke-width:0.8}.dtk{stroke:${C.dl};stroke-width:0.8}.dtx{font-family:system-ui,sans-serif;font-size:10px;fill:${C.dt};text-anchor:middle}.rn{font-family:system-ui,sans-serif;font-size:15px;font-weight:600;fill:${C.lb};text-anchor:middle;dominant-baseline:middle}.ttl{font-family:system-ui,sans-serif;font-size:20px;font-weight:700;fill:${C.tt};text-anchor:middle}.gd{fill:${C.gd}}.lot{fill:#f0f4e8;stroke:#8a9b68;stroke-width:1.5;stroke-dasharray:8 4}</style><defs><pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern></defs>`;
-  s+=`<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`;
-  if(title)s+=`<text x="${(minX+maxX)/2}" y="${minY-45}" class="ttl">${esc(title)}</text>`;
-  for(const r of rooms){if(r.hatch&&r.hatch!=='solid')s+=`<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" fill="url(#hatch-${r.hatch})"/>`;else s+=`<rect x="${r.rect.x}" y="${r.rect.y}" width="${r.rect.w}" height="${r.rect.h}" class="rb"/>`;}
-  const hS=new Map(),hO=new Map(),vS=new Map(),vO=new Map();
-  for(const r of rooms){
-    for(const seg of r.wallSegs){const isH=seg.dir==='north'||seg.dir==='south';if(isH){const m=hS.get(seg.y1)||[];m.push({a:Math.min(seg.x1,seg.x2),b:Math.max(seg.x1,seg.x2)});hS.set(seg.y1,m)}else{const m=vS.get(seg.x1)||[];m.push({a:Math.min(seg.y1,seg.y2),b:Math.max(seg.y1,seg.y2)});vS.set(seg.x1,m)}}
-    for(const d of r.doors){const isH=d.wall==='north'||d.wall==='south',y=isH?d.s.y:d.s.x,a=isH?Math.min(d.s.x,d.e.x):Math.min(d.s.y,d.e.y),b=isH?Math.max(d.s.x,d.e.x):Math.max(d.s.y,d.e.y);const m=(isH?hO:vO).get(y)||[];m.push({a,b});(isH?hO:vO).set(y,m)}
-    for(const w of r.windows){const isH=w.wall==='north'||w.wall==='south',y=isH?w.s.y:w.s.x,a=isH?Math.min(w.s.x,w.e.x):Math.min(w.s.y,w.e.y),b=isH?Math.max(w.s.x,w.e.x):Math.max(w.s.y,w.e.y);const m=(isH?hO:vO).get(y)||[];m.push({a,b});(isH?hO:vO).set(y,m)}
-  }
-  const hw=wt/2;
-  for(const[y,sol]of hS){const ops=mgSp(hO.get(y)||[]);for(const sp of subOp(mgSp(sol),ops))if(sp.b-sp.a>0)s+=`<rect x="${rnd(sp.a)}" y="${rnd(y-hw)}" width="${rnd(sp.b-sp.a)}" height="${rnd(wt)}" class="wf"/>`}
-  for(const[x,sol]of vS){const ops=mgSp(vO.get(x)||[]);for(const sp of subOp(mgSp(sol),ops))if(sp.b-sp.a>0)s+=`<rect x="${rnd(x-hw)}" y="${rnd(sp.a)}" width="${rnd(wt)}" height="${rnd(sp.b-sp.a)}" class="wf"/>`}
-  for(const r of rooms)for(const w of r.windows){
-    const isH=w.wall==='north'||w.wall==='south',g=2;
-    if(isH){s+=`<rect x="${w.s.x+g}" y="${w.s.y-hw}" width="${w.e.x-w.s.x-g*2}" height="${wt}" fill="${C.rb}" stroke="none"/>`;for(let i=-1;i<=1;i++)s+=`<line x1="${w.s.x}" y1="${w.s.y+hw*0.6*i}" x2="${w.e.x}" y2="${w.s.y+hw*0.6*i}" class="wfr"/>`;s+=`<line x1="${w.s.x}" y1="${w.s.y-hw}" x2="${w.s.x}" y2="${w.s.y+hw}" class="wfr"/><line x1="${w.e.x}" y1="${w.s.y-hw}" x2="${w.e.x}" y2="${w.s.y+hw}" class="wfr"/>`}
-    else{s+=`<rect x="${w.s.x-hw}" y="${w.s.y+g}" width="${wt}" height="${w.e.y-w.s.y-g*2}" fill="${C.rb}" stroke="none"/>`;for(let i=-1;i<=1;i++)s+=`<line x1="${w.s.x+hw*0.6*i}" y1="${w.s.y}" x2="${w.s.x+hw*0.6*i}" y2="${w.e.y}" class="wfr"/>`;s+=`<line x1="${w.s.x-hw}" y1="${w.s.y}" x2="${w.s.x+hw}" y2="${w.s.y}" class="wfr"/><line x1="${w.s.x-hw}" y1="${w.e.y}" x2="${w.s.x+hw}" y2="${w.e.y}" class="wfr"/>`}
-  }
-  for(const r of rooms)for(const d of r.doors){
-    const isH=d.wall==='north'||d.wall==='south';if(isH){const sg=d.wall==='north'?-1:1;s+=`<line x1="${d.s.x}" y1="${d.s.y-hw*sg}" x2="${d.s.x}" y2="${d.s.y+hw*sg}" class="jb"/><line x1="${d.e.x}" y1="${d.e.y-hw*sg}" x2="${d.e.x}" y2="${d.e.y+hw*sg}" class="jb"/>`}else{const sg=d.wall==='west'?-1:1;s+=`<line x1="${d.s.x-hw*sg}" y1="${d.s.y}" x2="${d.s.x+hw*sg}" y2="${d.s.y}" class="jb"/><line x1="${d.e.x-hw*sg}" y1="${d.e.y}" x2="${d.e.x+hw*sg}" y2="${d.e.y}" class="jb"/>`}
-    if(d.type==='sliding'){s+=`<line x1="${d.s.x}" y1="${d.s.y}" x2="${d.e.x}" y2="${d.e.y}" class="dp" stroke-dasharray="6 3"/>`;continue}
-    for(const arc of d.swing)if(arc.r>0){s+=`<line x1="${arc.cx}" y1="${arc.cy}" x2="${arc.x2}" y2="${arc.y2}" class="dp"/><path d="M${arc.x1},${arc.y1}A${arc.r},${arc.r} 0 0 ${arc.sweep} ${arc.x2},${arc.y2}" class="da"/>`}
-  }
-  const cn=new Set();
-  for(const r of rooms){const pts=[[r.rect.x,r.rect.y],[r.rect.x+r.rect.w,r.rect.y],[r.rect.x,r.rect.y+r.rect.h],[r.rect.x+r.rect.w,r.rect.y+r.rect.h]];for(const[cx,cy]of pts){const k=`${rnd(cx)},${rnd(cy)}`;if(!cn.has(k)){cn.add(k);s+=`<rect x="${rnd(cx-hw)}" y="${rnd(cy-hw)}" width="${rnd(wt)}" height="${rnd(wt)}" class="wf"/>`}}}
-  for(const r of rooms)s+=`<text x="${r.lp.x}" y="${r.lp.y}" class="rn">${esc(r.name)}</text>`;
-  for(const d of dimensions){const isH=Math.abs(d.y2-d.y1)<Math.abs(d.x2-d.x1);s+=`<line x1="${d.x1}" y1="${d.y1}" x2="${d.x2}" y2="${d.y2}" class="dl"/>`;if(isH){s+=`<line x1="${d.x1}" y1="${d.y1-7}" x2="${d.x1}" y2="${d.y1+7}" class="dtk"/><line x1="${d.x2}" y1="${d.y2-7}" x2="${d.x2}" y2="${d.y2+7}" class="dtk"/>`}else{s+=`<line x1="${d.x1-7}" y1="${d.y1}" x2="${d.x1+7}" y2="${d.y1}" class="dtk"/><line x1="${d.x2-7}" y1="${d.y2}" x2="${d.x2+7}" y2="${d.y2}" class="dtk"/>`}s+=`<text x="${isH?(d.x1+d.x2)/2:(d.x1+d.x2)/2+14}" y="${isH?(d.y1+d.y2)/2-14:(d.y1+d.y2)/2}" class="dtx">${esc(d.value)}</text>`}
-  return s+'</svg>';
-}
-function mgSp(sp){if(!sp.length)return[];const srt=[...sp].sort((a,b)=>a.a-b.a),res=[srt[0]];for(let i=1;i<srt.length;i++){const l=res[res.length-1];if(srt[i].a<=l.b)l.b=Math.max(l.b,srt[i].b);else res.push(srt[i])}return res}
-function subOp(sol,ops){if(!ops.length)return sol;const res=[];for(const s of sol){let cur=s.a;for(const op of ops){if(op.b<=cur)continue;if(op.a>=s.b)break;const gs=Math.max(cur,op.a),ge=Math.min(s.b,op.b);if(gs>cur)res.push({a:cur,b:gs});cur=Math.max(cur,ge)}if(cur<s.b)res.push({a:cur,b:s.b})}return res}
-function renderFloorplanDXF(input) {
-  const { rooms, wallThicknessPx: wt, dimensions, title, scale } = input;
-  const out = [];
-  const cm = (px) => (px / scale).toFixed(2);
-  const ang = (rad) => { let d = rad * 180 / Math.PI; return ((d % 360) + 360) % 360; };
-
-  out.push('  0','SECTION','  2','HEADER','  0','ENDSEC');
-  out.push('  0','SECTION','  2','TABLES','  0','TABLE','  2','LAYER');
-  for (const l of ['WALLS','DOORS','WINDOWS','TEXT','DIMENSIONS']) {
-    out.push('  0','LAYER','  2',l,' 70','0');
-  }
-  out.push('  0','ENDTAB','  0','ENDSEC','  0','SECTION','  2','ENTITIES');
-
-  // walls
-  for (const r of rooms) {
-    for (const seg of r.wallSegs) {
-      out.push('  0','LINE','  8','WALLS',
-        ' 10',cm(seg.x1),' 20',cm(seg.y1),
-        ' 11',cm(seg.x2),' 21',cm(seg.y2));
-    }
-  }
-
-  // door arcs
-  for (const r of rooms) {
-    for (const d of r.doors) {
-      if (d.type === 'sliding') continue;
-      for (const arc of d.swing) {
-        if (arc.r <= 0) continue;
-        const sr = Math.atan2(arc.y1 - arc.cy, arc.x1 - arc.cx);
-        const er = Math.atan2(arc.y2 - arc.cy, arc.x2 - arc.cx);
-        const sa = arc.sweep === 1 ? ang(er) : ang(sr);
-        const ea = arc.sweep === 1 ? ang(sr) : ang(er);
-        out.push('  0','ARC','  8','DOORS',
-          ' 10',cm(arc.cx),' 20',cm(arc.cy),' 40',cm(arc.r),
-          ' 50',sa.toFixed(4),' 51',ea.toFixed(4));
-      }
-    }
-  }
-
-  // room labels
-  for (const r of rooms) {
-    out.push('  0','TEXT','  8','TEXT',
-      ' 10',cm(r.lp.x),' 20',cm(r.lp.y),
-      ' 40',cm(12 * scale),'  1',r.name);
-  }
-
-  // dimensions
-  for (const dim of dimensions) {
-    const isH = Math.abs(dim.y2 - dim.y1) < Math.abs(dim.x2 - dim.x1);
-    const tk = 7 / scale;
-    out.push('  0','LINE','  8','DIMENSIONS',
-      ' 10',cm(dim.x1),' 20',cm(dim.y1),
-      ' 11',cm(dim.x2),' 21',cm(dim.y2));
-    if (isH) {
-      out.push('  0','LINE','  8','DIMENSIONS',
-        ' 10',cm(dim.x1),' 20',cm(dim.y1 - tk),
-        ' 11',cm(dim.x1),' 21',cm(dim.y1 + tk));
-      out.push('  0','LINE','  8','DIMENSIONS',
-        ' 10',cm(dim.x2),' 20',cm(dim.y2 - tk),
-        ' 11',cm(dim.x2),' 21',cm(dim.y2 + tk));
-    } else {
-      out.push('  0','LINE','  8','DIMENSIONS',
-        ' 10',cm(dim.x1 - tk),' 20',cm(dim.y1),
-        ' 11',cm(dim.x1 + tk),' 21',cm(dim.y1));
-      out.push('  0','LINE','  8','DIMENSIONS',
-        ' 10',cm(dim.x2 - tk),' 20',cm(dim.y2),
-        ' 11',cm(dim.x2 + tk),' 21',cm(dim.y2));
-    }
-    const mx = (dim.x1 + dim.x2) / 2, my = (dim.y1 + dim.y2) / 2;
-    const to = 14 / scale;
-    out.push('  0','TEXT','  8','DIMENSIONS',
-      ' 10',cm(isH ? mx : mx + to),' 20',cm(isH ? my - to : my),
-      ' 40',cm(8 * scale),'  1',dim.value);
-  }
-
-  out.push('  0','ENDSEC','  0','EOF');
-  return out.join('\r\n');
 }
 
 function exportDXF() {
@@ -3103,9 +2111,7 @@ function exportDXF() {
     }))
   }, {lineWidth:-1, noCompatMode:true});
 
-  const input = parseFloorplanInput(yaml);
-  const resolved = resolveFloorplanLayout(input);
-  const dxfStr = renderFloorplanDXF(resolved);
+  const dxfStr = engineExportDXF(resolveLayout(parseFloorPlan(yaml)));
   downloadFile('planta.dxf', dxfStr, 'application/dxf');
   toast('📐 DXF exportado!');
 }
@@ -3122,7 +2128,7 @@ function calculateTotalArea() {
 (async function initTemplates() {
   const sel = document.getElementById('template-select');
   try {
-    const res = await fetch('templates/index.json');
+    const res = await fetch('/templates/index.json');
     if (!res.ok) return;
     const list = await res.json();
     list.forEach(t => {
@@ -3140,7 +2146,7 @@ async function loadTemplateFromSelect(sel) {
   if (!file) return;
   sel.value = '';  // reset to placeholder
   try {
-    const res = await fetch('templates/' + file);
+    const res = await fetch('/templates/' + file);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     saveUndo();
@@ -3239,19 +2245,27 @@ function exportPNG() {
   const svgEl = document.querySelector('#canvas-svg');
   if (!svgEl) return;
   const clone = svgEl.cloneNode(true);
+  // o SVG do canvas não tem namespace nem dimensões explícitas — necessários
+  // para rasterizar via <img> (sem isso o Image dispara onerror).
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const vb = svgEl.viewBox.baseVal;
+  const w = Math.round(vb && vb.width ? vb.width : svgEl.clientWidth || 800);
+  const h = Math.round(vb && vb.height ? vb.height : svgEl.clientHeight || 600);
+  clone.setAttribute('width', w);
+  clone.setAttribute('height', h);
   const svg = clone.outerHTML;
-  const canvas = document.createElement('canvas');
   const img = new Image();
-  const blob = new Blob([svg], {type: 'image/svg+xml'});
+  const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   img.onload = () => {
-    canvas.width = img.width * 2;
-    canvas.height = img.height * 2;
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = w * scale;
+    canvas.height = h * scale;
     const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
@@ -3367,7 +2381,7 @@ function autoSave() {
   clearTimeout(autoSaveTimeout);
   autoSaveTimeout = setTimeout(() => {
     try {
-      const data = { title: state.title, floors: state.floors, activeFloor: state.activeFloor, symbols: state.symbols, scale: state.scale, wallThickness: state.wallThickness, gridSize: state.gridSize, gridVisible: state.gridVisible, nextId: state.nextId, nextSymId: state.nextSymId };
+      const data = { title: state.title, floors: state.floors, activeFloor: state.activeFloor, symbols: state.symbols, scale: state.scale, wallThickness: state.wallThickness, gridSize: state.gridSize, gridVisible: state.gridVisible, showCotas: state.showCotas, lot: state.lot, nextId: state.nextId, nextSymId: state.nextSymId };
       localStorage.setItem(EDITOR_LS_KEY, JSON.stringify(data));
     } catch(e) {}
   }, 1000);
@@ -3389,10 +2403,17 @@ function loadAutoSave() {
       state.wallThickness = data.wallThickness || 15;
       state.gridSize = data.gridSize || 100;
       state.gridVisible = data.gridVisible !== false;
+      state.showCotas = !!data.showCotas;
+      const cBtn = document.getElementById('btn-cotas'); if (cBtn) cBtn.classList.toggle('active', state.showCotas);
+      state.lot = data.lot && typeof data.lot === 'object'
+        ? { enabled: true, width: data.lot.width || 1000, height: data.lot.height || 1000,
+            front: data.lot.front || 0, back: data.lot.back || 0, left: data.lot.left || 0, right: data.lot.right || 0 }
+        : { enabled: true, width: 1000, height: 1000, front: 0, back: 0, left: 0, right: 0 };
       state.nextId = data.nextId || 1;
       state.nextSymId = data.nextSymId || 1;
       state.symbols = data.symbols || [];
       document.getElementById('global-title').value = state.title;
+      ensureLotEnclosesPlan();
       return true;
     }
   } catch(e) {}
@@ -3439,6 +2460,8 @@ if (_urlYaml) {
   }
 }
 render();
-</script>
-</body>
-</html>
+
+// expõe handlers referenciados em atributos on* do HTML
+Object.assign(window, {
+  addDoor, addFloor, addWindow, alignSelected, applyPastedYAML, applyYAMLProps, closeExportMenu, copySelected, deleteSelected, doPrint, exportDXF, exportPNG, exportSVG, exportYAML, filterPalette, focusMinimap, hideContextMenu, hidePasteModal, hidePrintModal, hideShortcuts, importYAML, loadTemplateFromSelect, newProject, onPaletteDrag, onSymbolDrag, pasteSelected, redo, removeFloor, removeOpening, setGridSize, setTool, showPasteModal, showPrintModal, switchFloor, toggleCotas, updateLotProp, updateMeta, toggleExportMenu, toggleGrid, toggleLayer, togglePropsMode, toggleShortcuts, toggleSidebar, toggleTheme, undo, updateDoor, updateProp, updateStairProp, updateSymbolProp, updateTitle, updateWindow, zoomIn, zoomOut, zoomReset,
+});

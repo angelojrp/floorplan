@@ -5,10 +5,11 @@ Renderiza plantas baixas descritas em YAML para SVG arquitetônico.
 ## Deploy
 
 ```bash
-npx wrangler deploy api/worker.js --name floorplan-api
+npm run deploy:worker
+# equivalente a: npx wrangler deploy api/worker.ts --name floorplan-api
 ```
 
-Requer [Wrangler](https://developers.cloudflare.com/workers/wrangler/) instalado e autenticado na Cloudflare.
+Requer [Wrangler](https://developers.cloudflare.com/workers/wrangler/) instalado e autenticado na Cloudflare. O Wrangler empacota o TypeScript e os imports da engine automaticamente (via esbuild).
 
 ### Pré-requisitos
 
@@ -18,7 +19,7 @@ Requer [Wrangler](https://developers.cloudflare.com/workers/wrangler/) instalado
 ```bash
 npm install -g wrangler
 wrangler login
-npx wrangler deploy api/worker.js --name floorplan-api
+npm run deploy:worker
 ```
 
 A URL do worker será exibida após o deploy (formato `https://floorplan-api.<subdomain>.workers.dev`).
@@ -59,13 +60,14 @@ rooms:
 
 ## Estrutura do Worker
 
-O worker é auto-contido — sem dependências npm externas. Inclui inline:
+O worker (`api/worker.ts`) é um handler fino que **importa a engine de `src/`**
+(`render`) — sem reimplementar parse/layout/render. O Wrangler empacota a engine
+e suas dependências (`yaml`, `zod`) automaticamente. Responsabilidades do worker:
 
-- **Parser YAML** simplificado (subconjunto compatível com o DSL do projeto)
-- **Motor de layout** — resolve geometria, portas, janelas, cotas
-- **Renderer SVG** — gera SVG arquitetônico com paleta de cores
+- Roteamento (`GET /` documentação, `POST /render`)
+- CORS
+- Tratamento de erros → respostas `400`/`404`
 
 ## Limitações
 
-- YAML parser suporta subconjunto do padrão: apenas o formato usado pelo DSL de plantas baixas
 - Sem rate limiting no free tier (Cloudflare impõe 100k req/dia)

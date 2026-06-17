@@ -8,14 +8,27 @@
     "floorplan": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "dev": "vite",
+    "build": "vite build",
+    "build:lib": "tsc",
     "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
-    "prepare": "npm run build"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "deploy:worker": "wrangler deploy api/worker.ts --name floorplan-api",
+    "prepublishOnly": "npm run build:lib",
+    "prepare": "npm run build:lib"
   },
-  "keywords": ["floorplan", "plant-baixa", "svg", "construction", "mermaid", "dxf", "yaml", "architecture"],
+  "keywords": [
+    "floorplan",
+    "plant-baixa",
+    "svg",
+    "construction",
+    "mermaid",
+    "dxf",
+    "yaml",
+    "architecture"
+  ],
   "files": [
     "dist/",
     "docs/AI_GUIDE.md"
@@ -29,12 +42,14 @@
   },
   "license": "MIT",
   "dependencies": {
+    "commander": "^12.1.0",
     "yaml": "^2.6.1",
-    "zod": "^3.23.8",
-    "commander": "^12.1.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }
