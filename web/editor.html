@@ -417,6 +417,17 @@ body.dark #canvas-wrap{
 .del-btn:hover{background:var(--danger-bg);color:var(--danger)}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
 .add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
+/* ── LAYERS PANEL ── */
+.layer-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.layer-row:last-child{border-bottom:none}
+.layer-eye{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:4px;cursor:pointer;color:var(--text3);transition:all var(--transition);flex-shrink:0;background:none}
+.layer-eye:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
+.layer-eye.active{color:var(--accent)}
+.layer-label{font-size:12px;color:var(--text2);flex:1}
+/* ── PRINT MODAL ── */
+#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:300}
+.print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
+.print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
 
 /* ── STATUS BAR ── */
@@ -446,6 +457,54 @@ body.dark #canvas-wrap{
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── EXPORT DROPDOWN ── */
+.tb-export-wrap{position:relative;flex-shrink:0}
+.tb-export-menu{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:4px;
+  z-index:200;
+  box-shadow:var(--shadow-lg);
+  min-width:190px;
+}
+.tb-export-menu.open{display:block}
+.export-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;cursor:pointer;
+  border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;
+  color:var(--text2);
+  transition:all var(--transition);
+}
+.export-item:hover{background:var(--accent-bg);color:var(--accent)}
+.export-item-accent{color:var(--accent)}
+.export-item-accent:hover{background:var(--accent);color:#fff}
+.export-item-hint{margin-left:auto;font-size:10px;font-weight:400;color:var(--text3)}
+.export-item:hover .export-item-hint{color:inherit;opacity:0.7}
+.export-sep{height:1px;background:var(--border);margin:3px 4px}
+
+/* ── CANVAS EMPTY STATE ── */
+#canvas-empty{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;pointer-events:none;
+  color:var(--text3);
+}
+#canvas-empty svg{opacity:0.25}
+#canvas-empty .ce-title{font-size:14px;font-weight:600;color:var(--text2);opacity:0.5}
+#canvas-empty .ce-sub{font-size:12px;opacity:0.5;text-align:center;max-width:240px;line-height:1.5}
+#canvas-empty .ce-keys{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+#canvas-empty kbd{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:2px 7px;border-radius:4px;
+  font-size:11px;font-weight:600;font-family:inherit;
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--text2);opacity:0.6;
+  box-shadow:0 1px 0 var(--border2);
+}
+
 /* ── CONTEXT MENU ── */
 #context-menu{
   display:none;position:fixed;
@@ -467,6 +526,13 @@ body.dark #canvas-wrap{
 }
 .ctx-item:hover{background:var(--accent-bg);color:var(--accent)}
 .ctx-sep{height:1px;background:var(--border);margin:3px 4px}
+
+/* ── PRINT MODAL ── */
+#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:300}
+#print-modal.show{display:flex}
+.print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
+.print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.print-modal-title svg{color:var(--accent)}
 
 /* ── SHORTCUTS OVERLAY ── */
 #shortcuts-overlay{
@@ -502,13 +568,23 @@ body.dark #canvas-wrap{
 [data-tooltip]{position:relative}
 [data-tooltip]:hover::after{
   content:attr(data-tooltip);
-  position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
-  background:var(--text);color:var(--surface);
-  font-size:10px;font-weight:500;
-  padding:4px 8px;border-radius:var(--radius-sm);
-  white-space:nowrap;z-index:100;pointer-events:none;
-  box-shadow:var(--shadow);
+  position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#1e293b;color:#f8fafc;
+  font-size:11px;font-weight:500;
+  padding:5px 9px;border-radius:var(--radius-sm);
+  white-space:nowrap;z-index:300;pointer-events:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  letter-spacing:0.01em;
+  animation:tip-in 0.1s ease both;
 }
+[data-tooltip]:hover::before{
+  content:'';
+  position:absolute;top:calc(100% + 1px);left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-bottom-color:#1e293b;
+  z-index:301;pointer-events:none;
+  animation:tip-in 0.1s ease both;
+}
+@keyframes tip-in{from{opacity:0;transform:translateX(-50%) translateY(-3px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* distance indicator */
 .dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
@@ -541,17 +617,41 @@ body.dark #canvas-wrap{
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
       Abrir
     </button>
-    <button class="tb-btn" onclick="exportYAML()" data-tooltip="Exportar YAML">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
-      YAML
-    </button>
-    <button class="tb-btn accent" onclick="exportSVG()" data-tooltip="Exportar SVG">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
-      SVG
-    </button>
-    <button class="tb-btn" onclick="exportDXF()" data-tooltip="Exportar DXF (AutoCAD)">DXF</button>
-    <button class="tb-btn" onclick="exportPDF()" data-tooltip="Imprimir PDF">PDF</button>
-    <button class="tb-btn" onclick="exportPNG()" data-tooltip="Exportar PNG">PNG</button>
+    <div class="tb-export-wrap" id="export-wrap">
+      <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+        Exportar
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+      </button>
+      <div class="tb-export-menu" id="export-menu">
+        <div class="export-item" onclick="exportYAML();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
+          YAML
+          <span class="export-item-hint">Editar no playground</span>
+        </div>
+        <div class="export-item export-item-accent" onclick="exportSVG();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+          SVG
+          <span class="export-item-hint">Vetor escalável</span>
+        </div>
+        <div class="export-item" onclick="exportPNG();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><polyline points="1.5,10 5,6.5 7.5,9 10,7 14.5,12"/><circle cx="11.5" cy="6.5" r="1.5"/></svg>
+          PNG
+          <span class="export-item-hint">Imagem rasterizada</span>
+        </div>
+        <div class="export-sep"></div>
+        <div class="export-item" onclick="exportDXF();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h4l2 8h4"/><path d="M10 4h4M2 12h4"/></svg>
+          DXF
+          <span class="export-item-hint">AutoCAD</span>
+        </div>
+        <div class="export-item" onclick="showPrintModal();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/><path d="M5.5 9.5h1a1 1 0 0 0 0-2h-1v4M9.5 7.5h1.5a1 1 0 0 1 1 1.5 1 1 0 0 1-1 1.5H9.5"/></svg>
+          PDF
+          <span class="export-item-hint">Imprimir / PDF</span>
+        </div>
+      </div>
+    </div>
 
     <div class="tb-sep"></div>
 
@@ -704,6 +804,12 @@ body.dark #canvas-wrap{
         <summary>Elétrica / Portas</summary>
         <div class="palette-grid" id="sym-electrical"></div>
       </details>
+      <div class="panel-divider"></div>
+      <!-- Layers -->
+      <div class="panel-section-label">
+        Camadas
+      </div>
+      <div id="layers-list" style="padding:0 14px 8px"></div>
     </div><!-- /left-panel-inner -->
     </div><!-- /left-panel -->
 
@@ -712,6 +818,21 @@ body.dark #canvas-wrap{
       <svg id="canvas-svg"></svg>
       <div id="minimap" onclick="focusMinimap(event)"><svg id="minimap-svg"></svg></div>
       <div id="wall-hint" style="display:none">Clique para iniciar · Duplo clique ou Enter para finalizar · Esc para cancelar</div>
+      <div id="canvas-empty">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="8" y="16" width="32" height="32" rx="2"/>
+          <rect x="24" y="8" width="32" height="32" rx="2"/>
+          <line x1="8" y1="30" x2="40" y2="30"/>
+          <line x1="24" y1="30" x2="24" y2="48"/>
+        </svg>
+        <span class="ce-title">Canvas vazio</span>
+        <span class="ce-sub">Adicione cômodos usando o painel lateral ou selecione uma ferramenta</span>
+        <div class="ce-keys">
+          <kbd>R</kbd><span style="font-size:11px;opacity:0.4">Cômodo</span>
+          <kbd>W</kbd><span style="font-size:11px;opacity:0.4">Parede</span>
+          <kbd>D</kbd><span style="font-size:11px;opacity:0.4">Porta</span>
+        </div>
+      </div>
     </div>
 
     <!-- Context menu (inside main so it does not affect layout) -->
@@ -755,6 +876,39 @@ body.dark #canvas-wrap{
 <!-- TOAST -->
 <div id="toast"></div>
 
+<!-- PRINT MODAL -->
+<div id="print-modal" onclick="if(event.target===this) hidePrintModal()">
+  <div class="print-modal-box">
+    <div class="print-modal-title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
+      Configurar impressão
+    </div>
+    <div class="prop-group">
+      <label>Escala</label>
+      <select id="print-scale" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
+        <option value="50">1:50 — detalhe</option>
+        <option value="100" selected>1:100 — padrão</option>
+        <option value="200">1:200 — visão geral</option>
+      </select>
+    </div>
+    <div class="prop-group">
+      <label>Papel</label>
+      <select id="print-paper" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
+        <option value="a4p">A4 Retrato (210×297mm)</option>
+        <option value="a4l" selected>A4 Paisagem (297×210mm)</option>
+        <option value="a3l">A3 Paisagem (420×297mm)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="tb-btn" style="flex:1" onclick="hidePrintModal()">Cancelar</button>
+      <button class="tb-btn accent" style="flex:1" onclick="doPrint()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
+        Imprimir / PDF
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- SHORTCUTS OVERLAY -->
 <div id="shortcuts-overlay" onclick="if(event.target===this) hideShortcuts()">
   <div id="shortcuts-panel">
@@ -780,6 +934,7 @@ body.dark #canvas-wrap{
     </table>
   </div>
 </div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 <script src="symbols.js"></script>
@@ -808,7 +963,8 @@ let state = {
   nextId: 1,
   nextSymId: 1,
   clipboard: null,
-  snapLines: []
+  snapLines: [],
+  layers: { rooms: true, walls: true, doors: true, windows: true, symbols: true }
 };
 
 let undoStack = [], redoStack = [];
@@ -881,6 +1037,41 @@ function generateSymbolId() { return 'sym_' + (state.nextSymId++); }
 //  CANVAS RENDERING
 // ═══════════════════════════════════════════════════
 
+function getSharedWalls(rooms) {
+  // Maps roomId → Set of wall sides that are hidden because the adjacent room
+  // already draws that wall. Only ONE side per shared boundary is suppressed
+  // (the "inner" room absorbs into the "outer" room's wall) so no gap appears.
+  const shared = {};
+  for (const r of rooms) shared[r.id] = new Set();
+  const tol = 2; // cm tolerance
+  for (let i = 0; i < rooms.length; i++) {
+    for (let j = i + 1; j < rooms.length; j++) {
+      const a = rooms[i], b = rooms[j];
+      // A east / B west → A keeps its east wall, B suppresses its west wall
+      if (Math.abs((a.x + a.width) - b.x) <= tol) {
+        const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
+        if (bot > top + tol) { shared[b.id].add('west'); }
+      }
+      // B east / A west → B keeps its east wall, A suppresses its west wall
+      if (Math.abs((b.x + b.width) - a.x) <= tol) {
+        const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
+        if (bot > top + tol) { shared[a.id].add('west'); }
+      }
+      // A south / B north → A keeps its south wall, B suppresses its north wall
+      if (Math.abs((a.y + a.height) - b.y) <= tol) {
+        const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
+        if (right > left + tol) { shared[b.id].add('north'); }
+      }
+      // B south / A north → B keeps its south wall, A suppresses its north wall
+      if (Math.abs((b.y + b.height) - a.y) <= tol) {
+        const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
+        if (right > left + tol) { shared[a.id].add('north'); }
+      }
+    }
+  }
+  return shared;
+}
+
 function render() {
   const svg = document.getElementById('canvas-svg');
   const sc = state.scale * state.zoom;
@@ -914,6 +1105,7 @@ function render() {
   // rooms
   const floor = getFloor();
   const rooms = floor.rooms || [];
+  const sharedWalls = getSharedWalls(rooms);
   let totalArea = 0;
   for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
@@ -927,97 +1119,112 @@ function render() {
     if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
     // room fill
-    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x', rx); rect.setAttribute('y', ry);
-    rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-    rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
-    rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
-    rect.setAttribute('stroke-width', isSelected ? 2 : 1);
-    group.appendChild(rect);
+    if (state.layers.rooms) {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
+      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
+      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
+      rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
+      rect.setAttribute('stroke-width', isSelected ? 2 : 1);
+      group.appendChild(rect);
+    }
 
     // walls (4 thick border rects — top/right/bottom/left)
     const hw = wt / 2;
-    const wtop    = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wtop.setAttribute('x', rx - hw); wtop.setAttribute('y', ry - hw);
-    wtop.setAttribute('width', rw + wt); wtop.setAttribute('height', wt);
-    wtop.setAttribute('fill','#2d2d2d');
-    const wbot    = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wbot.setAttribute('x', rx - hw); wbot.setAttribute('y', ry + rh - hw);
-    wbot.setAttribute('width', rw + wt); wbot.setAttribute('height', wt);
-    wbot.setAttribute('fill','#2d2d2d');
-    const wleft   = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wleft.setAttribute('x', rx - hw); wleft.setAttribute('y', ry - hw);
-    wleft.setAttribute('width', wt); wleft.setAttribute('height', rh + wt);
-    wleft.setAttribute('fill','#2d2d2d');
-    const wright  = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wright.setAttribute('x', rx + rw - hw); wright.setAttribute('y', ry - hw);
-    wright.setAttribute('width', wt); wright.setAttribute('height', rh + wt);
-    wright.setAttribute('fill','#2d2d2d');
-    group.appendChild(wtop); group.appendChild(wbot);
-    group.appendChild(wleft); group.appendChild(wright);
+    const sw = sharedWalls[room.id] || new Set();
+    // wall style colors
+    const wallStyle = room.wallStyle || 'alvenaria';
+    let wallFill, wallStroke, wallDash;
+    if (wallStyle === 'drywall') { wallFill = '#dde3ea'; wallStroke = '#9aa3ae'; wallDash = null; }
+    else if (wallStyle === 'vidro') { wallFill = 'rgba(147,210,240,0.6)'; wallStroke = '#70b8d4'; wallDash = '4,2'; }
+    else if (wallStyle === 'divisoria') { wallFill = '#e8e0d0'; wallStroke = '#9aa3ae'; wallDash = null; }
+    else { wallFill = '#c8cdd4'; wallStroke = '#9aa3ae'; wallDash = null; }
+
+    function makeWallRect(x, y, w, h) {
+      const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x', x); r.setAttribute('y', y);
+      r.setAttribute('width', w); r.setAttribute('height', h);
+      r.setAttribute('fill', wallFill);
+      r.setAttribute('stroke', wallStroke);
+      r.setAttribute('stroke-width', 0.5);
+      if (wallDash) r.setAttribute('stroke-dasharray', wallDash);
+      return r;
+    }
+    if (state.layers.walls) {
+      if (!sw.has('north')) group.appendChild(makeWallRect(rx - hw, ry - hw, rw + wt, wt));
+      if (!sw.has('south')) group.appendChild(makeWallRect(rx - hw, ry + rh - hw, rw + wt, wt));
+      if (!sw.has('west'))  group.appendChild(makeWallRect(rx - hw, ry - hw, wt, rh + wt));
+      if (!sw.has('east'))  group.appendChild(makeWallRect(rx + rw - hw, ry - hw, wt, rh + wt));
+    }
 
     // doors
-    for (const d of (room.doors || [])) {
-      const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
-      const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
-      const ar = swingArc(d, op.sx, op.sy, op.ex, op.ey, dw);
-      for (const a of ar) {
-        if (a.r <= 0) continue;
-        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('x1', a.cx); line.setAttribute('y1', a.cy);
-        line.setAttribute('x2', a.x2); line.setAttribute('y2', a.y2);
-        line.setAttribute('stroke','#2d2d2d'); line.setAttribute('stroke-width',1.8);
-        doorG.appendChild(line);
-        const arc = document.createElementNS('http://www.w3.org/2000/svg','path');
-        arc.setAttribute('d', `M${a.x1},${a.y1}A${a.r},${a.r} 0 0 ${a.sweep} ${a.x2},${a.y2}`);
-        arc.setAttribute('fill','none'); arc.setAttribute('stroke','#555');
-        arc.setAttribute('stroke-width',1.2); arc.setAttribute('stroke-dasharray','5 4');
-        doorG.appendChild(arc);
+    if (state.layers.doors) {
+      for (const d of (room.doors || [])) {
+        const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
+        const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
+        const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
+        const ar = swingArc(d, op.sx, op.sy, op.ex, op.ey, dw);
+        for (const a of ar) {
+          if (a.r <= 0) continue;
+          const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1', a.cx); line.setAttribute('y1', a.cy);
+          line.setAttribute('x2', a.x2); line.setAttribute('y2', a.y2);
+          line.setAttribute('stroke','#2d2d2d'); line.setAttribute('stroke-width',1.8);
+          doorG.appendChild(line);
+          const arc = document.createElementNS('http://www.w3.org/2000/svg','path');
+          arc.setAttribute('d', `M${a.x1},${a.y1}A${a.r},${a.r} 0 0 ${a.sweep} ${a.x2},${a.y2}`);
+          arc.setAttribute('fill','none'); arc.setAttribute('stroke','#555');
+          arc.setAttribute('stroke-width',1.2); arc.setAttribute('stroke-dasharray','5 4');
+          doorG.appendChild(arc);
+        }
+        // wall gap
+        const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        if (d.wall==='north'||d.wall==='south') {
+          gap.setAttribute('x', op.sx); gap.setAttribute('y', (d.wall==='north'?ry:ry+rh)-hw);
+          gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
+        } else {
+          gap.setAttribute('x', (d.wall==='west'?rx:rx+rw)-hw);
+          gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
+          gap.setAttribute('height', op.ey-op.sy);
+        }
+        gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
+        group.appendChild(doorG);
       }
-      // wall gap
-      const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      if (d.wall==='north'||d.wall==='south') {
-        gap.setAttribute('x', op.sx); gap.setAttribute('y', (d.wall==='north'?ry:ry+rh)-hw);
-        gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
-      } else {
-        gap.setAttribute('x', (d.wall==='west'?rx:rx+rw)-hw);
-        gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
-        gap.setAttribute('height', op.ey-op.sy);
-      }
-      gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
-      group.appendChild(doorG);
     }
 
     // windows
-    for (const w of (room.windows || [])) {
-      const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
-      const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      if (w.wall==='north'||w.wall==='south') {
-        gap.setAttribute('x', op.sx); gap.setAttribute('y', (w.wall==='north'?ry:ry+rh)-hw);
-        gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
-      } else {
-        gap.setAttribute('x', (w.wall==='west'?rx:rx+rw)-hw);
-        gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
-        gap.setAttribute('height', op.ey-op.sy);
+    if (state.layers.windows) {
+      for (const w of (room.windows || [])) {
+        const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
+        const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
+        const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        if (w.wall==='north'||w.wall==='south') {
+          gap.setAttribute('x', op.sx); gap.setAttribute('y', (w.wall==='north'?ry:ry+rh)-hw);
+          gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
+        } else {
+          gap.setAttribute('x', (w.wall==='west'?rx:rx+rw)-hw);
+          gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
+          gap.setAttribute('height', op.ey-op.sy);
+        }
+        gap.setAttribute('fill','#fafafa'); winG.appendChild(gap);
+        const frame = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        frame.setAttribute('x', gap.getAttribute('x')); frame.setAttribute('y', gap.getAttribute('y'));
+        frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
+        frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
+        winG.appendChild(frame);
+        group.appendChild(winG);
       }
-      gap.setAttribute('fill','#fafafa'); winG.appendChild(gap);
-      const frame = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      frame.setAttribute('x', gap.getAttribute('x')); frame.setAttribute('y', gap.getAttribute('y'));
-      frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
-      frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
-      winG.appendChild(frame);
-      group.appendChild(winG);
     }
 
     // label
-    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-    label.setAttribute('x', rx + rw/2); label.setAttribute('y', ry + rh/2);
-    label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','middle');
-    label.setAttribute('font-size', Math.min(14, rw/20)); label.setAttribute('font-weight','600');
-    label.setAttribute('fill','#1a1a2e'); label.textContent = room.name;
-    group.appendChild(label);
+    if (state.layers.rooms) {
+      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x', rx + rw/2); label.setAttribute('y', ry + rh/2);
+      label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','middle');
+      label.setAttribute('font-size', Math.min(14, rw/20)); label.setAttribute('font-weight','600');
+      label.setAttribute('fill','#1a1a2e'); label.textContent = room.name;
+      group.appendChild(label);
+    }
 
     // resize handles (se selecionado)
     if (state.selectedId === room.id && state.tool === 'select') {
@@ -1105,39 +1312,48 @@ function render() {
   }
 
   // symbols (overlay on floor plan)
-  for (const sym of state.symbols) {
-    const def = SYMBOLS[sym.type];
-    if (!def) continue;
-    const sx = sym.x * state.scale, sy = sym.y * state.scale;
-    const sw = sym.w * state.scale, sh = sym.h * state.scale;
-    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
-    group.setAttribute('data-id', sym.id);
-    group.style.cursor = state.tool === 'select' ? 'move' : 'default';
-    const isSelected = state.selectedIds.has(sym.id);
-    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
-    const inner = document.createElementNS('http://www.w3.org/2000/svg','g');
-    const scX = sw / def.w, scY = sh / def.h;
-    const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
-    inner.setAttribute('transform', `translate(${sx},${sy}) scale(${scX},${scY})${rot}`);
-    inner.innerHTML = def.svg;
-    group.appendChild(inner);
-    if (isSelected) {
-      const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
-      selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
-      selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
-      selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
-      selRect.setAttribute('pointer-events','none');
-      group.appendChild(selRect);
+  if (state.layers.symbols) {
+    for (const sym of state.symbols) {
+      const def = SYMBOLS[sym.type];
+      if (!def) continue;
+      const sx = sym.x * state.scale, sy = sym.y * state.scale;
+      const sw = sym.w * state.scale, sh = sym.h * state.scale;
+      const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+      group.setAttribute('data-id', sym.id);
+      group.style.cursor = state.tool === 'select' ? 'move' : 'default';
+      const isSelected = state.selectedIds.has(sym.id);
+      if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+      const inner = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const scX = sw / def.w, scY = sh / def.h;
+      const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
+      inner.setAttribute('transform', `translate(${sx},${sy}) scale(${scX},${scY})${rot}`);
+      inner.innerHTML = def.svg;
+      group.appendChild(inner);
+      if (isSelected) {
+        const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
+        selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
+        selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
+        selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
+        selRect.setAttribute('pointer-events','none');
+        group.appendChild(selRect);
+      }
+      g.appendChild(group);
     }
-    g.appendChild(group);
   }
 
   // status
   document.getElementById('status-rooms').textContent = `Cômodos: ${rooms.length} | Símbolos: ${state.symbols.length}`;
   document.getElementById('status-area').textContent = `Área: ${(totalArea/10000).toFixed(1)} m²`;
   document.getElementById('global-title').value = state.title;
+
+  // canvas empty state
+  const isEmpty = rooms.length === 0 && (state.symbols || []).length === 0;
+  const emptyEl = document.getElementById('canvas-empty');
+  if (emptyEl) emptyEl.style.display = isEmpty ? 'flex' : 'none';
+
   renderProperties();
+  renderLayers();
   updateMinimap();
   updateFloorTabs();
 }
@@ -1753,6 +1969,16 @@ function renderProperties() {
     ${hatchOptions.map(o => `<option value="${o.v}" ${(room.hatch||'')===o.v?'selected':''}>${o.l}</option>`).join('')}
   </select></div>`;
 
+  // wall style
+  html += `<div class="prop-group"><label>Estilo de parede</label>
+    <select onchange="updateProp('wallStyle',this.value)">
+      <option value="alvenaria" ${(room.wallStyle==='alvenaria'||!room.wallStyle)?'selected':''}>Alvenaria</option>
+      <option value="drywall" ${room.wallStyle==='drywall'?'selected':''}>Drywall</option>
+      <option value="vidro" ${room.wallStyle==='vidro'?'selected':''}>Vidro</option>
+      <option value="divisoria" ${room.wallStyle==='divisoria'?'selected':''}>Divisória</option>
+    </select>
+  </div>`;
+
   html += `<div class="prop-group"><label>Área</label><strong>${(room.width*room.height/10000).toFixed(1)} m²</strong></div>`;
 
   el.innerHTML = html;
@@ -1780,6 +2006,35 @@ function updateStairProp(prop, val) {
   if (!stair) return;
   saveUndo();
   stair[prop] = val;
+  render();
+}
+
+function renderLayers() {
+  const LAYERS = [
+    { key:'rooms',   icon:'<rect x="2" y="3" width="8" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>', label:'Cômodos' },
+    { key:'walls',   icon:'<line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="2"/>', label:'Paredes' },
+    { key:'doors',   icon:'<path d="M3 9V3h5a3 3 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>', label:'Portas' },
+    { key:'windows', icon:'<rect x="2" y="4" width="8" height="4" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="4" x2="6" y2="8" stroke="currentColor" stroke-width="1.2"/>', label:'Janelas' },
+    { key:'symbols', icon:'<circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="3" x2="6" y2="6" stroke="currentColor" stroke-width="1.2"/>', label:'Símbolos' },
+  ];
+  const el = document.getElementById('layers-list');
+  if (!el) return;
+  el.innerHTML = LAYERS.map(l => `
+    <div class="layer-row">
+      <button class="layer-eye ${state.layers[l.key]?'active':''}" onclick="toggleLayer('${l.key}')" title="${state.layers[l.key]?'Ocultar':'Mostrar'} ${l.label}">
+        <svg width="14" height="12" viewBox="0 0 12 12" fill="none">${state.layers[l.key]
+          ? `<path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/>`
+          : `<path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2,1"/><line x1="2" y1="10" x2="10" y2="2" stroke="currentColor" stroke-width="1.2"/>`
+        }</svg>
+      </button>
+      <svg width="14" height="12" viewBox="0 0 12 12" fill="none" style="color:var(--text3)">${l.icon}</svg>
+      <span class="layer-label">${l.label}</span>
+    </div>
+  `).join('');
+}
+
+function toggleLayer(key) {
+  state.layers[key] = !state.layers[key];
   render();
 }
 
@@ -2179,7 +2434,11 @@ function filterPalette() {
   });
 }
 
-function toggleGrid() { state.gridVisible = !state.gridVisible; render(); }
+function toggleGrid() {
+  state.gridVisible = !state.gridVisible;
+  document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
+  render();
+}
 function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
 
 function newProject() {
@@ -2246,6 +2505,18 @@ function importYAML() {
     } catch(err) { toast('❌ Erro: '+err.message); }
   };
   input.click();
+}
+
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('export-menu');
+  const isOpen = menu.classList.toggle('open');
+  if (isOpen) {
+    setTimeout(() => document.addEventListener('click', closeExportMenu, {once:true}), 0);
+  }
+}
+function closeExportMenu() {
+  document.getElementById('export-menu').classList.remove('open');
 }
 
 function exportYAML() {
@@ -2490,17 +2761,28 @@ function calculateTotalArea() {
   return (total / 10000).toFixed(1);
 }
 
-function exportPDF() {
+function showPrintModal() { document.getElementById('print-modal').classList.add('show'); }
+function hidePrintModal() { document.getElementById('print-modal').classList.remove('show'); }
+function doPrint() {
+  hidePrintModal();
+  const scaleN = parseInt(document.getElementById('print-scale').value);
+  const paper = document.getElementById('print-paper').value;
+  exportPDF(scaleN, paper);
+}
+
+function exportPDF(printScale=100, paper='a4l') {
   const svgEl = document.querySelector('#canvas-svg');
   if (!svgEl) return;
   const clone = svgEl.cloneNode(true);
   const svg = clone.outerHTML;
   const escS = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const paperCSS = paper === 'a4p' ? 'A4 portrait' : paper === 'a3l' ? 'A3 landscape' : 'A4 landscape';
+  const scaleLabel = `1:${printScale}`;
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${escS(state.title || 'Planta Baixa')}</title>
 <style>
-  @page { size: A3 landscape; margin: 15mm; }
+  @page { size: ${paperCSS}; margin: 15mm; }
   body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
   .page { page-break-after: always; padding: 20px; }
   .title-block { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
@@ -2516,11 +2798,12 @@ function exportPDF() {
 </style></head><body>
   <div class="page">
     <div class="title-block">
-      <div><h1>${escS(state.title || 'Planta Baixa')}</h1><p>Escala: 1:50 | Data: ${new Date().toLocaleDateString('pt-BR')}</p></div>
+      <div><h1>${escS(state.title || 'Planta Baixa')}</h1><p>Escala: ${scaleLabel} | Data: ${new Date().toLocaleDateString('pt-BR')}</p></div>
       <div class="stamp">
         <table>
           <tr><td>Projeto:</td><td>${escS(state.title || 'Planta')}</td></tr>
-          <tr><td>Escala:</td><td>1:50</td></tr>
+          <tr><td>Escala:</td><td>${scaleLabel}</td></tr>
+          <tr><td>Papel:</td><td>${paperCSS}</td></tr>
           <tr><td>Data:</td><td>${new Date().toLocaleDateString('pt-BR')}</td></tr>
           <tr><td>&Aacute;rea:</td><td>${calculateTotalArea()} m&sup2;</td></tr>
           <tr><td>Gerado por:</td><td>Floorplan</td></tr>
@@ -2719,6 +3002,7 @@ render = function() {
 // init
 initPalette();
 initSymbolPalette();
+document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
 if (!loadAutoSave()) {
   // default starter room
   state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
