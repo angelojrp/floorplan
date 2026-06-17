@@ -1146,36 +1146,23 @@ function render() {
     }
   }
 
-  // rooms
+  // rooms — two-layer rendering: walls behind, fills/content in front
   const floor = getFloor();
   const rooms = floor.rooms || [];
-  const sharedWalls = getSharedWalls(rooms);
   let totalArea = 0;
+
+  // Create two layers
+  const wallsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const fillsLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(wallsLayer);
+  g.appendChild(fillsLayer);
+
   for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
     const rw = room.width * state.scale, rh = room.height * state.scale;
     totalArea += room.width * room.height;
-    
-    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
-    group.setAttribute('data-id', room.id);
-    group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
-    const isSelected = state.selectedIds.has(room.id);
-    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
-    // room fill
-    if (state.layers.rooms) {
-      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
-      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
-      rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
-      rect.setAttribute('stroke-width', isSelected ? 2 : 1);
-      group.appendChild(rect);
-    }
-
-    // walls (4 thick border rects — top/right/bottom/left)
     const hw = wt / 2;
-    const sw = sharedWalls[room.id] || new Set();
     // wall style colors
     const wallStyle = room.wallStyle || 'alvenaria';
     let wallFill, wallStroke, wallDash;
@@ -1194,16 +1181,39 @@ function render() {
       if (wallDash) r.setAttribute('stroke-dasharray', wallDash);
       return r;
     }
+
+    // Add all 4 wall rects to wallsLayer (no shared-wall suppression needed —
+    // the fill rects in fillsLayer naturally cover the inner halves of adjacent walls)
     if (state.layers.walls) {
-      if (!sw.has('north')) group.appendChild(makeWallRect(rx - hw, ry - hw, rw + wt, wt));
-      if (!sw.has('south')) group.appendChild(makeWallRect(rx - hw, ry + rh - hw, rw + wt, wt));
-      if (!sw.has('west'))  group.appendChild(makeWallRect(rx - hw, ry - hw, wt, rh + wt));
-      if (!sw.has('east'))  group.appendChild(makeWallRect(rx + rw - hw, ry - hw, wt, rh + wt));
+      wallsLayer.appendChild(makeWallRect(rx - hw, ry - hw, rw + wt, wt));        // north
+      wallsLayer.appendChild(makeWallRect(rx - hw, ry + rh - hw, rw + wt, wt));   // south
+      wallsLayer.appendChild(makeWallRect(rx - hw, ry - hw, wt, rh + wt));        // west
+      wallsLayer.appendChild(makeWallRect(rx + rw - hw, ry - hw, wt, rh + wt));   // east
+    }
+
+    // Fill group goes into fillsLayer (has data-id for event handling)
+    const isSelected = state.selectedIds.has(room.id);
+    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+    group.setAttribute('data-id', room.id);
+    group.style.cursor = state.tool === 'select' ? 'move' : 'crosshair';
+    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+
+    // room fill (covers interior, naturally hides inner halves of adjacent wall rects)
+    if (state.layers.rooms) {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
+      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
+      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
+      // Border comes from wall rects; only show stroke when selected
+      rect.setAttribute('stroke', isSelected ? '#2563eb' : 'none');
+      rect.setAttribute('stroke-width', isSelected ? 2 : 0);
+      group.appendChild(rect);
     }
 
     // doors
     if (state.layers.doors) {
-      for (const d of (room.doors || [])) {
+      for (let i = 0; i < (room.doors || []).length; i++) {
+        const d = room.doors[i];
         const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
         const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
         const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
@@ -1232,13 +1242,34 @@ function render() {
           gap.setAttribute('height', op.ey-op.sy);
         }
         gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
+        // drag handle (select tool only)
+        if (state.tool === 'select') {
+          const hcx = (op.sx + op.ex) / 2;
+          const hcy = (op.sy + op.ey) / 2;
+          const handle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          handle.setAttribute('cx', hcx);
+          handle.setAttribute('cy', hcy);
+          handle.setAttribute('r', 5 / state.zoom);
+          handle.setAttribute('fill', '#3b82f6');
+          handle.setAttribute('stroke', '#fff');
+          handle.setAttribute('stroke-width', 1.5 / state.zoom);
+          handle.style.cursor = (d.wall==='north'||d.wall==='south') ? 'ew-resize' : 'ns-resize';
+          handle.addEventListener('mousedown', ev => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            hasDragged = false;
+            openingDragState = { roomId: room.id, type: 'door', index: i };
+          });
+          doorG.appendChild(handle);
+        }
         group.appendChild(doorG);
       }
     }
 
     // windows
     if (state.layers.windows) {
-      for (const w of (room.windows || [])) {
+      for (let i = 0; i < (room.windows || []).length; i++) {
+        const w = room.windows[i];
         const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
         const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
         const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -1256,6 +1287,26 @@ function render() {
         frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
         frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
         winG.appendChild(frame);
+        // drag handle (select tool only)
+        if (state.tool === 'select') {
+          const hcx = (op.sx + op.ex) / 2;
+          const hcy = (op.sy + op.ey) / 2;
+          const handle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          handle.setAttribute('cx', hcx);
+          handle.setAttribute('cy', hcy);
+          handle.setAttribute('r', 5 / state.zoom);
+          handle.setAttribute('fill', '#3b82f6');
+          handle.setAttribute('stroke', '#fff');
+          handle.setAttribute('stroke-width', 1.5 / state.zoom);
+          handle.style.cursor = (w.wall==='north'||w.wall==='south') ? 'ew-resize' : 'ns-resize';
+          handle.addEventListener('mousedown', ev => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            hasDragged = false;
+            openingDragState = { roomId: room.id, type: 'window', index: i };
+          });
+          winG.appendChild(handle);
+        }
         group.appendChild(winG);
       }
     }
@@ -1295,7 +1346,7 @@ function render() {
       }
     }
 
-    g.appendChild(group);
+    fillsLayer.appendChild(group);
   }
 
   // stairs
@@ -1565,9 +1616,12 @@ canvasWrap.addEventListener('dblclick', e => {
   }
 });
 
+let openingDragState = null; // { roomId, type:'door'|'window', index }
+
 // move room
 let moveState = null, moveOrigin = null;
 canvasWrap.addEventListener('mousedown', e => {
+  if (openingDragState) return; // guard: don't start room move while dragging an opening
   if (isPanning || e.button !== 0) return;
   if (e.altKey) return; // pan is handled separately
 
@@ -1636,6 +1690,40 @@ function startResize(roomId, handleType, e) {
 }
 
 document.addEventListener('mousemove', e => {
+  if (openingDragState) {
+    const { roomId, type, index } = openingDragState;
+    const floor = getFloor();
+    const room = (floor.rooms || []).find(r => r.id === roomId);
+    if (!room) { openingDragState = null; return; }
+    const opening = (type === 'door' ? room.doors : room.windows)[index];
+    if (!opening) { openingDragState = null; return; }
+
+    // Convert mouse to SVG coordinates
+    const svg = document.getElementById('canvas-svg');
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const svgPt = pt.matrixTransform(ctm.inverse());
+
+    const rx = room.x * state.scale, ry = room.y * state.scale;
+    const wall = opening.wall;
+    const isHoriz = wall === 'north' || wall === 'south';
+
+    // Raw offset: mouse position along wall minus half opening width
+    const rawOffset = isHoriz
+      ? (svgPt.x - rx) / state.scale - opening.width / 2
+      : (svgPt.y - ry) / state.scale - opening.width / 2;
+
+    const wallLen = isHoriz ? room.width : room.height;
+    const maxOffset = wallLen - opening.width;
+    const snap = state.gridVisible ? Math.max(1, Math.round(state.gridSize / 10)) : 1;
+
+    opening.offset = Math.round(Math.max(0, Math.min(rawOffset, maxOffset)) / snap) * snap;
+    hasDragged = true;
+    render();
+    return; // don't process move/resize while dragging opening
+  }
   if (moveState) {
     const dx = (e.clientX - moveState.sx) / (state.scale * state.zoom);
     const dy = (e.clientY - moveState.sy) / (state.scale * state.zoom);
@@ -1729,6 +1817,12 @@ document.addEventListener('mousemove', e => {
 });
 
 document.addEventListener('mouseup', e => {
+  if (openingDragState) {
+    if (hasDragged) saveUndo();
+    openingDragState = null;
+    hasDragged = false;
+    return;
+  }
   if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; }
   if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; }
   if (roomDrawState) {
