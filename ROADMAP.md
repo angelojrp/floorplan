@@ -36,7 +36,7 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 
 ### Visual Editor
 - [x] **Snap inteligente**: snap a paredes de outros cômodos (alinhamento automático)
-- [ ] **Paredes compartilhadas**: unir automaticamente cômodos adjacentes
+- [x] **Paredes compartilhadas**: unir automaticamente cômodos adjacentes
 - [ ] **Rotação de cômodos**: girar cômodos em ângulos arbitrários
 - [x] **Seleção múltipla**: selecionar vários cômodos com Shift+click ou arrastar área
 - [x] **Copiar/Colar**: Ctrl+C / Ctrl+V para duplicar cômodos
@@ -66,16 +66,16 @@ Visão: tornar-se a ferramenta mais prática para criar plantas baixas a partir 
 ### Visual Builder Avançado
 - [x] **Ferramenta de parede**: desenhar paredes livremente (linha contínua)
 - [x] **Ferramenta de cômodo**: desenhar retângulo na área desejada
-- [ ] **Camadas (layers)**: paredes, portas, janelas, móveis, cotas, texto
-- [ ] **Estilos de parede**: alvenaria, drywall, vidro, divisória
-- [ ] **Níveis/pavimentos**: múltiplos andares (tabs)
-- [ ] **Escadas**: símbolo automático de escada entre pavimentos
+- [x] **Camadas (layers)**: paredes, portas, janelas, móveis, cotas, texto
+- [x] **Estilos de parede**: alvenaria, drywall, vidro, divisória
+- [x] **Níveis/pavimentos**: múltiplos andares (tabs)
+- [x] **Escadas**: símbolo automático de escada entre pavimentos
 
 ### Exportação
 - [x] **DXF**: exportar para AutoCAD/Revit
-- [ ] **PDF**: exportar com escala e margens de impressão
-- [ ] **Layout de impressão**: múltiplas folhas, carimbo, margens configuráveis
-- [ ] **PNG de alta resolução**: exportar imagens raster
+- [x] **PDF**: exportar com escala e margens de impressão
+- [x] **Layout de impressão**: múltiplas folhas, carimbo, margens configuráveis
+- [x] **PNG de alta resolução**: exportar imagens raster
 - [ ] **Compartilhamento**: gerar link público com preview (hospedagem efêmera)
 
 ### IA & Ecossistema

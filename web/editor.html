@@ -424,6 +424,10 @@ body.dark #canvas-wrap{
 .layer-eye:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
 .layer-eye.active{color:var(--accent)}
 .layer-label{font-size:12px;color:var(--text2);flex:1}
+/* ── PRINT MODAL ── */
+#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:300}
+.print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
+.print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
 
 /* ── STATUS BAR ── */
@@ -522,6 +526,13 @@ body.dark #canvas-wrap{
 }
 .ctx-item:hover{background:var(--accent-bg);color:var(--accent)}
 .ctx-sep{height:1px;background:var(--border);margin:3px 4px}
+
+/* ── PRINT MODAL ── */
+#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:300}
+#print-modal.show{display:flex}
+.print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
+.print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.print-modal-title svg{color:var(--accent)}
 
 /* ── SHORTCUTS OVERLAY ── */
 #shortcuts-overlay{
@@ -624,7 +635,7 @@ body.dark #canvas-wrap{
           DXF
           <span class="export-item-hint">AutoCAD</span>
         </div>
-        <div class="export-item" onclick="exportPDF();closeExportMenu()">
+        <div class="export-item" onclick="showPrintModal();closeExportMenu()">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/><path d="M5.5 9.5h1a1 1 0 0 0 0-2h-1v4M9.5 7.5h1.5a1 1 0 0 1 1 1.5 1 1 0 0 1-1 1.5H9.5"/></svg>
           PDF
           <span class="export-item-hint">Imprimir / PDF</span>
@@ -855,6 +866,39 @@ body.dark #canvas-wrap{
 <!-- TOAST -->
 <div id="toast"></div>
 
+<!-- PRINT MODAL -->
+<div id="print-modal" onclick="if(event.target===this) hidePrintModal()">
+  <div class="print-modal-box">
+    <div class="print-modal-title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
+      Configurar impressão
+    </div>
+    <div class="prop-group">
+      <label>Escala</label>
+      <select id="print-scale" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
+        <option value="50">1:50 — detalhe</option>
+        <option value="100" selected>1:100 — padrão</option>
+        <option value="200">1:200 — visão geral</option>
+      </select>
+    </div>
+    <div class="prop-group">
+      <label>Papel</label>
+      <select id="print-paper" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
+        <option value="a4p">A4 Retrato (210×297mm)</option>
+        <option value="a4l" selected>A4 Paisagem (297×210mm)</option>
+        <option value="a3l">A3 Paisagem (420×297mm)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="tb-btn" style="flex:1" onclick="hidePrintModal()">Cancelar</button>
+      <button class="tb-btn accent" style="flex:1" onclick="doPrint()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
+        Imprimir / PDF
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- SHORTCUTS OVERLAY -->
 <div id="shortcuts-overlay" onclick="if(event.target===this) hideShortcuts()">
   <div id="shortcuts-panel">
@@ -880,6 +924,7 @@ body.dark #canvas-wrap{
     </table>
   </div>
 </div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 <script src="symbols.js"></script>
@@ -1951,6 +1996,35 @@ function updateStairProp(prop, val) {
   render();
 }
 
+function renderLayers() {
+  const LAYERS = [
+    { key:'rooms',   icon:'<rect x="2" y="3" width="8" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>', label:'Cômodos' },
+    { key:'walls',   icon:'<line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="2"/>', label:'Paredes' },
+    { key:'doors',   icon:'<path d="M3 9V3h5a3 3 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>', label:'Portas' },
+    { key:'windows', icon:'<rect x="2" y="4" width="8" height="4" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="4" x2="6" y2="8" stroke="currentColor" stroke-width="1.2"/>', label:'Janelas' },
+    { key:'symbols', icon:'<circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="3" x2="6" y2="6" stroke="currentColor" stroke-width="1.2"/>', label:'Símbolos' },
+  ];
+  const el = document.getElementById('layers-list');
+  if (!el) return;
+  el.innerHTML = LAYERS.map(l => `
+    <div class="layer-row">
+      <button class="layer-eye ${state.layers[l.key]?'active':''}" onclick="toggleLayer('${l.key}')" title="${state.layers[l.key]?'Ocultar':'Mostrar'} ${l.label}">
+        <svg width="14" height="12" viewBox="0 0 12 12" fill="none">${state.layers[l.key]
+          ? `<path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/>`
+          : `<path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2,1"/><line x1="2" y1="10" x2="10" y2="2" stroke="currentColor" stroke-width="1.2"/>`
+        }</svg>
+      </button>
+      <svg width="14" height="12" viewBox="0 0 12 12" fill="none" style="color:var(--text3)">${l.icon}</svg>
+      <span class="layer-label">${l.label}</span>
+    </div>
+  `).join('');
+}
+
+function toggleLayer(key) {
+  state.layers[key] = !state.layers[key];
+  render();
+}
+
 function updateDoor(idx, prop, val) {
   const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
   if (!room) return;
@@ -2674,17 +2748,28 @@ function calculateTotalArea() {
   return (total / 10000).toFixed(1);
 }
 
-function exportPDF() {
+function showPrintModal() { document.getElementById('print-modal').classList.add('show'); }
+function hidePrintModal() { document.getElementById('print-modal').classList.remove('show'); }
+function doPrint() {
+  hidePrintModal();
+  const scaleN = parseInt(document.getElementById('print-scale').value);
+  const paper = document.getElementById('print-paper').value;
+  exportPDF(scaleN, paper);
+}
+
+function exportPDF(printScale=100, paper='a4l') {
   const svgEl = document.querySelector('#canvas-svg');
   if (!svgEl) return;
   const clone = svgEl.cloneNode(true);
   const svg = clone.outerHTML;
   const escS = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const paperCSS = paper === 'a4p' ? 'A4 portrait' : paper === 'a3l' ? 'A3 landscape' : 'A4 landscape';
+  const scaleLabel = `1:${printScale}`;
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${escS(state.title || 'Planta Baixa')}</title>
 <style>
-  @page { size: A3 landscape; margin: 15mm; }
+  @page { size: ${paperCSS}; margin: 15mm; }
   body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
   .page { page-break-after: always; padding: 20px; }
   .title-block { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
@@ -2700,11 +2785,12 @@ function exportPDF() {
 </style></head><body>
   <div class="page">
     <div class="title-block">
-      <div><h1>${escS(state.title || 'Planta Baixa')}</h1><p>Escala: 1:50 | Data: ${new Date().toLocaleDateString('pt-BR')}</p></div>
+      <div><h1>${escS(state.title || 'Planta Baixa')}</h1><p>Escala: ${scaleLabel} | Data: ${new Date().toLocaleDateString('pt-BR')}</p></div>
       <div class="stamp">
         <table>
           <tr><td>Projeto:</td><td>${escS(state.title || 'Planta')}</td></tr>
-          <tr><td>Escala:</td><td>1:50</td></tr>
+          <tr><td>Escala:</td><td>${scaleLabel}</td></tr>
+          <tr><td>Papel:</td><td>${paperCSS}</td></tr>
           <tr><td>Data:</td><td>${new Date().toLocaleDateString('pt-BR')}</td></tr>
           <tr><td>&Aacute;rea:</td><td>${calculateTotalArea()} m&sup2;</td></tr>
           <tr><td>Gerado por:</td><td>Floorplan</td></tr>
