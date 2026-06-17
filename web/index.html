@@ -132,6 +132,14 @@ section{padding:100px 24px}
 .ai-logos{display:flex;gap:16px;margin-top:28px;flex-wrap:wrap}
 .ai-logo-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;font-size:13px;font-weight:600;color:var(--text2)}
 .ai-logo-pill span{font-size:16px}
+.open-in-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.open-in-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid var(--border);color:var(--text2);background:var(--surface2);transition:all .15s;cursor:pointer}
+.open-in-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface3)}
+.open-in-btn.chatgpt:hover{border-color:rgba(16,163,127,.5);color:#10a37f;background:rgba(16,163,127,.07)}
+.open-in-btn.claude:hover{border-color:rgba(210,140,90,.5);color:#d28c5a;background:rgba(210,140,90,.07)}
+.open-in-btn .oi-icon{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.guide-link{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;color:var(--accent2);text-decoration:none;padding:6px 12px;border:1px solid rgba(59,130,246,.25);border-radius:8px;background:rgba(59,130,246,.07);width:fit-content}
+.guide-link:hover{background:rgba(59,130,246,.14)}
 
 /* CTA */
 .cta-section{padding:100px 24px;text-align:center;position:relative;overflow:hidden}
@@ -349,6 +357,10 @@ footer a:hover{color:var(--accent)}
         <div class="ai-logo-pill"><span>◈</span> Gemini</div>
         <div class="ai-logo-pill"><span>◆</span> Qualquer IA</div>
       </div>
+      <a class="guide-link" href="https://raw.githubusercontent.com/angelojrp/floorplan/refs/heads/main/docs/AI_GUIDE.md" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M14 9v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5"/><polyline points="10,1 15,1 15,6"/><line x1="6" y1="10" x2="15" y2="1"/></svg>
+        Ver AI_GUIDE.md — documentação completa do schema para IAs
+      </a>
     </div>
 
     <div class="fade-up" style="margin-top:48px">
@@ -361,7 +373,7 @@ footer a:hover{color:var(--accent)}
       <div class="prompt-panel active" id="pp-residencial">
         <div class="prompt-box">
           <div class="prompt-header">
-            <span class="prompt-lang">Prompt pronto — Cole no chat da IA</span>
+            <span class="prompt-lang">Prompt pronto — edite o placeholder e envie</span>
             <button class="copy-btn" onclick="copyPrompt('residencial',this)">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg>
               Copiar
@@ -369,12 +381,13 @@ footer a:hover{color:var(--accent)}
           </div>
           <div class="prompt-text" id="pt-residencial"></div>
         </div>
+        <div class="open-in-row" id="oi-residencial"></div>
       </div>
 
       <div class="prompt-panel" id="pp-comercial">
         <div class="prompt-box">
           <div class="prompt-header">
-            <span class="prompt-lang">Prompt pronto — Cole no chat da IA</span>
+            <span class="prompt-lang">Prompt pronto — edite o placeholder e envie</span>
             <button class="copy-btn" onclick="copyPrompt('comercial',this)">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg>
               Copiar
@@ -382,12 +395,13 @@ footer a:hover{color:var(--accent)}
           </div>
           <div class="prompt-text" id="pt-comercial"></div>
         </div>
+        <div class="open-in-row" id="oi-comercial"></div>
       </div>
 
       <div class="prompt-panel" id="pp-personalizado">
         <div class="prompt-box">
           <div class="prompt-header">
-            <span class="prompt-lang">Prompt base — Edite antes de enviar</span>
+            <span class="prompt-lang">Prompt base — edite o placeholder e envie</span>
             <button class="copy-btn" onclick="copyPrompt('personalizado',this)">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg>
               Copiar
@@ -395,6 +409,7 @@ footer a:hover{color:var(--accent)}
           </div>
           <div class="prompt-text" id="pt-personalizado"></div>
         </div>
+        <div class="open-in-row" id="oi-personalizado"></div>
       </div>
 
       <div style="margin-top:20px;padding:16px 20px;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:12px;display:flex;align-items:flex-start;gap:12px">
@@ -999,65 +1014,39 @@ function openTemplate(id) {
 })();
 
 // ── AI Prompts ──
-const SCHEMA_HINT = `# Estrutura do YAML (coordenadas em cm):
-version: 1
-title: "Nome da Planta"
-scale: 2            # px por cm
-wallThickness: 15   # espessura da parede em cm
-grid: 50            # passo do grid em cm
-rooms:
-  - id: sala
-    name: "Sala de Estar"
-    x: 0            # posição X do canto superior esquerdo
-    y: 0            # posição Y do canto superior esquerdo
-    width: 500       # largura em cm
-    height: 400      # altura em cm
-    doors:
-      - wall: south  # north | south | east | west
-        offset: 200  # distância do início da parede (cm)
-        width: 80    # largura da porta (cm)
-        type: pivot  # pivot | sliding | double
-        swing: left  # left | right
-    windows:
-      - wall: north
-        offset: 100
-        width: 200
-        height: 120  # altura da janela (cm)
-        sill: 110    # peitoril — distância do piso (cm)
-
-# Regras importantes:
-# - Para cômodos adjacentes: x2 = x1 + width1 (ou y2 = y1 + height1)
-# - offset deve ser menor que (largura_da_parede - largura_do_elemento)
-# - Gere APENAS o bloco YAML, sem texto adicional`;
+const AI_GUIDE_URL = 'https://raw.githubusercontent.com/angelojrp/floorplan/refs/heads/main/docs/AI_GUIDE.md';
 
 const PROMPTS = {
-  residencial: `Crie uma planta baixa residencial em formato YAML para a ferramenta Floorplan.
+  residencial: `Leia a documentação da ferramenta Floorplan em:
+${AI_GUIDE_URL}
+
+Com base nela, gere uma planta baixa residencial em formato YAML.
 
 Quero: [DESCREVA AQUI — ex: "apartamento de 2 quartos, ~75m², sala integrada com cozinha, 1 banheiro social e 1 suíte"]
 
-${SCHEMA_HINT}
+Gere APENAS o YAML completo, sem explicações adicionais.`,
 
-Gere o YAML completo respeitando essa estrutura. Não inclua explicações, apenas o YAML.`,
+  comercial: `Leia a documentação da ferramenta Floorplan em:
+${AI_GUIDE_URL}
 
-  comercial: `Crie uma planta baixa comercial em formato YAML para a ferramenta Floorplan.
+Com base nela, gere uma planta baixa comercial em formato YAML.
 
 Quero: [DESCREVA AQUI — ex: "escritório para 20 pessoas, recepção, sala de reuniões, área open-plan, 2 salas privativas e banheiro"]
 
-${SCHEMA_HINT}
+Gere APENAS o YAML completo, sem explicações adicionais.`,
 
-Gere o YAML completo respeitando essa estrutura. Não inclua explicações, apenas o YAML.`,
+  personalizado: `Leia a documentação da ferramenta Floorplan em:
+${AI_GUIDE_URL}
 
-  personalizado: `Crie uma planta baixa em formato YAML para a ferramenta Floorplan.
+Com base nela, gere uma planta baixa em formato YAML para o espaço abaixo.
 
-Descrição do espaço:
+Descrição:
 - Tipo: [residencial / comercial / industrial / outro]
 - Área aproximada: [ex: 80m²]
 - Cômodos necessários: [liste os cômodos]
-- Observações: [circulação, pé-direito, estilo, etc.]
+- Observações: [circulação, estilo, restrições, etc.]
 
-${SCHEMA_HINT}
-
-Gere o YAML completo respeitando essa estrutura. Não inclua explicações, apenas o YAML.`
+Gere APENAS o YAML completo, sem explicações adicionais.`
 };
 
 // Render prompt texts
@@ -1065,6 +1054,48 @@ Object.keys(PROMPTS).forEach(k => {
   const el = document.getElementById('pt-' + k);
   if (el) el.textContent = PROMPTS[k];
 });
+
+// ── Deep link buttons ──
+const OPEN_IN = [
+  {
+    id: 'chatgpt',
+    label: 'Abrir no ChatGPT',
+    icon: '⊕',
+    buildUrl: (prompt) => `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`,
+    note: null
+  },
+  {
+    id: 'claude',
+    label: 'Abrir no Claude',
+    sublabel: 'app desktop',
+    icon: '✦',
+    buildUrl: (prompt) => `claude://claude.ai/new?q=${encodeURIComponent(prompt)}`,
+    note: 'Requer Claude Desktop instalado'
+  }
+];
+
+function buildOpenInRow(promptId) {
+  const row = document.getElementById('oi-' + promptId);
+  if (!row) return;
+  OPEN_IN.forEach(btn => {
+    const a = document.createElement('a');
+    a.className = `open-in-btn ${btn.id}`;
+    a.href = btn.buildUrl(PROMPTS[promptId]);
+    a.target = btn.id === 'chatgpt' ? '_blank' : '_self';
+    a.rel = 'noopener';
+    if (btn.note) a.title = btn.note;
+    a.innerHTML = `<span class="oi-icon">${btn.icon}</span> ${btn.label}${btn.sublabel ? ` <span style="font-size:11px;opacity:.6">(${btn.sublabel})</span>` : ''}
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="opacity:.5"><path d="M2 10L10 2M5 2h5v5"/></svg>`;
+    row.appendChild(a);
+  });
+  // Note about Gemini/Claude web
+  const note = document.createElement('span');
+  note.style.cssText = 'font-size:12px;color:var(--text3);align-self:center;margin-left:4px';
+  note.textContent = 'Gemini e Claude Web: use o botão Copiar';
+  row.appendChild(note);
+}
+
+Object.keys(PROMPTS).forEach(buildOpenInRow);
 
 function switchPrompt(id, btn) {
   document.querySelectorAll('.prompt-panel').forEach(p => p.classList.remove('active'));
