@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Inter, Segoe UI, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a0f1e"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#1e293b" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.5"/>
+  <!-- logo -->
+  <g transform="translate(96,120)">
+    <rect width="84" height="84" rx="20" fill="#3b82f6"/>
+    <text x="42" y="58" font-size="46" text-anchor="middle">🏠</text>
+  </g>
+  <text x="200" y="178" font-size="46" font-weight="800" fill="#f1f5f9">Floorplan</text>
+  <!-- título -->
+  <text x="96" y="320" font-size="68" font-weight="800" fill="#f1f5f9">Editor Visual de</text>
+  <text x="96" y="400" font-size="68" font-weight="800" fill="#60a5fa">Plantas Baixas</text>
+  <!-- tagline -->
+  <text x="96" y="470" font-size="30" fill="#94a3b8">Arraste cômodos · terreno e recuos · exporte SVG/PDF/PNG · gere com IA</text>
+  <!-- url -->
+  <text x="96" y="556" font-size="26" font-weight="600" fill="#3b82f6">construtora.ai</text>
+</svg>
