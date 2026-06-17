@@ -1432,13 +1432,19 @@ function render() {
       inner.innerHTML = def.svg;
       group.appendChild(inner);
       if (isSelected) {
+        const selG = document.createElementNS('http://www.w3.org/2000/svg','g');
+        if (sym.rotation) {
+          const cx = sx + sw / 2, cy = sy + sh / 2;
+          selG.setAttribute('transform', `rotate(${sym.rotation} ${cx} ${cy})`);
+        }
         const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
         selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
         selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
         selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
         selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
         selRect.setAttribute('pointer-events','none');
-        group.appendChild(selRect);
+        selG.appendChild(selRect);
+        group.appendChild(selG);
       }
       g.appendChild(group);
     }
@@ -1591,9 +1597,9 @@ canvasWrap.addEventListener('click', e => {
       else state.selectedIds.add(sym.id);
       state.selectedId = sym.id;
     } else {
-      state.selectedId = state.selectedId === sym.id ? null : sym.id;
+      state.selectedId = sym.id;
       state.selectedIds.clear();
-      if (state.selectedId) state.selectedIds.add(state.selectedId);
+      state.selectedIds.add(sym.id);
     }
     render();
     return;
@@ -1609,9 +1615,9 @@ canvasWrap.addEventListener('click', e => {
     else state.selectedIds.add(elId);
     state.selectedId = elId;
   } else {
-    state.selectedId = state.selectedId === elId ? null : elId;
+    state.selectedId = elId;
     state.selectedIds.clear();
-    if (state.selectedId) state.selectedIds.add(state.selectedId);
+    state.selectedIds.add(elId);
   }
   render();
 });
