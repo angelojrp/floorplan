@@ -568,13 +568,23 @@ body.dark #canvas-wrap{
 [data-tooltip]{position:relative}
 [data-tooltip]:hover::after{
   content:attr(data-tooltip);
-  position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
-  background:var(--text);color:var(--surface);
-  font-size:10px;font-weight:500;
-  padding:4px 8px;border-radius:var(--radius-sm);
-  white-space:nowrap;z-index:100;pointer-events:none;
-  box-shadow:var(--shadow);
+  position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#1e293b;color:#f8fafc;
+  font-size:11px;font-weight:500;
+  padding:5px 9px;border-radius:var(--radius-sm);
+  white-space:nowrap;z-index:300;pointer-events:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  letter-spacing:0.01em;
+  animation:tip-in 0.1s ease both;
 }
+[data-tooltip]:hover::before{
+  content:'';
+  position:absolute;top:calc(100% + 1px);left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-bottom-color:#1e293b;
+  z-index:301;pointer-events:none;
+  animation:tip-in 0.1s ease both;
+}
+@keyframes tip-in{from{opacity:0;transform:translateX(-50%) translateY(-3px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* distance indicator */
 .dist-indicator{pointer-events:none;font-size:10px;fill:var(--danger)}
@@ -1028,31 +1038,34 @@ function generateSymbolId() { return 'sym_' + (state.nextSymId++); }
 // ═══════════════════════════════════════════════════
 
 function getSharedWalls(rooms) {
+  // Maps roomId → Set of wall sides that are hidden because the adjacent room
+  // already draws that wall. Only ONE side per shared boundary is suppressed
+  // (the "inner" room absorbs into the "outer" room's wall) so no gap appears.
   const shared = {};
   for (const r of rooms) shared[r.id] = new Set();
   const tol = 2; // cm tolerance
   for (let i = 0; i < rooms.length; i++) {
     for (let j = i + 1; j < rooms.length; j++) {
       const a = rooms[i], b = rooms[j];
-      // A east / B west
+      // A east / B west → A keeps its east wall, B suppresses its west wall
       if (Math.abs((a.x + a.width) - b.x) <= tol) {
         const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
-        if (bot > top + tol) { shared[a.id].add('east'); shared[b.id].add('west'); }
+        if (bot > top + tol) { shared[b.id].add('west'); }
       }
-      // B east / A west
+      // B east / A west → B keeps its east wall, A suppresses its west wall
       if (Math.abs((b.x + b.width) - a.x) <= tol) {
         const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
-        if (bot > top + tol) { shared[b.id].add('east'); shared[a.id].add('west'); }
+        if (bot > top + tol) { shared[a.id].add('west'); }
       }
-      // A south / B north
+      // A south / B north → A keeps its south wall, B suppresses its north wall
       if (Math.abs((a.y + a.height) - b.y) <= tol) {
         const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
-        if (right > left + tol) { shared[a.id].add('south'); shared[b.id].add('north'); }
+        if (right > left + tol) { shared[b.id].add('north'); }
       }
-      // B south / A north
+      // B south / A north → B keeps its south wall, A suppresses its north wall
       if (Math.abs((b.y + b.height) - a.y) <= tol) {
         const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
-        if (right > left + tol) { shared[b.id].add('south'); shared[a.id].add('north'); }
+        if (right > left + tol) { shared[a.id].add('north'); }
       }
     }
   }
