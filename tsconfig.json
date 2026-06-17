@@ -2,6 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
+    "moduleResolution": "node",
+    "isolatedModules": true,
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
