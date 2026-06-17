@@ -417,6 +417,13 @@ body.dark #canvas-wrap{
 .del-btn:hover{background:var(--danger-bg);color:var(--danger)}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
 .add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
+/* ── LAYERS PANEL ── */
+.layer-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.layer-row:last-child{border-bottom:none}
+.layer-eye{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:4px;cursor:pointer;color:var(--text3);transition:all var(--transition);flex-shrink:0;background:none}
+.layer-eye:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
+.layer-eye.active{color:var(--accent)}
+.layer-label{font-size:12px;color:var(--text2);flex:1}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
 
 /* ── STATUS BAR ── */
@@ -776,6 +783,12 @@ body.dark #canvas-wrap{
         <summary>Elétrica / Portas</summary>
         <div class="palette-grid" id="sym-electrical"></div>
       </details>
+      <div class="panel-divider"></div>
+      <!-- Layers -->
+      <div class="panel-section-label">
+        Camadas
+      </div>
+      <div id="layers-list" style="padding:0 14px 8px"></div>
     </div><!-- /left-panel-inner -->
     </div><!-- /left-panel -->
 
@@ -895,7 +908,8 @@ let state = {
   nextId: 1,
   nextSymId: 1,
   clipboard: null,
-  snapLines: []
+  snapLines: [],
+  layers: { rooms: true, walls: true, doors: true, windows: true, symbols: true }
 };
 
 let undoStack = [], redoStack = [];
@@ -968,6 +982,38 @@ function generateSymbolId() { return 'sym_' + (state.nextSymId++); }
 //  CANVAS RENDERING
 // ═══════════════════════════════════════════════════
 
+function getSharedWalls(rooms) {
+  const shared = {};
+  for (const r of rooms) shared[r.id] = new Set();
+  const tol = 2; // cm tolerance
+  for (let i = 0; i < rooms.length; i++) {
+    for (let j = i + 1; j < rooms.length; j++) {
+      const a = rooms[i], b = rooms[j];
+      // A east / B west
+      if (Math.abs((a.x + a.width) - b.x) <= tol) {
+        const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
+        if (bot > top + tol) { shared[a.id].add('east'); shared[b.id].add('west'); }
+      }
+      // B east / A west
+      if (Math.abs((b.x + b.width) - a.x) <= tol) {
+        const top = Math.max(a.y, b.y), bot = Math.min(a.y + a.height, b.y + b.height);
+        if (bot > top + tol) { shared[b.id].add('east'); shared[a.id].add('west'); }
+      }
+      // A south / B north
+      if (Math.abs((a.y + a.height) - b.y) <= tol) {
+        const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
+        if (right > left + tol) { shared[a.id].add('south'); shared[b.id].add('north'); }
+      }
+      // B south / A north
+      if (Math.abs((b.y + b.height) - a.y) <= tol) {
+        const left = Math.max(a.x, b.x), right = Math.min(a.x + a.width, b.x + b.width);
+        if (right > left + tol) { shared[b.id].add('south'); shared[a.id].add('north'); }
+      }
+    }
+  }
+  return shared;
+}
+
 function render() {
   const svg = document.getElementById('canvas-svg');
   const sc = state.scale * state.zoom;
@@ -1001,6 +1047,7 @@ function render() {
   // rooms
   const floor = getFloor();
   const rooms = floor.rooms || [];
+  const sharedWalls = getSharedWalls(rooms);
   let totalArea = 0;
   for (const room of rooms) {
     const rx = room.x * state.scale, ry = room.y * state.scale;
@@ -1014,97 +1061,112 @@ function render() {
     if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
 
     // room fill
-    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x', rx); rect.setAttribute('y', ry);
-    rect.setAttribute('width', rw); rect.setAttribute('height', rh);
-    rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
-    rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
-    rect.setAttribute('stroke-width', isSelected ? 2 : 1);
-    group.appendChild(rect);
+    if (state.layers.rooms) {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', rx); rect.setAttribute('y', ry);
+      rect.setAttribute('width', rw); rect.setAttribute('height', rh);
+      rect.setAttribute('fill', isSelected ? '#eff6ff' : (room.hatch && room.hatch !== 'solid' ? `url(#hatch-${room.hatch})` : '#fafafa'));
+      rect.setAttribute('stroke', isSelected ? '#2563eb' : '#999');
+      rect.setAttribute('stroke-width', isSelected ? 2 : 1);
+      group.appendChild(rect);
+    }
 
     // walls (4 thick border rects — top/right/bottom/left)
     const hw = wt / 2;
-    const wtop    = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wtop.setAttribute('x', rx - hw); wtop.setAttribute('y', ry - hw);
-    wtop.setAttribute('width', rw + wt); wtop.setAttribute('height', wt);
-    wtop.setAttribute('fill','#2d2d2d');
-    const wbot    = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wbot.setAttribute('x', rx - hw); wbot.setAttribute('y', ry + rh - hw);
-    wbot.setAttribute('width', rw + wt); wbot.setAttribute('height', wt);
-    wbot.setAttribute('fill','#2d2d2d');
-    const wleft   = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wleft.setAttribute('x', rx - hw); wleft.setAttribute('y', ry - hw);
-    wleft.setAttribute('width', wt); wleft.setAttribute('height', rh + wt);
-    wleft.setAttribute('fill','#2d2d2d');
-    const wright  = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    wright.setAttribute('x', rx + rw - hw); wright.setAttribute('y', ry - hw);
-    wright.setAttribute('width', wt); wright.setAttribute('height', rh + wt);
-    wright.setAttribute('fill','#2d2d2d');
-    group.appendChild(wtop); group.appendChild(wbot);
-    group.appendChild(wleft); group.appendChild(wright);
+    const sw = sharedWalls[room.id] || new Set();
+    // wall style colors
+    const wallStyle = room.wallStyle || 'alvenaria';
+    let wallFill, wallStroke, wallDash;
+    if (wallStyle === 'drywall') { wallFill = '#dde3ea'; wallStroke = '#9aa3ae'; wallDash = null; }
+    else if (wallStyle === 'vidro') { wallFill = 'rgba(147,210,240,0.6)'; wallStroke = '#70b8d4'; wallDash = '4,2'; }
+    else if (wallStyle === 'divisoria') { wallFill = '#e8e0d0'; wallStroke = '#9aa3ae'; wallDash = null; }
+    else { wallFill = '#c8cdd4'; wallStroke = '#9aa3ae'; wallDash = null; }
+
+    function makeWallRect(x, y, w, h) {
+      const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x', x); r.setAttribute('y', y);
+      r.setAttribute('width', w); r.setAttribute('height', h);
+      r.setAttribute('fill', wallFill);
+      r.setAttribute('stroke', wallStroke);
+      r.setAttribute('stroke-width', 0.5);
+      if (wallDash) r.setAttribute('stroke-dasharray', wallDash);
+      return r;
+    }
+    if (state.layers.walls) {
+      if (!sw.has('north')) group.appendChild(makeWallRect(rx - hw, ry - hw, rw + wt, wt));
+      if (!sw.has('south')) group.appendChild(makeWallRect(rx - hw, ry + rh - hw, rw + wt, wt));
+      if (!sw.has('west'))  group.appendChild(makeWallRect(rx - hw, ry - hw, wt, rh + wt));
+      if (!sw.has('east'))  group.appendChild(makeWallRect(rx + rw - hw, ry - hw, wt, rh + wt));
+    }
 
     // doors
-    for (const d of (room.doors || [])) {
-      const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
-      const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
-      const ar = swingArc(d, op.sx, op.sy, op.ex, op.ey, dw);
-      for (const a of ar) {
-        if (a.r <= 0) continue;
-        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('x1', a.cx); line.setAttribute('y1', a.cy);
-        line.setAttribute('x2', a.x2); line.setAttribute('y2', a.y2);
-        line.setAttribute('stroke','#2d2d2d'); line.setAttribute('stroke-width',1.8);
-        doorG.appendChild(line);
-        const arc = document.createElementNS('http://www.w3.org/2000/svg','path');
-        arc.setAttribute('d', `M${a.x1},${a.y1}A${a.r},${a.r} 0 0 ${a.sweep} ${a.x2},${a.y2}`);
-        arc.setAttribute('fill','none'); arc.setAttribute('stroke','#555');
-        arc.setAttribute('stroke-width',1.2); arc.setAttribute('stroke-dasharray','5 4');
-        doorG.appendChild(arc);
+    if (state.layers.doors) {
+      for (const d of (room.doors || [])) {
+        const doorG = document.createElementNS('http://www.w3.org/2000/svg','g');
+        const op = openingOnWall(d.wall, rx, ry, rw, rh, d.offset * state.scale, d.width * state.scale);
+        const dw = (d.wall==='north'||d.wall==='south') ? op.ex - op.sx : op.ey - op.sy;
+        const ar = swingArc(d, op.sx, op.sy, op.ex, op.ey, dw);
+        for (const a of ar) {
+          if (a.r <= 0) continue;
+          const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1', a.cx); line.setAttribute('y1', a.cy);
+          line.setAttribute('x2', a.x2); line.setAttribute('y2', a.y2);
+          line.setAttribute('stroke','#2d2d2d'); line.setAttribute('stroke-width',1.8);
+          doorG.appendChild(line);
+          const arc = document.createElementNS('http://www.w3.org/2000/svg','path');
+          arc.setAttribute('d', `M${a.x1},${a.y1}A${a.r},${a.r} 0 0 ${a.sweep} ${a.x2},${a.y2}`);
+          arc.setAttribute('fill','none'); arc.setAttribute('stroke','#555');
+          arc.setAttribute('stroke-width',1.2); arc.setAttribute('stroke-dasharray','5 4');
+          doorG.appendChild(arc);
+        }
+        // wall gap
+        const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        if (d.wall==='north'||d.wall==='south') {
+          gap.setAttribute('x', op.sx); gap.setAttribute('y', (d.wall==='north'?ry:ry+rh)-hw);
+          gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
+        } else {
+          gap.setAttribute('x', (d.wall==='west'?rx:rx+rw)-hw);
+          gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
+          gap.setAttribute('height', op.ey-op.sy);
+        }
+        gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
+        group.appendChild(doorG);
       }
-      // wall gap
-      const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      if (d.wall==='north'||d.wall==='south') {
-        gap.setAttribute('x', op.sx); gap.setAttribute('y', (d.wall==='north'?ry:ry+rh)-hw);
-        gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
-      } else {
-        gap.setAttribute('x', (d.wall==='west'?rx:rx+rw)-hw);
-        gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
-        gap.setAttribute('height', op.ey-op.sy);
-      }
-      gap.setAttribute('fill','#fafafa'); doorG.appendChild(gap);
-      group.appendChild(doorG);
     }
 
     // windows
-    for (const w of (room.windows || [])) {
-      const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
-      const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      if (w.wall==='north'||w.wall==='south') {
-        gap.setAttribute('x', op.sx); gap.setAttribute('y', (w.wall==='north'?ry:ry+rh)-hw);
-        gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
-      } else {
-        gap.setAttribute('x', (w.wall==='west'?rx:rx+rw)-hw);
-        gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
-        gap.setAttribute('height', op.ey-op.sy);
+    if (state.layers.windows) {
+      for (const w of (room.windows || [])) {
+        const winG = document.createElementNS('http://www.w3.org/2000/svg','g');
+        const op = openingOnWall(w.wall, rx, ry, rw, rh, w.offset * state.scale, w.width * state.scale);
+        const gap = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        if (w.wall==='north'||w.wall==='south') {
+          gap.setAttribute('x', op.sx); gap.setAttribute('y', (w.wall==='north'?ry:ry+rh)-hw);
+          gap.setAttribute('width', op.ex-op.sx); gap.setAttribute('height', wt);
+        } else {
+          gap.setAttribute('x', (w.wall==='west'?rx:rx+rw)-hw);
+          gap.setAttribute('y', op.sy); gap.setAttribute('width', wt);
+          gap.setAttribute('height', op.ey-op.sy);
+        }
+        gap.setAttribute('fill','#fafafa'); winG.appendChild(gap);
+        const frame = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        frame.setAttribute('x', gap.getAttribute('x')); frame.setAttribute('y', gap.getAttribute('y'));
+        frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
+        frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
+        winG.appendChild(frame);
+        group.appendChild(winG);
       }
-      gap.setAttribute('fill','#fafafa'); winG.appendChild(gap);
-      const frame = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      frame.setAttribute('x', gap.getAttribute('x')); frame.setAttribute('y', gap.getAttribute('y'));
-      frame.setAttribute('width', gap.getAttribute('width')); frame.setAttribute('height', gap.getAttribute('height'));
-      frame.setAttribute('fill','none'); frame.setAttribute('stroke','#4a90d9'); frame.setAttribute('stroke-width',1.5);
-      winG.appendChild(frame);
-      group.appendChild(winG);
     }
 
     // label
-    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-    label.setAttribute('x', rx + rw/2); label.setAttribute('y', ry + rh/2);
-    label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','middle');
-    label.setAttribute('font-size', Math.min(14, rw/20)); label.setAttribute('font-weight','600');
-    label.setAttribute('fill','#1a1a2e'); label.textContent = room.name;
-    group.appendChild(label);
+    if (state.layers.rooms) {
+      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x', rx + rw/2); label.setAttribute('y', ry + rh/2);
+      label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','middle');
+      label.setAttribute('font-size', Math.min(14, rw/20)); label.setAttribute('font-weight','600');
+      label.setAttribute('fill','#1a1a2e'); label.textContent = room.name;
+      group.appendChild(label);
+    }
 
     // resize handles (se selecionado)
     if (state.selectedId === room.id && state.tool === 'select') {
@@ -1192,32 +1254,34 @@ function render() {
   }
 
   // symbols (overlay on floor plan)
-  for (const sym of state.symbols) {
-    const def = SYMBOLS[sym.type];
-    if (!def) continue;
-    const sx = sym.x * state.scale, sy = sym.y * state.scale;
-    const sw = sym.w * state.scale, sh = sym.h * state.scale;
-    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
-    group.setAttribute('data-id', sym.id);
-    group.style.cursor = state.tool === 'select' ? 'move' : 'default';
-    const isSelected = state.selectedIds.has(sym.id);
-    if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
-    const inner = document.createElementNS('http://www.w3.org/2000/svg','g');
-    const scX = sw / def.w, scY = sh / def.h;
-    const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
-    inner.setAttribute('transform', `translate(${sx},${sy}) scale(${scX},${scY})${rot}`);
-    inner.innerHTML = def.svg;
-    group.appendChild(inner);
-    if (isSelected) {
-      const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
-      selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
-      selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
-      selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
-      selRect.setAttribute('pointer-events','none');
-      group.appendChild(selRect);
+  if (state.layers.symbols) {
+    for (const sym of state.symbols) {
+      const def = SYMBOLS[sym.type];
+      if (!def) continue;
+      const sx = sym.x * state.scale, sy = sym.y * state.scale;
+      const sw = sym.w * state.scale, sh = sym.h * state.scale;
+      const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+      group.setAttribute('data-id', sym.id);
+      group.style.cursor = state.tool === 'select' ? 'move' : 'default';
+      const isSelected = state.selectedIds.has(sym.id);
+      if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
+      const inner = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const scX = sw / def.w, scY = sh / def.h;
+      const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
+      inner.setAttribute('transform', `translate(${sx},${sy}) scale(${scX},${scY})${rot}`);
+      inner.innerHTML = def.svg;
+      group.appendChild(inner);
+      if (isSelected) {
+        const selRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        selRect.setAttribute('x', sx - 2); selRect.setAttribute('y', sy - 2);
+        selRect.setAttribute('width', sw + 4); selRect.setAttribute('height', sh + 4);
+        selRect.setAttribute('fill','none'); selRect.setAttribute('stroke','#2563eb');
+        selRect.setAttribute('stroke-width',1.5); selRect.setAttribute('stroke-dasharray','4 2');
+        selRect.setAttribute('pointer-events','none');
+        group.appendChild(selRect);
+      }
+      g.appendChild(group);
     }
-    g.appendChild(group);
   }
 
   // status
@@ -1231,6 +1295,7 @@ function render() {
   if (emptyEl) emptyEl.style.display = isEmpty ? 'flex' : 'none';
 
   renderProperties();
+  renderLayers();
   updateMinimap();
   updateFloorTabs();
 }
@@ -1845,6 +1910,16 @@ function renderProperties() {
   html += `<div class="prop-group"><label>🔲 Hachura</label><select onchange="updateProp('hatch',this.value)">
     ${hatchOptions.map(o => `<option value="${o.v}" ${(room.hatch||'')===o.v?'selected':''}>${o.l}</option>`).join('')}
   </select></div>`;
+
+  // wall style
+  html += `<div class="prop-group"><label>Estilo de parede</label>
+    <select onchange="updateProp('wallStyle',this.value)">
+      <option value="alvenaria" ${(room.wallStyle==='alvenaria'||!room.wallStyle)?'selected':''}>Alvenaria</option>
+      <option value="drywall" ${room.wallStyle==='drywall'?'selected':''}>Drywall</option>
+      <option value="vidro" ${room.wallStyle==='vidro'?'selected':''}>Vidro</option>
+      <option value="divisoria" ${room.wallStyle==='divisoria'?'selected':''}>Divisória</option>
+    </select>
+  </div>`;
 
   html += `<div class="prop-group"><label>Área</label><strong>${(room.width*room.height/10000).toFixed(1)} m²</strong></div>`;
 
