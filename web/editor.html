@@ -2719,54 +2719,58 @@ function newProject() {
 //  IMPORT / EXPORT
 // ═══════════════════════════════════════════════════
 
+function loadYAMLString(text, titleHint) {
+  const raw = jsyaml.load(text);
+  state.title = raw.title || titleHint || '';
+  state.scale = raw.scale || DEFAULT_SCALE;
+  state.wallThickness = raw.wallThickness || 15;
+  state.gridSize = raw.grid || 100;
+  state.gridVisible = raw.grid !== false;
+
+  if (raw.floors) {
+    state.floors = raw.floors.map(f => ({
+      id: f.id || 'floor_' + (state.nextId++),
+      name: f.name || 'Pavimento',
+      level: f.level || 0,
+      rooms: (f.rooms || []).map(r => ({
+        id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+        width: r.width||300, height: r.height||300,
+        doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+        windows: r.windows || [],
+        hatch: r.hatch
+      })),
+      stairs: (f.stairs || []).map(s => ({
+        id: 'stair_' + (state.nextId++), x: s.x||0, y: s.y||0,
+        width: s.width||100, height: s.height||250,
+        direction: s.direction||'up', connectsTo: s.connectsTo||''
+      }))
+    }));
+  } else if (raw.rooms) {
+    state.floors = [{
+      id: 'terreo', name: 'Térreo', level: 0,
+      rooms: raw.rooms.map(r => ({
+        id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
+        width: r.width||300, height: r.height||300,
+        doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
+        windows: r.windows || [],
+        hatch: r.hatch
+      })),
+      stairs: []
+    }];
+  }
+  state.activeFloor = state.floors[0].id;
+  undoStack=[]; redoStack=[]; state.selectedId=null;
+  document.getElementById('file-name').textContent = '📂 ' + (state.title || 'Planta');
+  document.getElementById('global-title').value = state.title;
+  render();
+}
+
 function importYAML() {
   const input = document.createElement('input'); input.type='file'; input.accept='.yaml,.yml';
   input.onchange = async e => {
     const text = await e.target.files[0].text();
     try {
-      const raw = jsyaml.load(text);
-      state.title = raw.title || '';
-      state.scale = raw.scale || DEFAULT_SCALE;
-      state.wallThickness = raw.wallThickness || 15;
-      state.gridSize = raw.grid || 100;
-      state.gridVisible = raw.grid !== false;
-
-      if (raw.floors) {
-        state.floors = raw.floors.map(f => ({
-          id: f.id || 'floor_' + (state.nextId++),
-          name: f.name || 'Pavimento',
-          level: f.level || 0,
-          rooms: (f.rooms || []).map(r => ({
-            id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
-            width: r.width||300, height: r.height||300,
-            doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
-            windows: r.windows || [],
-            hatch: r.hatch
-          })),
-          stairs: (f.stairs || []).map(s => ({
-            id: 'stair_' + (state.nextId++), x: s.x||0, y: s.y||0,
-            width: s.width||100, height: s.height||250,
-            direction: s.direction||'up', connectsTo: s.connectsTo||''
-          }))
-        }));
-      } else if (raw.rooms) {
-        state.floors = [{
-          id: 'terreo', name: 'Térreo', level: 0,
-          rooms: raw.rooms.map(r => ({
-            id: generateId(), name: r.name || 'Cômodo', x: r.x||0, y: r.y||0,
-            width: r.width||300, height: r.height||300,
-            doors: (r.doors||[]).map(d => ({...d, type:d.type||'pivot', swing:d.swing||'left'})),
-            windows: r.windows || [],
-            hatch: r.hatch
-          })),
-          stairs: []
-        }];
-      }
-      state.activeFloor = state.floors[0].id;
-      undoStack=[]; redoStack=[]; state.selectedId=null;
-      document.getElementById('file-name').textContent = '📂 ' + (e.target.files[0].name);
-      document.getElementById('global-title').value = state.title;
-      render();
+      loadYAMLString(text, e.target.files[0].name);
       toast('📥 Projeto carregado!');
     } catch(err) { toast('❌ Erro: '+err.message); }
   };
@@ -3270,7 +3274,12 @@ initPalette();
 initSymbolPalette();
 document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
 document.getElementById('grid-step').value = state.gridSize;
-if (!loadAutoSave()) {
+const _templateYaml = localStorage.getItem('floorplan-load-template');
+if (_templateYaml) {
+  localStorage.removeItem('floorplan-load-template');
+  try { loadYAMLString(_templateYaml); toast('📐 Template carregado!'); }
+  catch(e) { loadAutoSave() || state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] }); }
+} else if (!loadAutoSave()) {
   // default starter room
   state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
 }
