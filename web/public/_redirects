@@ -1,3 +1,3 @@
-/            /editor/index.html      200
-/playground  /playground/index.html  200
-/*           /editor/index.html      200
+# landing fica em / (web/index.html). Redireciona bookmarks antigos:
+/editor.html      /editor/      301
+/playground.html  /playground/  301

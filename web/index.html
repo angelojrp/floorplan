@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floorplan — Editor Visual de Plantas Baixas</title>
+<meta name="description" content="Crie plantas baixas de forma visual, no estilo draw.io. Arraste cômodos, adicione portas e janelas, exporte em SVG, PDF ou YAML.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1e;--surface:#111827;--surface2:#1a2236;--surface3:#0f172a;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.12);
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --accent:#3b82f6;--accent2:#60a5fa;--accent-glow:rgba(59,130,246,0.35);
+  --green:#22c55e;--purple:#a855f7;--orange:#f97316;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;background:rgba(10,15,30,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:17px}
+.nav-logo-icon{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px var(--accent-glow)}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-link{color:var(--text2);text-decoration:none;font-size:14px;font-weight:500;padding:6px 14px;border-radius:8px;transition:color .15s,background .15s}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,0.06)}
+.nav-cta{background:var(--accent);color:#fff;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:background .15s,box-shadow .15s}
+.nav-cta:hover{background:#2563eb;box-shadow:0 0 20px var(--accent-glow)}
+
+/* Hero */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 24px 80px;text-align:center;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(59,130,246,.18) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 80% 80%,rgba(168,85,247,.1) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 10% 90%,rgba(34,197,94,.07) 0%,transparent 60%);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 0%,transparent 100%);pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:var(--accent2);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:5px 14px;border-radius:100px;margin-bottom:28px}
+.badge-dot{width:6px;height:6px;background:var(--accent2);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+h1{font-size:clamp(2.6rem,7vw,5rem);font-weight:800;line-height:1.08;letter-spacing:-.03em;margin-bottom:24px;max-width:900px}
+h1 span{background:linear-gradient(135deg,#60a5fa 0%,#a855f7 50%,#3b82f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(1rem,2vw,1.2rem);color:var(--text2);max-width:600px;margin-bottom:44px;line-height:1.75}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:70px}
+.btn-primary{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;background:var(--accent);color:#fff;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;box-shadow:0 0 40px var(--accent-glow);transition:background .15s,box-shadow .15s,transform .1s}
+.btn-primary:hover{background:#2563eb;box-shadow:0 0 60px var(--accent-glow);transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border);border-radius:12px;font-size:15px;font-weight:600;text-decoration:none;transition:background .15s,border-color .15s}
+.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}
+
+/* Preview */
+.hero-preview{position:relative;width:100%;max-width:1000px;margin:0 auto}
+.preview-chrome{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.04) inset}
+.preview-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}
+.preview-dot{width:10px;height:10px;border-radius:50%}
+.preview-dot.r{background:#ff5f57}.preview-dot.y{background:#febc2e}.preview-dot.g{background:#28c840}
+.preview-url{flex:1;margin:0 12px;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 12px;font-size:11px;color:var(--text3);text-align:center}
+.preview-svg{width:100%;display:block}
+
+/* Stats */
+.stats{display:flex;flex-wrap:wrap;justify-content:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface)}
+.stat{flex:1;min-width:160px;padding:32px 24px;text-align:center;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-num{font-size:2rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:6px}
+.stat-num span{color:var(--accent)}
+.stat-label{font-size:13px;color:var(--text3)}
+
+/* Sections */
+section{padding:100px 24px}
+.section-inner{max-width:1100px;margin:0 auto}
+.section-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.section-title{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-bottom:16px}
+.section-sub{font-size:1rem;color:var(--text2);max-width:560px;line-height:1.7}
+
+/* Projects section */
+.projects-section{padding:80px 24px;background:var(--surface3)}
+.saved-card{background:var(--surface2);border:1px solid var(--border2);border-radius:16px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:40px;transition:border-color .2s}
+.saved-card:hover{border-color:var(--accent)}
+.saved-card-info{display:flex;align-items:center;gap:16px}
+.saved-icon{width:48px;height:48px;background:rgba(59,130,246,.12);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.saved-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:3px}
+.saved-meta{font-size:13px;color:var(--text3)}
+.saved-empty{font-size:14px;color:var(--text3);text-align:center;padding:32px;border:1px dashed var(--border);border-radius:12px;margin-bottom:40px}
+
+/* Templates grid */
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:20px}
+.tmpl-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;text-decoration:none;display:block}
+.tmpl-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.tmpl-thumb{height:110px;display:flex;align-items:center;justify-content:center;font-size:40px;background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(168,85,247,.08))}
+.tmpl-body{padding:14px 16px}
+.tmpl-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.tmpl-desc{font-size:12px;color:var(--text3);line-height:1.5}
+.tmpl-tag{display:inline-block;margin-top:8px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent2);background:rgba(59,130,246,.12);padding:2px 8px;border-radius:100px}
+
+/* Features */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:56px}
+.feat{background:var(--bg);padding:36px 32px;transition:background .2s}
+.feat:hover{background:var(--surface2)}
+.feat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:20px}
+.feat-icon.blue{background:rgba(59,130,246,.15);color:#60a5fa}
+.feat-icon.purple{background:rgba(168,85,247,.15);color:#c084fc}
+.feat-icon.green{background:rgba(34,197,94,.15);color:#4ade80}
+.feat-icon.orange{background:rgba(249,115,22,.15);color:#fb923c}
+.feat-icon.pink{background:rgba(236,72,153,.15);color:#f472b6}
+.feat-icon.cyan{background:rgba(6,182,212,.15);color:#22d3ee}
+.feat h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.feat p{font-size:14px;color:var(--text2);line-height:1.65}
+
+/* How it works */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:40px;margin-top:60px}
+.step{position:relative;text-align:center;padding:0 16px}
+.step-num{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(168,85,247,.2));border:1px solid rgba(59,130,246,.3);color:var(--accent2);margin:0 auto 20px}
+.step h3{font-size:15px;font-weight:700;margin-bottom:8px}
+.step p{font-size:14px;color:var(--text2);line-height:1.65}
+.step-connector{position:absolute;top:26px;left:calc(50% + 36px);width:calc(100% - 72px);height:1px;background:linear-gradient(90deg,rgba(59,130,246,.4),rgba(168,85,247,.2))}
+.step:last-child .step-connector{display:none}
+
+/* AI Prompt section */
+.ai-section{padding:100px 24px;background:var(--surface3)}
+.prompt-tabs{display:flex;gap:8px;margin:28px 0 20px;flex-wrap:wrap}
+.ptab{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--border);color:var(--text2);background:transparent;cursor:pointer;transition:all .15s}
+.ptab:hover{border-color:var(--border2);color:var(--text)}
+.ptab.active{background:rgba(59,130,246,.12);border-color:var(--accent);color:var(--accent2)}
+.prompt-box{position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.prompt-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.prompt-lang{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
+.copy-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:var(--accent2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.copy-btn:hover{background:rgba(59,130,246,.2)}
+.copy-btn.copied{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#4ade80}
+.prompt-text{padding:20px 22px;font-family:'Courier New',monospace;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;max-height:360px;overflow-y:auto}
+.prompt-text::-webkit-scrollbar{width:6px}.prompt-text::-webkit-scrollbar-track{background:transparent}.prompt-text::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.prompt-panel{display:none}.prompt-panel.active{display:block}
+.ai-logos{display:flex;gap:16px;margin-top:28px;flex-wrap:wrap}
+.ai-logo-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;font-size:13px;font-weight:600;color:var(--text2)}
+.ai-logo-pill span{font-size:16px}
+.open-in-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.open-in-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid var(--border);color:var(--text2);background:var(--surface2);transition:all .15s;cursor:pointer}
+.open-in-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface3)}
+.open-in-btn.chatgpt:hover{border-color:rgba(16,163,127,.5);color:#10a37f;background:rgba(16,163,127,.07)}
+.open-in-btn.claude:hover{border-color:rgba(210,140,90,.5);color:#d28c5a;background:rgba(210,140,90,.07)}
+.open-in-btn .oi-icon{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.guide-link{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;color:var(--accent2);text-decoration:none;padding:6px 12px;border:1px solid rgba(59,130,246,.25);border-radius:8px;background:rgba(59,130,246,.07);width:fit-content}
+.guide-link:hover{background:rgba(59,130,246,.14)}
+
+/* CTA */
+.cta-section{padding:100px 24px;text-align:center;position:relative;overflow:hidden}
+.cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 50% 50%,rgba(59,130,246,.12) 0%,transparent 70%);pointer-events:none}
+.cta-section h2{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-.03em;margin-bottom:16px}
+.cta-section p{font-size:1.05rem;color:var(--text2);margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:40px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;font-size:13px;color:var(--text3)}
+footer a{color:var(--text3);text-decoration:none}
+footer a:hover{color:var(--accent)}
+.footer-links{display:flex;gap:20px}
+
+/* Animations */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:640px){
+  nav{padding:0 20px}
+  .nav-links .nav-link{display:none}
+  .stats .stat{min-width:50%}
+  .step-connector{display:none}
+  footer{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-icon">🏠</div>
+    Floorplan
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#projetos">Projetos</a>
+    <a class="nav-link" href="#features">Funcionalidades</a>
+    <a class="nav-link" href="#ia">Gerar com IA</a>
+    <a class="nav-link" href="playground/">Playground</a>
+    <a class="nav-cta" href="editor/">Abrir Editor →</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="badge"><span class="badge-dot"></span> Editor Visual Gratuito</div>
+  <h1>Crie plantas baixas<br><span>sem complicação</span></h1>
+  <p class="hero-sub">Editor visual no estilo draw.io para criar plantas baixas profissionais. Arraste cômodos, adicione portas e janelas, exporte em SVG, PDF ou YAML.</p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="editor/">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="10" height="10" rx="1.5"/><rect x="7" y="3" width="10" height="10" rx="1.5" opacity="0.5"/></svg>
+      Abrir Editor Visual
+    </a>
+    <a class="btn-secondary" href="playground/">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="4,6 2,8 4,10"/><polyline points="12,6 14,8 12,10"/><line x1="9" y1="4" x2="7" y2="12"/></svg>
+      Playground YAML
+    </a>
+  </div>
+
+  <div class="hero-preview fade-up visible">
+    <div class="preview-chrome">
+      <div class="preview-bar">
+        <div class="preview-dot r"></div><div class="preview-dot y"></div><div class="preview-dot g"></div>
+        <div class="preview-url">floorplan · Editor Visual</div>
+      </div>
+      <svg class="preview-svg" viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg">
+        <rect width="900" height="480" fill="#0f1623"/>
+        <defs>
+          <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="15" cy="15" r=".8" fill="rgba(255,255,255,0.1)"/></pattern>
+          <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/></filter>
+        </defs>
+        <rect width="900" height="480" fill="url(#grid)"/>
+        <rect x="0" y="0" width="160" height="480" fill="#111827" opacity=".9"/>
+        <text x="14" y="24" fill="#64748b" font-size="9" font-family="Inter,sans-serif" font-weight="600" letter-spacing="0.08em">CÔMODOS</text>
+        <rect x="10" y="34" width="65" height="36" rx="6" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="42" y="52" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif" text-anchor="middle">🛋️</text><text x="42" y="63" fill="#64748b" font-size="8" font-family="Inter,sans-serif" text-anchor="middle">Sala</text>
+        <rect x="85" y="34" width="65" height="36" rx="6" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="117" y="52" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif" text-anchor="middle">🛏️</text><text x="117" y="63" fill="#64748b" font-size="8" font-family="Inter,sans-serif" text-anchor="middle">Quarto</text>
+        <rect x="10" y="78" width="65" height="36" rx="6" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="42" y="96" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif" text-anchor="middle">🍳</text><text x="42" y="107" fill="#64748b" font-size="8" font-family="Inter,sans-serif" text-anchor="middle">Cozinha</text>
+        <rect x="85" y="78" width="65" height="36" rx="6" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="117" y="96" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif" text-anchor="middle">🚿</text><text x="117" y="107" fill="#64748b" font-size="8" font-family="Inter,sans-serif" text-anchor="middle">Banheiro</text>
+        <g filter="url(#shadow)"><rect x="190" y="60" width="260" height="200" rx="2" fill="#e8ecf0" stroke="#9ca3af" stroke-width="12"/><rect x="196" y="66" width="248" height="188" fill="#f1f5f9"/><text x="320" y="165" fill="#374151" font-size="14" font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">Sala</text><text x="320" y="181" fill="#9ca3af" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">5.2 × 4.0 m</text><rect x="280" y="254" width="60" height="6" fill="#fff"/><path d="M280,260 Q310,230 340,260" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="3 2"/><rect x="270" y="57" width="80" height="6" fill="#bae6fd"/><line x1="310" y1="57" x2="310" y2="63" stroke="#7dd3fc" stroke-width="1"/></g>
+        <g filter="url(#shadow)"><rect x="450" y="60" width="220" height="200" rx="2" fill="#e8ecf0" stroke="#9ca3af" stroke-width="12"/><rect x="456" y="66" width="208" height="188" fill="#eff6ff"/><rect x="448" y="58" width="224" height="204" rx="3" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5 3"/><text x="560" y="165" fill="#1d4ed8" font-size="14" font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">Quarto</text><text x="560" y="181" fill="#93c5fd" font-size="10" font-family="Inter,sans-serif" text-anchor="middle">4.4 × 4.0 m</text><rect x="510" y="57" width="80" height="6" fill="#bae6fd"/><line x1="550" y1="57" x2="550" y2="63" stroke="#7dd3fc" stroke-width="1"/></g>
+        <g filter="url(#shadow)"><rect x="190" y="260" width="160" height="160" rx="2" fill="#e8ecf0" stroke="#9ca3af" stroke-width="12"/><rect x="196" y="266" width="148" height="148" fill="#f0fdf4"/><text x="270" y="348" fill="#374151" font-size="13" font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">Cozinha</text></g>
+        <g filter="url(#shadow)"><rect x="350" y="260" width="100" height="160" rx="2" fill="#e8ecf0" stroke="#9ca3af" stroke-width="12"/><rect x="356" y="266" width="88" height="148" fill="#f0f9ff"/><text x="400" y="348" fill="#374151" font-size="11" font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">Banho</text></g>
+        <line x1="450" y1="340" x2="670" y2="340" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 2"/><line x1="450" y1="334" x2="450" y2="346" stroke="#f59e0b" stroke-width="1"/><line x1="670" y1="334" x2="670" y2="346" stroke="#f59e0b" stroke-width="1"/><rect x="534" y="330" width="44" height="16" rx="4" fill="#1f2937"/><text x="556" y="342" fill="#f59e0b" font-size="9" font-family="Inter,sans-serif" text-anchor="middle">440 cm</text>
+        <rect x="710" y="0" width="190" height="480" fill="#111827" opacity=".9"/>
+        <text x="726" y="24" fill="#64748b" font-size="9" font-family="Inter,sans-serif" font-weight="600" letter-spacing="0.08em">PROPRIEDADES</text>
+        <text x="726" y="50" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif">🏠 Quarto</text>
+        <rect x="722" y="62" width="80" height="28" rx="5" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="731" y="79" fill="#64748b" font-size="8" font-family="Inter,sans-serif">X  440</text>
+        <rect x="810" y="62" width="74" height="28" rx="5" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="819" y="79" fill="#64748b" font-size="8" font-family="Inter,sans-serif">Y  60</text>
+        <rect x="722" y="98" width="80" height="28" rx="5" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="731" y="115" fill="#64748b" font-size="8" font-family="Inter,sans-serif">W  440</text>
+        <rect x="810" y="98" width="74" height="28" rx="5" fill="#1e293b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><text x="819" y="115" fill="#64748b" font-size="8" font-family="Inter,sans-serif">H  400</text>
+        <rect x="160" y="0" width="550" height="44" fill="#111827" opacity=".95"/>
+        <rect x="170" y="10" width="28" height="24" rx="5" fill="#1e293b"/><rect x="206" y="10" width="28" height="24" rx="5" fill="#1e293b"/><rect x="242" y="10" width="28" height="24" rx="5" fill="rgba(59,130,246,.25)" stroke="#3b82f6" stroke-width="1"/><rect x="278" y="10" width="28" height="24" rx="5" fill="#1e293b"/><rect x="314" y="10" width="28" height="24" rx="5" fill="#1e293b"/><rect x="400" y="10" width="70" height="24" rx="5" fill="#3b82f6"/><text x="435" y="25" fill="#fff" font-size="9" font-family="Inter,sans-serif" text-anchor="middle" font-weight="600">Exportar ▾</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat fade-up"><div class="stat-num"><span>∞</span></div><div class="stat-label">Projetos gratuitos</div></div>
+  <div class="stat fade-up"><div class="stat-num">3<span>+</span></div><div class="stat-label">Formatos de exportação</div></div>
+  <div class="stat fade-up"><div class="stat-num">50<span>+</span></div><div class="stat-label">Símbolos de mobília</div></div>
+  <div class="stat fade-up"><div class="stat-num"><span>✓</span></div><div class="stat-label">Open source · MIT</div></div>
+</div>
+
+<!-- Projects + Templates -->
+<section class="projects-section" id="projetos">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Projetos</div>
+      <h2 class="section-title">Continue de onde parou</h2>
+      <p class="section-sub">Seu projeto é salvo automaticamente no navegador. Escolha um template para começar do zero.</p>
+    </div>
+
+    <!-- Saved project from localStorage -->
+    <div id="saved-project-wrap" class="fade-up" style="margin-top:40px">
+      <div id="saved-project-card" class="saved-card" style="display:none">
+        <div class="saved-card-info">
+          <div class="saved-icon">💾</div>
+          <div>
+            <div class="saved-title" id="saved-title">Sem título</div>
+            <div class="saved-meta" id="saved-meta">Salvo no navegador</div>
+          </div>
+        </div>
+        <a href="editor/" class="btn-primary" style="white-space:nowrap;padding:10px 20px;font-size:14px">
+          Continuar editando →
+        </a>
+      </div>
+      <div id="no-saved" class="saved-empty">
+        <span style="font-size:24px;display:block;margin-bottom:8px">💾</span>
+        Nenhum projeto salvo ainda. Crie um abaixo ou abra o editor para começar.
+      </div>
+    </div>
+
+    <!-- Templates -->
+    <div class="fade-up" style="margin-top:48px">
+      <p style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:16px">Templates prontos</p>
+      <div class="templates-grid" id="templates-grid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Funcionalidades</div>
+      <h2 class="section-title">Tudo que você precisa<br>para projetar</h2>
+      <p class="section-sub">Do esboço rápido à planta técnica — sem instalar nada, sem precisar de conta.</p>
+    </div>
+    <div class="features-grid fade-up">
+      <div class="feat">
+        <div class="feat-icon blue"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="8" height="10" rx="1"/><rect x="10" y="3" width="8" height="10" rx="1"/></svg></div>
+        <h3>Drag &amp; Drop Visual</h3>
+        <p>Arraste cômodos do painel, posicione no canvas e redimensione com alças. Snapping inteligente alinha automaticamente com outros cômodos.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon purple"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h8"/><circle cx="16" cy="14" r="3"/></svg></div>
+        <h3>Editor YAML</h3>
+        <p>Prefere código? Use o modo YAML com autocomplete e validação em tempo real. Importe e exporte arquivos YAML para integrar com IAs.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4h5v5H4zM11 4h5v5h-5zM4 11h5v5H4zM11 11h5v5h-5z"/></svg></div>
+        <h3>Múltiplos Pavimentos</h3>
+        <p>Crie plantas com quantos andares precisar. Gerencie cada pavimento em abas independentes com escadas automáticas.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><polyline points="7,9 10,12 17,5"/></svg></div>
+        <h3>Exportação Completa</h3>
+        <p>Exporte em SVG vetorial, PDF com escala e margens, PNG em alta resolução ou DXF para AutoCAD/Revit. Também YAML para backup.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon pink"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg></div>
+        <h3>Portas &amp; Janelas</h3>
+        <p>Insira portas e janelas com um clique na parede. Arraste ao longo da parede para reposicionar. Visualização automática do arco de abertura.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon cyan"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 10s3-7 8-7 8 7 8 7-3 7-8 7-8-7-8-7z"/><circle cx="10" cy="10" r="3"/></svg></div>
+        <h3>Auto-save Local</h3>
+        <p>Seu projeto é salvo automaticamente no navegador a cada alteração. Volte quando quiser e continue de onde parou, sem precisar de conta.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="como-funciona" style="background:var(--surface);padding:100px 24px">
+  <div class="section-inner">
+    <div class="fade-up" style="text-align:center">
+      <div class="section-tag">Como funciona</div>
+      <h2 class="section-title">Simples, rápido e intuitivo</h2>
+      <p class="section-sub" style="margin:0 auto">Em menos de 5 minutos você tem sua planta pronta.</p>
+    </div>
+    <div class="steps fade-up">
+      <div class="step"><div class="step-num">1</div><h3>Escolha um cômodo</h3><p>Selecione no painel lateral e arraste para o canvas. Ou use a ferramenta de desenho livre.</p><div class="step-connector"></div></div>
+      <div class="step"><div class="step-num">2</div><h3>Posicione e ajuste</h3><p>Mova, redimensione e encaixe os cômodos com snapping automático nas paredes.</p><div class="step-connector"></div></div>
+      <div class="step"><div class="step-num">3</div><h3>Adicione detalhes</h3><p>Insira portas, janelas e mobília. Configure propriedades no painel lateral.</p><div class="step-connector"></div></div>
+      <div class="step"><div class="step-num">4</div><h3>Exporte</h3><p>Baixe em SVG, PDF, PNG ou YAML. Pronto para apresentação ou uso técnico.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- AI Prompt -->
+<section class="ai-section" id="ia">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-tag">Gerar com IA</div>
+      <h2 class="section-title">Descreva sua planta,<br>a IA gera o YAML</h2>
+      <p class="section-sub">Copie um dos prompts abaixo, cole no seu chat favorito de IA, descreva sua planta e importe o YAML gerado no editor.</p>
+      <div class="ai-logos">
+        <div class="ai-logo-pill"><span>✦</span> Claude</div>
+        <div class="ai-logo-pill"><span>⊕</span> ChatGPT</div>
+        <div class="ai-logo-pill"><span>◈</span> Gemini</div>
+        <div class="ai-logo-pill"><span>◆</span> Qualquer IA</div>
+      </div>
+      <a class="guide-link" href="https://raw.githubusercontent.com/angelojrp/floorplan/refs/heads/main/docs/AI_GUIDE.md" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M14 9v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5"/><polyline points="10,1 15,1 15,6"/><line x1="6" y1="10" x2="15" y2="1"/></svg>
+        Ver AI_GUIDE.md — documentação completa do schema para IAs
+      </a>
+    </div>
+
+    <div class="fade-up" style="margin-top:48px">
+      <div class="prompt-tabs">
+        <button class="ptab active" onclick="switchPrompt('residencial',this)">🏠 Residencial</button>
+        <button class="ptab" onclick="switchPrompt('comercial',this)">🏢 Comercial</button>
+        <button class="ptab" onclick="switchPrompt('personalizado',this)">✏️ Personalizado</button>
+      </div>
+
+      <div class="prompt-panel active" id="pp-residencial">
+        <div class="prompt-box">
+          <div class="prompt-header">
+            <span class="prompt-lang">Prompt pronto — edite o placeholder e envie</span>
+            <button class="copy-btn" onclick="copyPrompt('residencial',this)">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg>
+              Copiar
+            </button>
+          </div>
+          <div class="prompt-text" id="pt-residencial"></div>
+        </div>
+        <div class="open-in-row" id="oi-residencial"></div>
+      </div>
+
+      <div class="prompt-panel" id="pp-comercial">
+        <div class="prompt-box">
+          <div class="prompt-header">
+            <span class="prompt-lang">Prompt pronto — edite o placeholder e envie</span>
+            <button class="copy-btn" onclick="copyPrompt('comercial',this)">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg>
+              Copiar
+            </button>
+          </div>
+          <div class="prompt-text" id="pt-comercial"></div>
+        </div>
+        <div class="open-in-row" id="oi-comercial"></div>
+      </div>
+
+      <div class="prompt-panel" id="pp-personalizado">
+        <div class="prompt-box">
+          <div class="prompt-header">
+            <span class="prompt-lang">Prompt base — edite o placeholder e envie</span>
+            <button class="copy-btn" onclick="copyPrompt('personalizado',this)">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg>
+              Copiar
+            </button>
+          </div>
+          <div class="prompt-text" id="pt-personalizado"></div>
+        </div>
+        <div class="open-in-row" id="oi-personalizado"></div>
+      </div>
+
+      <div style="margin-top:20px;padding:16px 20px;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:12px;display:flex;align-items:flex-start;gap:12px">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#60a5fa" stroke-width="1.7" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="9" cy="9" r="7.5"/><line x1="9" y1="6" x2="9" y2="9.5"/><circle cx="9" cy="12.5" r=".8" fill="#60a5fa"/></svg>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">Após receber o YAML da IA, abra o editor e clique em <strong style="color:var(--text)">Colar YAML</strong> na barra de ferramentas para carregar sua planta diretamente. Ou use o link gerado pela IA para abrir a planta automaticamente no editor.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section fade-up">
+  <div class="badge" style="margin-bottom:24px"><span class="badge-dot"></span> Gratuito, sem cadastro</div>
+  <h2>Pronto para começar?</h2>
+  <p>Abra o editor agora e crie sua planta baixa em minutos. Nenhum cadastro, nenhum download.</p>
+  <div class="hero-actions" style="margin-bottom:0">
+    <a class="btn-primary" href="editor/">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="10" height="10" rx="1.5"/><rect x="7" y="3" width="10" height="10" rx="1.5" opacity="0.5"/></svg>
+      Abrir Editor Visual
+    </a>
+    <a class="btn-secondary" href="playground/">Playground YAML</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="nav-logo-icon" style="width:24px;height:24px;font-size:13px">🏠</div>
+    <span>Floorplan &mdash; Editor Visual de Plantas Baixas</span>
+  </div>
+  <div class="footer-links">
+    <a href="editor/">Editor</a>
+    <a href="playground/">Playground</a>
+    <a href="https://github.com/angelojrp/floorplan" target="_blank" rel="noopener">GitHub</a>
+  </div>
+  <span>MIT License &mdash; Gratuito para sempre</span>
+</footer>
+
+<script>
+// ── Scroll reveal ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// ── Saved project from localStorage ──
+(function() {
+  try {
+    const raw = localStorage.getItem('floorplan-editor-state');
+    if (raw) {
+      const data = JSON.parse(raw);
+      const title = data.title || 'Projeto sem título';
+      const roomCount = (data.floors || []).reduce((s, f) => s + (f.rooms || []).length, 0);
+      const symCount = (data.symbols || []).length;
+      document.getElementById('saved-title').textContent = title;
+      document.getElementById('saved-meta').textContent =
+        `${roomCount} cômodo${roomCount !== 1 ? 's' : ''}${symCount ? ` · ${symCount} símbolo${symCount !== 1 ? 's' : ''}` : ''} · Salvo automaticamente`;
+      document.getElementById('saved-project-card').style.display = 'flex';
+      document.getElementById('no-saved').style.display = 'none';
+    }
+  } catch(e) {}
+})();
+
+// ── Templates ──
+const TEMPLATES = [
+  {
+    id: 'apartamento', icon: '🏢', title: 'Apartamento 2Q', area: '~85m²',
+    desc: 'Sala, cozinha, 2 quartos e banheiro',
+    yaml: `version: 1
+title: "Apartamento 2 Quartos"
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: sala
+    name: Sala de Estar
+    x: 0
+    y: 0
+    width: 550
+    height: 420
+    doors:
+      - wall: south
+        offset: 200
+        width: 80
+        type: pivot
+        swing: left
+      - wall: north
+        offset: 250
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: west
+        offset: 60
+        width: 200
+        height: 120
+        sill: 110
+      - wall: north
+        offset: 100
+        width: 180
+        height: 120
+        sill: 110
+  - id: cozinha
+    name: Cozinha
+    x: 550
+    y: 0
+    width: 300
+    height: 420
+    doors:
+      - wall: west
+        offset: 150
+        width: 80
+        type: pivot
+        swing: right
+      - wall: south
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
+  - id: banheiro
+    name: Banheiro
+    x: 550
+    y: 420
+    width: 300
+    height: 220
+    doors:
+      - wall: north
+        offset: 100
+        width: 70
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 60
+        width: 80
+        height: 80
+        sill: 160
+  - id: quarto1
+    name: Quarto 1
+    x: 0
+    y: 420
+    width: 280
+    height: 380
+    doors:
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 80
+        width: 180
+        height: 120
+        sill: 110
+  - id: quarto2
+    name: Quarto 2
+    x: 280
+    y: 420
+    width: 270
+    height: 380
+    doors:
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 60
+        width: 150
+        height: 120
+        sill: 110`
+  },
+  {
+    id: 'casa', icon: '🏠', title: 'Casa Pequena', area: '~70m²',
+    desc: 'Sala, cozinha, corredor, 2 quartos e banheiro',
+    yaml: `version: 1
+title: "Casa Pequena (~70m²)"
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: living
+    name: Sala de Estar
+    x: 15
+    y: 15
+    width: 500
+    height: 380
+    doors:
+      - wall: south
+        offset: 170
+        width: 160
+        type: double
+        swing: right
+      - wall: north
+        offset: 200
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: west
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110
+  - id: kitchen
+    name: Cozinha
+    x: 530
+    y: 15
+    width: 415
+    height: 380
+    doors:
+      - wall: west
+        offset: 120
+        width: 150
+        type: sliding
+        swing: left
+      - wall: north
+        offset: 300
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: east
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110
+  - id: corridor
+    name: Corredor
+    x: 15
+    y: 410
+    width: 930
+    height: 120
+    doors: []
+    windows: []
+  - id: bed1
+    name: Quarto 1
+    x: 15
+    y: 545
+    width: 350
+    height: 330
+    doors:
+      - wall: south
+        offset: 130
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: north
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
+  - id: bath
+    name: Banheiro
+    x: 380
+    y: 545
+    width: 200
+    height: 330
+    doors:
+      - wall: south
+        offset: 50
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 50
+        width: 80
+        height: 60
+        sill: 200
+  - id: bed2
+    name: Quarto 2
+    x: 595
+    y: 545
+    width: 350
+    height: 330
+    doors:
+      - wall: south
+        offset: 130
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110`
+  },
+  {
+    id: 'studio', icon: '🛋️', title: 'Estúdio', area: '~30m²',
+    desc: 'Ambiente integrado e banheiro',
+    yaml: `version: 1
+title: "Estúdio Compacto (~30m²)"
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: living
+    name: Sala/Cozinha Integrada
+    x: 15
+    y: 15
+    width: 415
+    height: 550
+    doors:
+      - wall: south
+        offset: 170
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 30
+        width: 120
+        height: 120
+        sill: 100
+      - wall: west
+        offset: 100
+        width: 180
+        height: 120
+        sill: 100
+  - id: bath
+    name: Banheiro
+    x: 445
+    y: 15
+    width: 220
+    height: 220
+    doors:
+      - wall: west
+        offset: 60
+        width: 80
+        type: sliding
+        swing: left
+    windows:
+      - wall: north
+        offset: 40
+        width: 100
+        height: 60
+        sill: 160
+  - id: bedroom
+    name: Quarto
+    x: 445
+    y: 250
+    width: 220
+    height: 315
+    doors:
+      - wall: west
+        offset: 70
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: east
+        offset: 80
+        width: 120
+        height: 120
+        sill: 110`
+  },
+  {
+    id: 'comercial', icon: '🏢', title: 'Escritório', area: '~80m²',
+    desc: 'Recepção, reunião, open plan e salas privativas',
+    yaml: `version: 1
+title: "Escritório Comercial (~80m²)"
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: reception
+    name: Recepção
+    x: 15
+    y: 15
+    width: 400
+    height: 250
+    doors:
+      - wall: south
+        offset: 120
+        width: 160
+        type: double
+        swing: right
+      - wall: north
+        offset: 150
+        width: 100
+        type: double
+        swing: right
+    windows:
+      - wall: south
+        offset: 20
+        width: 80
+        height: 120
+        sill: 70
+  - id: meeting
+    name: Sala de Reunião
+    x: 430
+    y: 15
+    width: 300
+    height: 250
+    doors:
+      - wall: north
+        offset: 90
+        width: 100
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 80
+        width: 140
+        height: 120
+        sill: 100
+  - id: bath
+    name: Banheiro
+    x: 745
+    y: 15
+    width: 255
+    height: 250
+    doors:
+      - wall: north
+        offset: 75
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 80
+        width: 60
+        height: 50
+        sill: 180
+  - id: openplan
+    name: Área Open Plan
+    x: 15
+    y: 280
+    width: 985
+    height: 300
+    doors: []
+    windows:
+      - wall: west
+        offset: 50
+        width: 200
+        height: 150
+        sill: 100
+      - wall: east
+        offset: 80
+        width: 150
+        height: 120
+        sill: 100
+  - id: office1
+    name: Sala Privativa 1
+    x: 15
+    y: 595
+    width: 400
+    height: 300
+    doors:
+      - wall: south
+        offset: 150
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: west
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110
+  - id: office2
+    name: Sala Privativa 2
+    x: 430
+    y: 595
+    width: 300
+    height: 300
+    doors:
+      - wall: south
+        offset: 100
+        width: 90
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 80
+        width: 140
+        height: 120
+        sill: 110`
+  },
+  {
+    id: 'galpao', icon: '🏭', title: 'Galpão', area: '~150m²',
+    desc: 'Armazenagem, doca de carga e área administrativa',
+    yaml: `version: 1
+title: "Galpão Industrial (~150m²)"
+scale: 2
+wallThickness: 15
+grid: 100
+rooms:
+  - id: warehouse
+    name: Área de Armazenagem
+    x: 15
+    y: 15
+    width: 1300
+    height: 900
+    doors:
+      - wall: south
+        offset: 300
+        width: 500
+        type: sliding
+        swing: left
+      - wall: west
+        offset: 150
+        width: 400
+        type: sliding
+        swing: left
+    windows:
+      - wall: north
+        offset: 200
+        width: 200
+        height: 100
+        sill: 700
+      - wall: north
+        offset: 550
+        width: 200
+        height: 100
+        sill: 700
+  - id: dock
+    name: Doca de Carga
+    x: 15
+    y: 930
+    width: 1300
+    height: 240
+    doors:
+      - wall: south
+        offset: 300
+        width: 500
+        type: sliding
+        swing: left
+  - id: admin
+    name: Escritório Administrativo
+    x: 1330
+    y: 700
+    width: 250
+    height: 250
+    doors:
+      - wall: west
+        offset: 70
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: north
+        offset: 50
+        width: 150
+        height: 120
+        sill: 110
+  - id: bath
+    name: Banheiro
+    x: 1330
+    y: 400
+    width: 250
+    height: 285
+    doors:
+      - wall: west
+        offset: 80
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 50
+        width: 80
+        height: 60
+        sill: 200`
+  }
+];
+
+function openTemplate(id) {
+  const t = TEMPLATES.find(t => t.id === id);
+  if (!t) return;
+  localStorage.setItem('floorplan-load-template', t.yaml);
+  window.location.href = 'editor/';
+}
+
+(function renderTemplates() {
+  const grid = document.getElementById('templates-grid');
+  TEMPLATES.forEach(t => {
+    const card = document.createElement('a');
+    card.href = '#';
+    card.className = 'tmpl-card';
+    card.onclick = e => { e.preventDefault(); openTemplate(t.id); };
+    card.innerHTML = `
+      <div class="tmpl-thumb">${t.icon}</div>
+      <div class="tmpl-body">
+        <div class="tmpl-title">${t.title}</div>
+        <div class="tmpl-desc">${t.desc}</div>
+        <span class="tmpl-tag">${t.area}</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+})();
+
+// ── AI Prompts ──
+const AI_GUIDE_URL = 'https://raw.githubusercontent.com/angelojrp/floorplan/refs/heads/main/docs/AI_GUIDE.md';
+
+const EDITOR_URL = `${window.location.origin}/editor/`;
+
+const SCHEMA_INLINE = `
+─── ESPECIFICAÇÃO DO FORMATO YAML ───────────────────────────────
+
+version: 1                    # obrigatório, sempre 1
+title: "string"               # opcional
+scale: 2                      # px/cm — use 2 (escala 1:50)
+wallThickness: 15             # espessura da parede em cm
+grid: 50                      # passo do grid em cm
+
+rooms:                        # lista de cômodos (mínimo 1)
+  - id: string                # ID único (ex: sala, quarto_1)
+    name: string              # nome exibido no desenho
+    x: number                 # posição X do canto superior esquerdo (cm)
+    y: number                 # posição Y do canto superior esquerdo (cm)
+    width: number             # largura em cm (mínimo 100)
+    height: number            # altura em cm (mínimo 100)
+    doors:                    # portas (opcional)
+      - wall: north|south|east|west
+        offset: number        # distância da extremidade esquerda/topo (cm)
+        width: number         # largura da porta: 60–500 cm
+        type: pivot|sliding|double
+        swing: left|right|none   # use none para type: sliding
+    windows:                  # janelas (opcional)
+      - wall: north|south|east|west
+        offset: number
+        width: number
+        height: number        # altura da janela (cm)
+        sill: number          # peitoril — distância do piso (cm)
+
+REGRAS OBRIGATÓRIAS:
+1. Adjacência sem gaps: se B está à direita de A → B.x = A.x + A.width
+                        se B está abaixo de A  → B.y = A.y + A.height
+2. Porta cabe na parede: offset + width ≤ comprimento da parede
+   (paredes north/south: comprimento = room.width; east/west: = room.height)
+3. Portas entre cômodos adjacentes DEVEM ser espelhadas: mesmo offset e
+   width nos dois cômodos (parede south de A ↔ parede north de B)
+4. Janelas APENAS em paredes externas (nunca em parede compartilhada)
+5. IDs únicos em todos os cômodos
+6. Indentação de 2 espaços; sem flow style inline ({ } ou [ ] aninhados)
+
+DIMENSÕES MÍNIMAS REALISTAS (cm):
+  Sala de estar:  350×350  |  Quarto casal: 300×350
+  Cozinha:        200×250  |  Banheiro:     150×180
+  Corredor:       100 de largura mínima
+
+─────────────────────────────────────────────────────────────────`;
+
+const LINK_INSTRUCTIONS = `
+ENTREGUE:
+1. O YAML completo e válido
+2. O YAML codificado em base64 UTF-8:
+   - JS:     btoa(unescape(encodeURIComponent(yaml)))
+   - Python: base64.b64encode(yaml.encode()).decode()
+3. O link pronto para abrir no editor:
+   ${EDITOR_URL}?yaml=BASE64_AQUI`;
+
+const PERSONA_BASE = `Você é um arquiteto com vasta experiência em projetos residenciais e comerciais, especializado em criar plantas baixas funcionais, bem proporcionadas e adaptadas às necessidades do cliente. Você domina normas de circulação, dimensionamento mínimo de ambientes e boas práticas de layout.
+
+Sua saída será uma planta baixa no formato YAML da ferramenta Floorplan.
+Documentação técnica do formato: ${AI_GUIDE_URL}
+(Se não conseguir acessar a URL, use a especificação técnica incluída abaixo.)`;
+
+const CONDUCT = `COMO CONDUZIR:
+1. Faça as perguntas listadas acima, uma a uma ou em blocos, aguardando as respostas.
+2. Confirme o entendimento antes de gerar a planta (resume o briefing em 2-3 linhas).
+3. Somente então gere o YAML completo.`;
+
+// Full prompts (with inline schema) — used for the Copy button
+const PROMPTS = {
+  residencial: `${PERSONA_BASE}
+${SCHEMA_INLINE}
+PARA COMEÇAR, faça as seguintes perguntas ao cliente:
+1. Qual é a área aproximada do imóvel? (ex: 60m², 90m², 120m²)
+2. Quantos quartos você precisa? Algum deles será suíte?
+3. Sala de jantar separada ou integrada com a sala de estar?
+4. Quantos banheiros? (social, suíte, lavabo)
+5. Precisa de área de serviço, despensa, varanda ou home office?
+6. Há alguma restrição de formato ou proporção? (ex: terreno estreito, planta quadrada)
+
+${CONDUCT}
+
+Quando tiver o briefing completo, gere:
+${LINK_INSTRUCTIONS}`,
+
+  comercial: `${PERSONA_BASE}
+${SCHEMA_INLINE}
+PARA COMEÇAR, faça as seguintes perguntas ao cliente:
+1. Qual é o tipo de negócio ou uso do espaço? (escritório, loja, clínica, coworking, etc.)
+2. Quantas pessoas usarão o espaço simultaneamente?
+3. Quais ambientes são indispensáveis? (ex: recepção, salas privativas, open-plan, depósito)
+4. Qual é a área aproximada disponível?
+5. Há exigências de acessibilidade, sala de reuniões ou copa/cozinha?
+
+${CONDUCT}
+
+Quando tiver o briefing completo, gere:
+${LINK_INSTRUCTIONS}`,
+
+  personalizado: `${PERSONA_BASE}
+${SCHEMA_INLINE}
+PARA COMEÇAR, entenda o projeto fazendo estas perguntas:
+1. Qual é o tipo de projeto? (residencial, comercial, industrial, misto, etc.)
+2. Qual é a área aproximada do espaço?
+3. Quais ambientes ou setores são necessários?
+4. Há restrições de forma, circulação ou uso especial?
+5. Alguma referência ou inspiração de layout?
+
+${CONDUCT}
+
+Quando tiver o briefing completo, gere:
+${LINK_INSTRUCTIONS}`
+};
+
+// Short prompts (URL reference only) — used for deep links to avoid HTTP 431
+const SHORT_PERSONA = `Você é um arquiteto especializado em plantas baixas funcionais e bem dimensionadas.
+Sua saída será uma planta baixa no formato YAML da ferramenta Floorplan.
+Leia a documentação técnica do formato em: ${AI_GUIDE_URL}`;
+
+const SHORT_PROMPTS = {
+  residencial: `${SHORT_PERSONA}
+
+PARA COMEÇAR, faça as seguintes perguntas ao cliente:
+1. Área aproximada do imóvel? (ex: 60m², 90m², 120m²)
+2. Quantos quartos? Algum será suíte?
+3. Sala de jantar separada ou integrada?
+4. Quantos banheiros? (social, suíte, lavabo)
+5. Precisa de área de serviço, varanda ou home office?
+6. Alguma restrição de forma ou proporção?
+
+Aguarde as respostas, confirme o briefing e então gere:
+${LINK_INSTRUCTIONS}`,
+
+  comercial: `${SHORT_PERSONA}
+
+PARA COMEÇAR, faça as seguintes perguntas ao cliente:
+1. Tipo de negócio ou uso? (escritório, loja, clínica, etc.)
+2. Quantas pessoas usam o espaço simultaneamente?
+3. Ambientes indispensáveis? (recepção, salas, open-plan, depósito)
+4. Área aproximada disponível?
+5. Exigências de acessibilidade ou ambientes especiais?
+
+Aguarde as respostas, confirme o briefing e então gere:
+${LINK_INSTRUCTIONS}`,
+
+  personalizado: `${SHORT_PERSONA}
+
+PARA COMEÇAR, faça estas perguntas:
+1. Tipo de projeto? (residencial, comercial, industrial, misto)
+2. Área aproximada do espaço?
+3. Ambientes ou setores necessários?
+4. Restrições de forma, circulação ou uso especial?
+5. Alguma referência de layout?
+
+Aguarde as respostas, confirme o briefing e então gere:
+${LINK_INSTRUCTIONS}`
+};
+
+// Render prompt texts
+Object.keys(PROMPTS).forEach(k => {
+  const el = document.getElementById('pt-' + k);
+  if (el) el.textContent = PROMPTS[k];
+});
+
+// ── Deep link buttons ──
+const OPEN_IN = [
+  {
+    id: 'chatgpt',
+    label: 'Abrir no ChatGPT',
+    icon: '⊕',
+    buildUrl: (prompt) => `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`,
+    note: null
+  },
+  {
+    id: 'claude',
+    label: 'Abrir no Claude',
+    sublabel: 'app desktop',
+    icon: '✦',
+    buildUrl: (prompt) => `claude://claude.ai/new?q=${encodeURIComponent(prompt)}`,
+    note: 'Requer Claude Desktop instalado'
+  }
+];
+
+function buildOpenInRow(promptId) {
+  const row = document.getElementById('oi-' + promptId);
+  if (!row) return;
+  OPEN_IN.forEach(btn => {
+    const a = document.createElement('a');
+    a.className = `open-in-btn ${btn.id}`;
+    a.href = btn.buildUrl(SHORT_PROMPTS[promptId] || PROMPTS[promptId]);
+    a.target = btn.id === 'chatgpt' ? '_blank' : '_self';
+    a.rel = 'noopener';
+    if (btn.note) a.title = btn.note;
+    a.innerHTML = `<span class="oi-icon">${btn.icon}</span> ${btn.label}${btn.sublabel ? ` <span style="font-size:11px;opacity:.6">(${btn.sublabel})</span>` : ''}
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="opacity:.5"><path d="M2 10L10 2M5 2h5v5"/></svg>`;
+    row.appendChild(a);
+  });
+  // Note about Gemini/Claude web
+  const note = document.createElement('span');
+  note.style.cssText = 'font-size:12px;color:var(--text3);align-self:center;margin-left:4px';
+  note.textContent = 'Gemini e Claude Web: use o botão Copiar';
+  row.appendChild(note);
+}
+
+Object.keys(PROMPTS).forEach(buildOpenInRow);
+
+function switchPrompt(id, btn) {
+  document.querySelectorAll('.prompt-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+  document.getElementById('pp-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function copyPrompt(id, btn) {
+  navigator.clipboard.writeText(PROMPTS[id]).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3,8 6,11 13,4"/></svg> Copiado!`;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="10" height="10" rx="2"/><path d="M12 4V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/></svg> Copiar`;
+    }, 2500);
+  });
+}
+</script>
+</body>
+</html>

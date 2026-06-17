@@ -9,6 +9,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
+        landing: resolve(__dirname, 'web/index.html'),
         editor: resolve(__dirname, 'web/editor/index.html'),
         playground: resolve(__dirname, 'web/playground/index.html'),
       },
