@@ -115,6 +115,9 @@ body.dark{
 }
 .tb-btn-icon:hover{background:var(--bg);border-color:var(--border);color:var(--text)}
 .tb-btn-icon.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.tb-grid-step{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted)}
+.tb-grid-step input{width:46px;height:28px;padding:0 4px;font-size:11px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);text-align:right;}
+.tb-grid-step input:focus{outline:none;border-color:var(--accent)}
 .tb-group{display:flex;align-items:center;gap:1px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:2px}
 .tb-group .tb-btn-icon{border:none;border-radius:4px;width:28px;height:28px}
 .tb-group .tb-btn-icon:hover{background:var(--surface);color:var(--text)}
@@ -716,10 +719,14 @@ body.dark #canvas-wrap{
       </button>
     </div>
 
-    <!-- Grid toggle -->
+    <!-- Grid toggle + step -->
     <button class="tb-btn-icon" id="btn-grid" onclick="toggleGrid()" data-tooltip="Alternar grade">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="0.5"/><rect x="9" y="1" width="6" height="6" rx="0.5"/><rect x="1" y="9" width="6" height="6" rx="0.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg>
     </button>
+    <div class="tb-grid-step" data-tooltip="Passo da grade (cm)">
+      <input type="number" id="grid-step" min="10" max="1000" step="10" value="50" onchange="setGridSize(+this.value)">
+      <span>cm</span>
+    </div>
     <!-- Theme toggle -->
     <button class="tb-btn-icon" onclick="toggleTheme()" data-tooltip="Alternar tema">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><line x1="8" y1="1" x2="8" y2="2.5"/><line x1="8" y1="13.5" x2="8" y2="15"/><line x1="1" y1="8" x2="2.5" y2="8"/><line x1="13.5" y1="8" x2="15" y2="8"/><line x1="2.9" y1="2.9" x2="4" y2="4"/><line x1="12" y1="12" x2="13.1" y2="13.1"/><line x1="2.9" y1="13.1" x2="4" y2="12"/><line x1="12" y1="4" x2="13.1" y2="2.9"/></svg>
@@ -997,7 +1004,7 @@ let state = {
   activeFloor: 'terreo',
   scale: DEFAULT_SCALE,
   wallThickness: 15,
-  gridSize: 100,
+  gridSize: 50,
   selectedId: null,
   selectedIds: new Set(),
   tool: 'select',
@@ -2687,6 +2694,11 @@ function toggleGrid() {
   document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
   render();
 }
+function setGridSize(val) {
+  state.gridSize = Math.max(10, Math.min(1000, val || state.gridSize));
+  document.getElementById('grid-step').value = state.gridSize;
+  render();
+}
 function updateTitle() { state.title = document.getElementById('global-title').value; render(); }
 
 function newProject() {
@@ -3251,6 +3263,7 @@ render = function() {
 initPalette();
 initSymbolPalette();
 document.getElementById('btn-grid').classList.toggle('active', state.gridVisible);
+document.getElementById('grid-step').value = state.gridSize;
 if (!loadAutoSave()) {
   // default starter room
   state.floors[0].rooms.push({ id: generateId(), name: 'Sala', x: 50, y: 50, width: 500, height: 400, doors: [{wall:'south',offset:210,width:80,type:'pivot',swing:'left'}], windows: [{wall:'north',offset:100,width:200,height:120,sill:110}] });
