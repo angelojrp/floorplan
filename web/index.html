@@ -1018,41 +1018,88 @@ const AI_GUIDE_URL = 'https://raw.githubusercontent.com/angelojrp/floorplan/refs
 
 const EDITOR_URL = `${window.location.origin}/editor.html`;
 
+const SCHEMA_INLINE = `
+─── ESPECIFICAÇÃO DO FORMATO YAML ───────────────────────────────
+
+version: 1                    # obrigatório, sempre 1
+title: "string"               # opcional
+scale: 2                      # px/cm — use 2 (escala 1:50)
+wallThickness: 15             # espessura da parede em cm
+grid: 50                      # passo do grid em cm
+
+rooms:                        # lista de cômodos (mínimo 1)
+  - id: string                # ID único (ex: sala, quarto_1)
+    name: string              # nome exibido no desenho
+    x: number                 # posição X do canto superior esquerdo (cm)
+    y: number                 # posição Y do canto superior esquerdo (cm)
+    width: number             # largura em cm (mínimo 100)
+    height: number            # altura em cm (mínimo 100)
+    doors:                    # portas (opcional)
+      - wall: north|south|east|west
+        offset: number        # distância da extremidade esquerda/topo (cm)
+        width: number         # largura da porta: 60–500 cm
+        type: pivot|sliding|double
+        swing: left|right|none   # use none para type: sliding
+    windows:                  # janelas (opcional)
+      - wall: north|south|east|west
+        offset: number
+        width: number
+        height: number        # altura da janela (cm)
+        sill: number          # peitoril — distância do piso (cm)
+
+REGRAS OBRIGATÓRIAS:
+1. Adjacência sem gaps: se B está à direita de A → B.x = A.x + A.width
+                        se B está abaixo de A  → B.y = A.y + A.height
+2. Porta cabe na parede: offset + width ≤ comprimento da parede
+   (paredes north/south: comprimento = room.width; east/west: = room.height)
+3. Portas entre cômodos adjacentes DEVEM ser espelhadas: mesmo offset e
+   width nos dois cômodos (parede south de A ↔ parede north de B)
+4. Janelas APENAS em paredes externas (nunca em parede compartilhada)
+5. IDs únicos em todos os cômodos
+6. Indentação de 2 espaços; sem flow style inline ({ } ou [ ] aninhados)
+
+DIMENSÕES MÍNIMAS REALISTAS (cm):
+  Sala de estar:  350×350  |  Quarto casal: 300×350
+  Cozinha:        200×250  |  Banheiro:     150×180
+  Corredor:       100 de largura mínima
+
+─────────────────────────────────────────────────────────────────`;
+
 const LINK_INSTRUCTIONS = `
-Após gerar o YAML, crie um link direto para abrir a planta no editor:
-
-1. Codifique o YAML em base64 (UTF-8):
-   - JavaScript: btoa(unescape(encodeURIComponent(yaml)))
-   - Python:     import base64; base64.b64encode(yaml.encode()).decode()
-
-2. Monte o link:
-   ${EDITOR_URL}?yaml=BASE64_AQUI
-
-3. Apresente o YAML gerado E o link clicável.`;
+ENTREGUE:
+1. O YAML completo e válido
+2. O YAML codificado em base64 UTF-8:
+   - JS:     btoa(unescape(encodeURIComponent(yaml)))
+   - Python: base64.b64encode(yaml.encode()).decode()
+3. O link pronto para abrir no editor:
+   ${EDITOR_URL}?yaml=BASE64_AQUI`;
 
 const PROMPTS = {
-  residencial: `Leia a documentação da ferramenta Floorplan em:
-${AI_GUIDE_URL}
+  residencial: `Você é um assistente especializado em plantas baixas.
+Gere uma planta baixa residencial no formato YAML da ferramenta Floorplan.
 
-Com base nela, gere uma planta baixa residencial em formato YAML.
-
-Quero: [DESCREVA AQUI — ex: "apartamento de 2 quartos, ~75m², sala integrada com cozinha, 1 banheiro social e 1 suíte"]
+DOCUMENTAÇÃO COMPLETA (referência): ${AI_GUIDE_URL}
+(se não conseguir acessar a URL, use a especificação abaixo)
+${SCHEMA_INLINE}
+O QUE QUERO: [DESCREVA AQUI — ex: "apartamento de 2 quartos, ~75m², sala integrada com cozinha, 1 banheiro social e 1 suíte"]
 ${LINK_INSTRUCTIONS}`,
 
-  comercial: `Leia a documentação da ferramenta Floorplan em:
-${AI_GUIDE_URL}
+  comercial: `Você é um assistente especializado em plantas baixas.
+Gere uma planta baixa comercial no formato YAML da ferramenta Floorplan.
 
-Com base nela, gere uma planta baixa comercial em formato YAML.
-
-Quero: [DESCREVA AQUI — ex: "escritório para 20 pessoas, recepção, sala de reuniões, área open-plan, 2 salas privativas e banheiro"]
+DOCUMENTAÇÃO COMPLETA (referência): ${AI_GUIDE_URL}
+(se não conseguir acessar a URL, use a especificação abaixo)
+${SCHEMA_INLINE}
+O QUE QUERO: [DESCREVA AQUI — ex: "escritório para 20 pessoas, recepção, sala de reuniões, área open-plan, 2 salas privativas e banheiro"]
 ${LINK_INSTRUCTIONS}`,
 
-  personalizado: `Leia a documentação da ferramenta Floorplan em:
-${AI_GUIDE_URL}
+  personalizado: `Você é um assistente especializado em plantas baixas.
+Gere uma planta baixa no formato YAML da ferramenta Floorplan para o espaço descrito abaixo.
 
-Com base nela, gere uma planta baixa em formato YAML para o espaço abaixo.
-
-Descrição:
+DOCUMENTAÇÃO COMPLETA (referência): ${AI_GUIDE_URL}
+(se não conseguir acessar a URL, use a especificação abaixo)
+${SCHEMA_INLINE}
+DESCRIÇÃO DO ESPAÇO:
 - Tipo: [residencial / comercial / industrial / outro]
 - Área aproximada: [ex: 80m²]
 - Cômodos necessários: [liste os cômodos]
