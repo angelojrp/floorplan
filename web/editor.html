@@ -118,6 +118,9 @@ body.dark{
 .tb-grid-step{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted)}
 .tb-grid-step input{width:46px;height:28px;padding:0 4px;font-size:11px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);text-align:right;}
 .tb-grid-step input:focus{outline:none;border-color:var(--accent)}
+.tb-template-select{height:32px;padding:0 8px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);cursor:pointer;max-width:200px;outline:none;transition:border-color var(--transition)}
+.tb-template-select:hover{border-color:var(--text3)}
+.tb-template-select:focus{border-color:var(--accent)}
 .tb-group{display:flex;align-items:center;gap:1px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:2px}
 .tb-group .tb-btn-icon{border:none;border-radius:4px;width:28px;height:28px}
 .tb-group .tb-btn-icon:hover{background:var(--surface);color:var(--text)}
@@ -674,6 +677,9 @@ body.dark #canvas-wrap{
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
       Colar YAML
     </button>
+    <select id="template-select" class="tb-template-select" title="Abrir template" onchange="loadTemplateFromSelect(this)">
+      <option value="">📂 Templates</option>
+    </select>
     <div class="tb-export-wrap" id="export-wrap">
       <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
@@ -3110,6 +3116,39 @@ function calculateTotalArea() {
     for (const r of (f.rooms || [])) { total += r.width * r.height; }
   }
   return (total / 10000).toFixed(1);
+}
+
+// ── Template library ──
+(async function initTemplates() {
+  const sel = document.getElementById('template-select');
+  try {
+    const res = await fetch('templates/index.json');
+    if (!res.ok) return;
+    const list = await res.json();
+    list.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.file;
+      opt.textContent = t.name;
+      opt.title = t.description || '';
+      sel.appendChild(opt);
+    });
+  } catch(e) { /* silently ignore if running offline */ }
+})();
+
+async function loadTemplateFromSelect(sel) {
+  const file = sel.value;
+  if (!file) return;
+  sel.value = '';  // reset to placeholder
+  try {
+    const res = await fetch('templates/' + file);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    saveUndo();
+    loadYAMLString(text, file.replace('.yaml',''));
+    toast('📐 Template carregado!');
+  } catch(e) {
+    toast('❌ Erro ao carregar template: ' + e.message);
+  }
 }
 
 function showPrintModal() { document.getElementById('print-modal').classList.add('show'); }

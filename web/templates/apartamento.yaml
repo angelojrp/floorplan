@@ -1,0 +1,116 @@
+version: 1
+title: "Apartamento 2 Quartos — Planta Baixa"
+scale: 2           # px por cm (1:50)
+wallThickness: 15   # cm
+grid: 100           # cm
+
+rooms:
+  - id: sala
+    name: Sala de Estar
+    x: 0
+    y: 0
+    width: 550
+    height: 420
+    doors:
+      - wall: south
+        offset: 200
+        width: 80
+        type: pivot
+        swing: left
+      - wall: north
+        offset: 250
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: west
+        offset: 60
+        width: 200
+        height: 120
+        sill: 110
+      - wall: north
+        offset: 100
+        width: 180
+        height: 120
+        sill: 110
+
+  - id: cozinha
+    name: Cozinha
+    x: 550
+    y: 0
+    width: 300
+    height: 420
+    doors:
+      - wall: west
+        offset: 150
+        width: 80
+        type: pivot
+        swing: right
+      - wall: south
+        offset: 100
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 100
+        width: 150
+        height: 120
+        sill: 110
+
+  - id: banheiro
+    name: Banheiro
+    x: 550
+    y: 420
+    width: 300
+    height: 220
+    doors:
+      - wall: north
+        offset: 100
+        width: 70
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 60
+        width: 80
+        height: 80
+        sill: 160
+
+  - id: quarto1
+    name: Quarto 1
+    x: 0
+    y: 420
+    width: 280
+    height: 380
+    doors:
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 80
+        width: 180
+        height: 120
+        sill: 110
+
+  - id: quarto2
+    name: Quarto 2
+    x: 280
+    y: 420
+    width: 270
+    height: 380
+    doors:
+      - wall: east
+        offset: 160
+        width: 80
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 60
+        width: 150
+        height: 120
+        sill: 110

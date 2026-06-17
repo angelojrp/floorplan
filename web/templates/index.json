@@ -1,0 +1,32 @@
+[
+  {
+    "id": "studio",
+    "name": "Estúdio Compacto",
+    "description": "~30m² · sala integrada com cozinha, banheiro",
+    "file": "studio.yaml"
+  },
+  {
+    "id": "apartamento",
+    "name": "Apartamento 2 Quartos",
+    "description": "~65m² · 2 quartos, sala, cozinha, 2 banheiros",
+    "file": "apartamento.yaml"
+  },
+  {
+    "id": "casa",
+    "name": "Casa Térrea",
+    "description": "~100m² · 3 quartos, sala, cozinha, área de serviço",
+    "file": "casa.yaml"
+  },
+  {
+    "id": "comercial",
+    "name": "Escritório Comercial",
+    "description": "~80m² · recepção, reuniões, open-plan, salas privativas",
+    "file": "comercial.yaml"
+  },
+  {
+    "id": "galpao",
+    "name": "Galpão Industrial",
+    "description": "~150m² · armazém, doca de carga, escritório, banheiro",
+    "file": "galpao.yaml"
+  }
+]

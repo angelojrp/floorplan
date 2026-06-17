@@ -1,0 +1,142 @@
+version: 1
+title: "Escritório Comercial (~80m²)"
+scale: 2
+wallThickness: 15
+grid: 100
+rooms:
+  - id: reception
+    name: "Recepção"
+    x: 15
+    y: 15
+    width: 400
+    height: 250
+    doors:
+      - wall: south
+        offset: 120
+        width: 160
+        type: double
+        swing: right
+      - wall: north
+        offset: 150
+        width: 100
+        type: double
+        swing: right
+    windows:
+      - wall: south
+        offset: 20
+        width: 80
+        height: 120
+        sill: 70
+  - id: meeting
+    name: "Sala de Reunião"
+    x: 430
+    y: 15
+    width: 300
+    height: 250
+    doors:
+      - wall: north
+        offset: 90
+        width: 100
+        type: pivot
+        swing: right
+    windows:
+      - wall: south
+        offset: 80
+        width: 140
+        height: 120
+        sill: 100
+  - id: bath
+    name: "Banheiro"
+    x: 745
+    y: 15
+    width: 255
+    height: 250
+    doors:
+      - wall: north
+        offset: 75
+        width: 80
+        type: pivot
+        swing: left
+    windows:
+      - wall: east
+        offset: 80
+        width: 60
+        height: 50
+        sill: 180
+  - id: openplan
+    name: "Área Open Plan"
+    x: 15
+    y: 280
+    width: 985
+    height: 300
+    doors: []
+    windows:
+      - wall: west
+        offset: 50
+        width: 200
+        height: 150
+        sill: 100
+      - wall: east
+        offset: 80
+        width: 150
+        height: 120
+        sill: 100
+  - id: office1
+    name: "Sala Privativa 1"
+    x: 15
+    y: 595
+    width: 400
+    height: 300
+    doors:
+      - wall: south
+        offset: 150
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: west
+        offset: 80
+        width: 150
+        height: 120
+        sill: 110
+      - wall: north
+        offset: 120
+        width: 150
+        height: 120
+        sill: 110
+  - id: office2
+    name: "Sala Privativa 2"
+    x: 430
+    y: 595
+    width: 300
+    height: 300
+    doors:
+      - wall: south
+        offset: 100
+        width: 90
+        type: pivot
+        swing: left
+    windows:
+      - wall: north
+        offset: 80
+        width: 140
+        height: 120
+        sill: 110
+  - id: office3
+    name: "Sala Privativa 3"
+    x: 745
+    y: 595
+    width: 255
+    height: 300
+    doors:
+      - wall: south
+        offset: 70
+        width: 90
+        type: pivot
+        swing: right
+    windows:
+      - wall: east
+        offset: 80
+        width: 120
+        height: 120
+        sill: 110
