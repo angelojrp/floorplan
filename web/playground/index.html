@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floorplan — Plantas Baixas via YAML</title>
+<meta name="description" content="Descreva plantas baixas em YAML e renderize como SVG profissional">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<link rel="stylesheet" href="./playground.css">
+</head>
+<body class="dark">
+<div id="app">
+  <!-- sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🏠</span>
+      <h1>Floorplan</h1>
+    </div>
+    <div class="sidebar-nav">
+      <div class="section-title">📐 Exemplos</div>
+      <a class="example-card active" data-example="apartamento" onclick="loadExample('apartamento')">
+        <div class="ex-title">Apartamento 2 Quartos</div>
+        <div class="ex-meta">~85m² · 5 cômodos</div>
+      </a>
+      <a class="example-card" data-example="studio" onclick="loadExample('studio')">
+        <div class="ex-title">Studio Compacto</div>
+        <div class="ex-meta">~28m² · 2 cômodos</div>
+      </a>
+      <a class="example-card" data-example="casa" onclick="loadExample('casa')">
+        <div class="ex-title">Casa Pequena</div>
+        <div class="ex-meta">~76m² · 6 cômodos</div>
+      </a>
+      <a class="example-card" data-example="comercial" onclick="loadExample('comercial')">
+        <div class="ex-title">Escritório Comercial</div>
+        <div class="ex-meta">~82m² · 7 cômodos</div>
+      </a>
+      <a class="example-card" data-example="galpao" onclick="loadExample('galpao')">
+        <div class="ex-title">Galpão Industrial</div>
+        <div class="ex-meta">~162m² · 4 áreas</div>
+      </a>
+      <a class="example-card" data-example="casa2pav" onclick="loadExample('casa2pav')">
+        <div class="ex-title">Casa 2 Pavimentos</div>
+        <div class="ex-meta">~90m² · 8 cômodos · 2 andares</div>
+      </a>
+      <div class="section-title">🧩 Biblioteca de Cômodos</div>
+      <div id="room-library"></div>
+      <div class="section-title">🔗 Compartilhar</div>
+      <div style="padding:8px">
+        <button onclick="shareURL()" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;cursor:pointer;font-size:12px">📋 Copiar link de compartilhamento</button>
+      </div>
+    </div>
+  </nav>
+  <button id="sidebar-toggle" onclick="toggleSidebar()" title="Menu">☰</button>
+
+  <!-- main -->
+  <div id="main">
+    <div id="toolbar">
+      <span id="file-name">Apartamento 2 Quartos</span>
+      <div class="sep"></div>
+      <button onclick="downloadSVG()" title="Baixar SVG">⬇ SVG</button>
+      <button onclick="downloadYAML()" title="Baixar YAML">📄 YAML</button>
+      <button onclick="exportPDF()" title="Exportar PDF (impressão)">🖨️ PDF</button>
+      <button onclick="exportPNG()" title="Exportar PNG">🖼️ PNG</button>
+      <div class="sep"></div>
+      <button onclick="toggleGrid()" id="btn-grid" title="Alternar grid">⊞ Grid</button>
+      <button onclick="toggleTheme()" title="Alternar tema">🌓 Tema</button>
+      <button onclick="showSummary()" title="Resumo executivo">📊 Resumo</button>
+      <div class="sep"></div>
+      <button class="qa-btn" onclick="insertSnippet('room')" title="Inserir cômodo">＋ Cômodo</button>
+      <button class="qa-btn" onclick="insertSnippet('door')" title="Inserir porta">🚪 Porta</button>
+      <button class="qa-btn" onclick="insertSnippet('window')" title="Inserir janela">🪟 Janela</button>
+      <button class="qa-btn" onclick="insertSnippet('lot')" title="Inserir lote">📐 Lote</button>
+      <button class="qa-btn" onclick="insertSnippet('floor')" title="Inserir pavimento">🏢 Pavimento</button>
+      <button class="qa-btn" onclick="insertSnippet('stair')" title="Inserir escada">🪜 Escada</button>
+      <div class="sep"></div>
+      <button onclick="resetEditor()" title="Voltar ao exemplo original">↺ Reset</button>
+    </div>
+    <div id="workspace">
+      <div id="editor-pane">
+        <div id="editor-wrap"></div>
+        <div id="error-bar"></div>
+        <div id="status-line"><span class="status-pos">Ln 1, Col 1</span><span class="status-valid">✓ Válido</span><span class="status-error" style="display:none">✗ Erro</span><span class="status-saved">💾 Salvo</span></div>
+      </div>
+      <div id="resize-handle" title="Redimensionar"></div>
+      <div id="preview-pane">
+        <div class="empty-state">
+          <div class="icon">🏠</div>
+          <div>Carregando...</div>
+        </div>
+        <div id="zoom-controls">
+          <button onclick="zoomOut()" title="Diminuir zoom">−</button>
+          <span id="zoom-level">100%</span>
+          <button onclick="zoomIn()" title="Aumentar zoom">+</button>
+          <button onclick="zoomReset()" title="Resetar zoom">⊡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="summary-overlay" onclick="if(event.target===this)hideSummary()">
+  <div id="summary-panel"></div>
+</div>
+<div id="toast"></div>
+
+<!-- Aviso para telas pequenas (app é apenas desktop) -->
+<div id="mobile-block">
+  <div class="mb-card">
+    <div class="mb-icon">🖥️</div>
+    <h1>Disponível apenas no desktop</h1>
+    <p>O <strong>Floorplan</strong> precisa de uma tela maior para funcionar bem.</p>
+    <p class="mb-hint">Acesse de um computador (ou amplie a janela do navegador) para usar.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

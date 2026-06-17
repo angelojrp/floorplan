@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floorplan Editor</title>
+<link rel="stylesheet" href="./editor.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ TOOLBAR ═══ -->
+  <div id="toolbar">
+    <!-- Sidebar toggle -->
+    <button class="tb-btn-icon" id="btn-sidebar" onclick="toggleSidebar()" data-tooltip="Painel lateral ( [ )">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="14" height="12" rx="1.5"/><line x1="5.5" y1="2" x2="5.5" y2="14"/></svg>
+    </button>
+
+    <!-- Logo -->
+    <div class="tb-logo">
+      <div class="tb-logo-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="4" width="9" height="8" rx="1"/><rect x="6" y="2" width="9" height="8" rx="1" opacity="0.6"/></svg>
+      </div>
+      <span id="file-name">Sem título</span>
+    </div>
+
+    <!-- File ops -->
+    <button class="tb-btn" onclick="newProject()" data-tooltip="Novo projeto">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
+      Novo
+    </button>
+    <button class="tb-btn" onclick="importYAML()" data-tooltip="Abrir arquivo YAML">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 11V5a1 1 0 0 1 1-1H6l2 2h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
+      Abrir
+    </button>
+    <button class="tb-btn" onclick="showPasteModal()" data-tooltip="Colar YAML gerado por IA">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+      Colar YAML
+    </button>
+    <select id="template-select" class="tb-template-select" title="Abrir template" onchange="loadTemplateFromSelect(this)">
+      <option value="">📂 Templates</option>
+    </select>
+    <div class="tb-export-wrap" id="export-wrap">
+      <button class="tb-btn" id="btn-export" onclick="toggleExportMenu(event)" data-tooltip="Exportar">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+        Exportar
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+      </button>
+      <div class="tb-export-menu" id="export-menu">
+        <div class="export-item" onclick="exportYAML();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/></svg>
+          YAML
+          <span class="export-item-hint">Editar no playground</span>
+        </div>
+        <div class="export-item export-item-accent" onclick="exportSVG();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="10.5"/><polyline points="5,8 8,11 11,8"/><path d="M2.5 11.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>
+          SVG
+          <span class="export-item-hint">Vetor escalável</span>
+        </div>
+        <div class="export-item" onclick="exportPNG();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="3.5" width="13" height="9" rx="1"/><polyline points="1.5,10 5,6.5 7.5,9 10,7 14.5,12"/><circle cx="11.5" cy="6.5" r="1.5"/></svg>
+          PNG
+          <span class="export-item-hint">Imagem rasterizada</span>
+        </div>
+        <div class="export-sep"></div>
+        <div class="export-item" onclick="exportDXF();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h4l2 8h4"/><path d="M10 4h4M2 12h4"/></svg>
+          DXF
+          <span class="export-item-hint">AutoCAD</span>
+        </div>
+        <div class="export-item" onclick="showPrintModal();closeExportMenu()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-8L9 1.5zm0 0v4.5h4.5"/><path d="M5.5 9.5h1a1 1 0 0 0 0-2h-1v4M9.5 7.5h1.5a1 1 0 0 1 1 1.5 1 1 0 0 1-1 1.5H9.5"/></svg>
+          PDF
+          <span class="export-item-hint">Imprimir / PDF</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <!-- Undo/Redo -->
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="undo()" data-tooltip="Desfazer (Ctrl+Z)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7H9a3.5 3.5 0 1 1 0 7H6"/><polyline points="1.5,4 4.5,7 1.5,10"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="redo()" data-tooltip="Refazer (Ctrl+Y)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 7H7a3.5 3.5 0 1 0 0 7h3"/><polyline points="14.5,4 11.5,7 14.5,10"/></svg>
+      </button>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <!-- Zoom -->
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="zoomOut()" data-tooltip="Zoom out">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="4"/><line x1="8.5" y1="8.5" x2="11" y2="11"/><line x1="3" y1="5" x2="7" y2="5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="zoomReset()" data-tooltip="Zoom 100%"><span id="zoom-label">100%</span></button>
+      <button class="tb-btn-icon" onclick="zoomIn()" data-tooltip="Zoom in">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="4"/><line x1="8.5" y1="8.5" x2="11" y2="11"/><line x1="3" y1="5" x2="7" y2="5"/><line x1="5" y1="3" x2="5" y2="7"/></svg>
+      </button>
+    </div>
+
+    <!-- Grid toggle + step -->
+    <button class="tb-btn-icon" id="btn-grid" onclick="toggleGrid()" data-tooltip="Alternar grade">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="0.5"/><rect x="9" y="1" width="6" height="6" rx="0.5"/><rect x="1" y="9" width="6" height="6" rx="0.5"/><rect x="9" y="9" width="6" height="6" rx="0.5"/></svg>
+    </button>
+    <div class="tb-grid-step" data-tooltip="Passo da grade (cm)">
+      <input type="number" id="grid-step" min="10" max="1000" step="10" value="50" onchange="setGridSize(+this.value)">
+      <span>cm</span>
+    </div>
+    <!-- Cotas (dimensões arquitetônicas) toggle -->
+    <button class="tb-btn-icon" id="btn-cotas" onclick="toggleCotas()" data-tooltip="Cotas (dimensões dos cômodos)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="2" y1="3" x2="2" y2="13"/><line x1="14" y1="3" x2="14" y2="13"/><line x1="2" y1="8" x2="14" y2="8"/><path d="M4.5 6.5 2 8l2.5 1.5M11.5 6.5 14 8l-2.5 1.5"/></svg>
+    </button>
+    <!-- Theme toggle -->
+    <button class="tb-btn-icon" onclick="toggleTheme()" data-tooltip="Alternar tema">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><line x1="8" y1="1" x2="8" y2="2.5"/><line x1="8" y1="13.5" x2="8" y2="15"/><line x1="1" y1="8" x2="2.5" y2="8"/><line x1="13.5" y1="8" x2="15" y2="8"/><line x1="2.9" y1="2.9" x2="4" y2="4"/><line x1="12" y1="12" x2="13.1" y2="13.1"/><line x1="2.9" y1="13.1" x2="4" y2="12"/><line x1="12" y1="4" x2="13.1" y2="2.9"/></svg>
+    </button>
+    <!-- Shortcuts -->
+    <button class="tb-btn-icon" onclick="toggleShortcuts()" data-tooltip="Atalhos de teclado">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.5a2 2 0 1 1 2.5 2c-.5.3-0.5.7-0.5 1.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Edit ops -->
+    <button class="tb-btn-icon danger" onclick="deleteSelected()" data-tooltip="Deletar (Del)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 14,4"/><path d="M5.5 4V2.5h5V4M6 7v5m4-5v5"/><path d="M3.5 4l1 10h7l1-10"/></svg>
+    </button>
+    <button class="tb-btn-icon" onclick="copySelected()" data-tooltip="Copiar (Ctrl+C)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 5.5V2.5h-8v8h3"/></svg>
+    </button>
+    <button class="tb-btn-icon" onclick="pasteSelected()" data-tooltip="Colar (Ctrl+V)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4.5" width="10" height="10" rx="1"/><path d="M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/></svg>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <!-- Align -->
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="alignSelected('left')" data-tooltip="Alinhar esquerda">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="1" y1="0" x2="1" y2="12"/><rect x="2" y="1.5" width="6" height="2.5" rx="0.5"/><rect x="2" y="8" width="4" height="2.5" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('centerX')" data-tooltip="Centralizar horizontal">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="6" y1="0" x2="6" y2="12"/><rect x="2" y="1.5" width="8" height="2.5" rx="0.5"/><rect x="3" y="8" width="6" height="2.5" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('right')" data-tooltip="Alinhar direita">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="11" y1="0" x2="11" y2="12"/><rect x="4" y="1.5" width="6" height="2.5" rx="0.5"/><rect x="6" y="8" width="4" height="2.5" rx="0.5"/></svg>
+      </button>
+    </div>
+    <div class="tb-group">
+      <button class="tb-btn-icon" onclick="alignSelected('top')" data-tooltip="Alinhar topo">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="1" x2="12" y2="1"/><rect x="1.5" y="2" width="2.5" height="6" rx="0.5"/><rect x="8" y="2" width="2.5" height="4" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('centerY')" data-tooltip="Centralizar vertical">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="6" x2="12" y2="6"/><rect x="1.5" y="2" width="2.5" height="8" rx="0.5"/><rect x="8" y="3" width="2.5" height="6" rx="0.5"/></svg>
+      </button>
+      <button class="tb-btn-icon" onclick="alignSelected('bottom')" data-tooltip="Alinhar base">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="0" y1="11" x2="12" y2="11"/><rect x="1.5" y="4" width="2.5" height="6" rx="0.5"/><rect x="8" y="6" width="2.5" height="4" rx="0.5"/></svg>
+      </button>
+    </div>
+
+    <!-- Title input pushed right -->
+    <div class="tb-sep" style="margin-left:auto"></div>
+    <input type="text" id="global-title" placeholder="Título da planta..." onchange="updateTitle()">
+  </div>
+
+  <!-- ═══ FLOOR TABS ═══ -->
+  <div id="floor-tabs">
+    <span class="ft-label">Pavimentos</span>
+    <div id="floor-tab-list"></div>
+    <button class="ft-add" onclick="addFloor()" title="Adicionar pavimento">+</button>
+  </div>
+
+  <!-- ═══ MAIN ═══ -->
+  <div id="main">
+
+    <!-- LEFT PANEL -->
+    <div id="left-panel">
+    <div class="left-panel-inner">
+      <div class="panel-section-label">Ferramentas</div>
+      <div class="tools-grid">
+        <button class="tool-btn active" id="tool-select" onclick="setTool('select')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l4.5 13L8.5 10l5 0.5L2 2z"/></svg>
+          Selecionar
+        </button>
+        <button class="tool-btn" id="tool-wall" onclick="setTool('wall')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2l3.5 3.5-9 9H1.5v-3.5l9-9z"/><line x1="8.5" y1="4" x2="12" y2="7.5"/></svg>
+          Parede
+        </button>
+        <button class="tool-btn" id="tool-room" onclick="setTool('room')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="12" height="8" rx="1"/></svg>
+          Cômodo
+        </button>
+        <button class="tool-btn" id="tool-door" onclick="setTool('door')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="2" width="7" height="12" rx="0.5"/><path d="M10 2v12M7 8a3 3 0 0 0 3-3"/></svg>
+          Porta
+        </button>
+        <button class="tool-btn" id="tool-window" onclick="setTool('window')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="5" width="12" height="6" rx="1"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></svg>
+          Janela
+        </button>
+        <button class="tool-btn" id="tool-stair" onclick="setTool('stair')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 14h4v-4h4V6h4V2"/></svg>
+          Escada
+        </button>
+        <button class="tool-btn" id="tool-hand" onclick="setTool('hand')" data-tooltip="Mão — arrastar a tela (ou Espaço+arrastar)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v7M5.5 3.5V4a1 1 0 0 0-1 1v1M5.5 3.5a1 1 0 0 0-2 0V7M10.5 3.5V4a1 1 0 0 1 1 1v1M10.5 3.5a1 1 0 0 1 2 0v3.5c0 2.5-1.5 5-4 5s-4-2.5-4-5V6"/></svg>
+          Mão
+        </button>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section-label" style="padding-bottom:4px">Cômodos</div>
+      <div class="palette-search-wrap palette-search-icon" style="position:relative">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1"><circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+        <input type="text" id="palette-search" placeholder="Filtrar cômodos..." oninput="filterPalette()" autocomplete="off">
+      </div>
+      <div class="palette-grid" id="palette"></div>
+
+      <div class="panel-divider"></div>
+      <div class="panel-section-label">Símbolos</div>
+
+      <details class="sym-details" open>
+        <summary>Móveis</summary>
+        <div class="palette-grid" id="sym-furniture"></div>
+      </details>
+      <details class="sym-details">
+        <summary>Cozinha</summary>
+        <div class="palette-grid" id="sym-kitchen"></div>
+      </details>
+      <details class="sym-details">
+        <summary>Banheiro</summary>
+        <div class="palette-grid" id="sym-bathroom"></div>
+      </details>
+      <details class="sym-details">
+        <summary>Elétrica / Portas</summary>
+        <div class="palette-grid" id="sym-electrical"></div>
+      </details>
+      <div class="panel-divider"></div>
+      <!-- Layers -->
+      <div class="panel-section-label">
+        Camadas
+      </div>
+      <div id="layers-list" style="padding:0 14px 8px"></div>
+    </div><!-- /left-panel-inner -->
+    </div><!-- /left-panel -->
+
+    <!-- CANVAS -->
+    <div id="canvas-wrap">
+      <svg id="canvas-svg"></svg>
+      <div id="minimap" onclick="focusMinimap(event)"><svg id="minimap-svg"></svg></div>
+      <div id="wall-hint" style="display:none">Clique para iniciar · Duplo clique ou Enter para finalizar · Esc para cancelar</div>
+      <div id="canvas-empty">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="8" y="16" width="32" height="32" rx="2"/>
+          <rect x="24" y="8" width="32" height="32" rx="2"/>
+          <line x1="8" y1="30" x2="40" y2="30"/>
+          <line x1="24" y1="30" x2="24" y2="48"/>
+        </svg>
+        <span class="ce-title">Canvas vazio</span>
+        <span class="ce-sub">Adicione cômodos usando o painel lateral ou selecione uma ferramenta</span>
+        <div class="ce-keys">
+          <kbd>R</kbd><span style="font-size:11px;opacity:0.4">Cômodo</span>
+          <kbd>W</kbd><span style="font-size:11px;opacity:0.4">Parede</span>
+          <kbd>D</kbd><span style="font-size:11px;opacity:0.4">Porta</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context menu (inside main so it does not affect layout) -->
+    <div id="context-menu">
+      <div class="ctx-item" onclick="copySelected();hideContextMenu()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 5.5V2.5h-8v8h3"/></svg>
+        Copiar
+      </div>
+      <div class="ctx-item" onclick="pasteSelected();hideContextMenu()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4.5" width="10" height="10" rx="1"/><path d="M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/></svg>
+        Colar
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item" onclick="deleteSelected();hideContextMenu()" style="color:var(--danger)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 14,4"/><path d="M5.5 4V2.5h5V4M6 7v5m4-5v5"/><path d="M3.5 4l1 10h7l1-10"/></svg>
+        Deletar
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item" onclick="zoomReset();hideContextMenu()">Zoom 100%</div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="right-panel">
+      <div class="rp-header">
+        Propriedades
+        <button class="rp-mode-btn" id="btn-props-mode" onclick="togglePropsMode()" data-tooltip="Editar como YAML" style="display:none">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="1,4 4,1 4,11"/><polyline points="8,1 11,4 11,11"/><line x1="1" y1="8" x2="11" y2="8"/></svg>
+          YAML
+        </button>
+      </div>
+      <div id="props-content" class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"><rect x="4" y="8" width="18" height="16" rx="2"/><path d="M8 13h10M8 17h7"/></svg>
+        Selecione um elemento no canvas
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div id="status-bar">
+    <span id="status-coords">x:0 y:0</span>
+    <span id="status-zoom">Zoom: 100%</span>
+    <span id="status-rooms">Cômodos: 0</span>
+    <span id="status-area">Área: 0 m²</span>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- PASTE YAML MODAL -->
+<div id="paste-modal" onclick="if(event.target===this) hidePasteModal()">
+  <div class="paste-modal-box">
+    <div class="paste-modal-title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 2h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2"/><rect x="5" y="1" width="6" height="3" rx="1"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+      Colar YAML
+    </div>
+    <textarea id="paste-yaml-input" placeholder="Cole o YAML gerado pela IA aqui…
+
+version: 1
+title: Minha Planta
+scale: 2
+wallThickness: 15
+grid: 50
+rooms:
+  - id: sala
+    name: Sala
+    ..."></textarea>
+    <div class="paste-modal-hint">
+      Cole o YAML gerado por uma IA (Claude, ChatGPT, Gemini…) ou copie de um arquivo de texto.<br>
+      Atalho: <strong>Ctrl+Enter</strong> para carregar.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="tb-btn" style="flex:1" onclick="hidePasteModal()">Cancelar</button>
+      <button class="tb-btn accent" style="flex:1" onclick="applyPastedYAML()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3,8 6,11 13,4"/></svg>
+        Carregar planta
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT MODAL -->
+<div id="print-modal" onclick="if(event.target===this) hidePrintModal()">
+  <div class="print-modal-box">
+    <div class="print-modal-title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
+      Configurar impressão
+    </div>
+    <div class="prop-group">
+      <label>Escala</label>
+      <select id="print-scale" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
+        <option value="50">1:50 — detalhe</option>
+        <option value="100" selected>1:100 — padrão</option>
+        <option value="200">1:200 — visão geral</option>
+      </select>
+    </div>
+    <div class="prop-group">
+      <label>Papel</label>
+      <select id="print-paper" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit">
+        <option value="a4p">A4 Retrato (210×297mm)</option>
+        <option value="a4l" selected>A4 Paisagem (297×210mm)</option>
+        <option value="a3l">A3 Paisagem (420×297mm)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="tb-btn" style="flex:1" onclick="hidePrintModal()">Cancelar</button>
+      <button class="tb-btn accent" style="flex:1" onclick="doPrint()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6V2.5h8V6M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1zm3 3h4M5 11h6"/></svg>
+        Imprimir / PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SHORTCUTS OVERLAY -->
+<div id="shortcuts-overlay" onclick="if(event.target===this) hideShortcuts()">
+  <div id="shortcuts-panel">
+    <button id="shortcuts-close" onclick="hideShortcuts()">×</button>
+    <h3>Atalhos de Teclado</h3>
+    <table>
+      <tr><td>Delete</td><td>Remover selecionado</td></tr>
+      <tr><td>Ctrl+Z</td><td>Desfazer</td></tr>
+      <tr><td>Ctrl+Y</td><td>Refazer</td></tr>
+      <tr><td>Ctrl+C</td><td>Copiar</td></tr>
+      <tr><td>Ctrl+V</td><td>Colar</td></tr>
+      <tr><td>Shift+Click</td><td>Multi-seleção</td></tr>
+      <tr><td>Esc</td><td>Limpar seleção</td></tr>
+      <tr><td>Scroll</td><td>Zoom</td></tr>
+      <tr><td>Alt+Drag</td><td>Pan</td></tr>
+      <tr><td>1</td><td>Ferramenta Selecionar</td></tr>
+      <tr><td>2</td><td>Ferramenta Parede</td></tr>
+      <tr><td>3</td><td>Ferramenta Cômodo</td></tr>
+      <tr><td>4</td><td>Ferramenta Porta</td></tr>
+      <tr><td>5</td><td>Ferramenta Janela</td></tr>
+      <tr><td>6</td><td>Ferramenta Escada</td></tr>
+      <tr><td>[</td><td>Retrair / expandir painel</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- Aviso para telas pequenas (app é apenas desktop) -->
+<div id="mobile-block">
+  <div class="mb-card">
+    <div class="mb-icon">🖥️</div>
+    <h1>Disponível apenas no desktop</h1>
+    <p>O editor de plantas do <strong>Floorplan</strong> precisa de uma tela maior para funcionar bem.</p>
+    <p class="mb-hint">Acesse de um computador (ou amplie a janela do navegador) para usar o editor.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

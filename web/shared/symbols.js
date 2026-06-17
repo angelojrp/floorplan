@@ -30,3 +30,5 @@ const SYMBOL_CATEGORIES = [
   { id: 'sym-bathroom', label: '🚿 Banheiro', keys: ['toilet', 'shower', 'bathtub'] },
   { id: 'sym-electrical', label: '💡 Elétrica / Portas', keys: ['outlet', 'light_ceiling', 'balcony_door'] }
 ];
+
+export { SYMBOLS, SYMBOL_CATEGORIES };
