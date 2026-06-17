@@ -417,6 +417,43 @@ body.dark #canvas-wrap{
 .del-btn:hover{background:var(--danger-bg);color:var(--danger)}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
 .add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
+/* ── PROPS MODE TOGGLE ── */
+.rp-header{display:flex;align-items:center;justify-content:space-between}
+.rp-mode-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;
+  font-size:9px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
+  border:1px solid var(--border2);border-radius:12px;
+  background:transparent;color:var(--text3);
+  cursor:pointer;transition:all var(--transition);font-family:inherit;
+}
+.rp-mode-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.rp-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* ── YAML PROPS EDITOR ── */
+.props-yaml-wrap{display:flex;flex-direction:column;flex:1;padding:10px;gap:8px}
+#props-yaml-ta{
+  flex:1;min-height:320px;resize:vertical;
+  font-family:'Cascadia Code','Fira Code','SF Mono','Consolas',monospace;
+  font-size:11.5px;line-height:1.6;
+  padding:10px;
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface2);color:var(--text);
+  outline:none;
+  transition:border-color var(--transition);
+  tab-size:2;
+}
+#props-yaml-ta:focus{border-color:var(--accent)}
+.dark #props-yaml-ta{background:#0f172a}
+.props-yaml-actions{display:flex;align-items:center;gap:6px}
+.props-yaml-apply{
+  flex:1;padding:6px 0;
+  font-size:11px;font-weight:600;font-family:inherit;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:var(--radius-sm);
+  cursor:pointer;transition:background var(--transition);
+}
+.props-yaml-apply:hover{background:var(--accent2)}
+.props-yaml-err{font-size:10px;color:var(--danger);flex:1;line-height:1.3}
 /* ── LAYERS PANEL ── */
 .layer-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
 .layer-row:last-child{border-bottom:none}
@@ -425,7 +462,8 @@ body.dark #canvas-wrap{
 .layer-eye.active{color:var(--accent)}
 .layer-label{font-size:12px;color:var(--text2);flex:1}
 /* ── PRINT MODAL ── */
-#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:300}
+#print-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:300}
+#print-modal.show{display:flex}
 .print-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:300px;box-shadow:var(--shadow-lg)}
 .print-modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--text3);text-align:center;font-size:11px}
@@ -856,7 +894,13 @@ body.dark #canvas-wrap{
 
     <!-- RIGHT PANEL -->
     <div id="right-panel">
-      <div class="rp-header">Propriedades</div>
+      <div class="rp-header">
+        Propriedades
+        <button class="rp-mode-btn" id="btn-props-mode" onclick="togglePropsMode()" data-tooltip="Editar como YAML" style="display:none">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="1,4 4,1 4,11"/><polyline points="8,1 11,4 11,11"/><line x1="1" y1="8" x2="11" y2="8"/></svg>
+          YAML
+        </button>
+      </div>
       <div id="props-content" class="empty-state">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"><rect x="4" y="8" width="18" height="16" rx="2"/><path d="M8 13h10M8 17h7"/></svg>
         Selecione um elemento no canvas
@@ -1883,8 +1927,118 @@ document.addEventListener('keydown', e => {
 //  PROPERTIES PANEL
 // ═══════════════════════════════════════════════════
 
+let propsMode = 'basic'; // 'basic' | 'yaml'
+let _lastPropsSelId = null;
+
+function togglePropsMode() {
+  propsMode = propsMode === 'basic' ? 'yaml' : 'basic';
+  const btn = document.getElementById('btn-props-mode');
+  btn.classList.toggle('active', propsMode === 'yaml');
+  btn.setAttribute('data-tooltip', propsMode === 'yaml' ? 'Voltar ao modo básico' : 'Editar como YAML');
+  renderProperties();
+}
+
+function getSelectedObject() {
+  if (!state.selectedId) return null;
+  const sym = state.symbols.find(s => s.id === state.selectedId);
+  if (sym) return { type: 'symbol', obj: sym };
+  const stair = (getFloor().stairs || []).find(s => s.id === state.selectedId);
+  if (stair) return { type: 'stair', obj: stair };
+  const room = (getFloor().rooms || []).find(r => r.id === state.selectedId);
+  if (room) return { type: 'room', obj: room };
+  return null;
+}
+
+function renderYAMLProps() {
+  const el = document.getElementById('props-content');
+  const sel = getSelectedObject();
+  if (!sel) { el.innerHTML = '<div class="empty-state">Selecione um elemento</div>'; return; }
+
+  // Serialize without id
+  const { id, ...rest } = sel.obj;
+  let yamlStr;
+  try { yamlStr = jsyaml.dump(rest, { indent: 2, lineWidth: 120 }); } catch(e) { yamlStr = ''; }
+
+  el.innerHTML = `
+    <div class="props-yaml-wrap">
+      <textarea id="props-yaml-ta" spellcheck="false" data-sel-type="${sel.type}">${escAttr(yamlStr)}</textarea>
+      <div class="props-yaml-actions">
+        <button class="props-yaml-apply" onclick="applyYAMLProps()">
+          Aplicar <kbd style="font-size:9px;opacity:0.7;background:rgba(255,255,255,0.2);padding:1px 4px;border-radius:3px;border:none">Ctrl+↵</kbd>
+        </button>
+      </div>
+      <div id="props-yaml-err" class="props-yaml-err"></div>
+    </div>`;
+
+  const ta = document.getElementById('props-yaml-ta');
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); applyYAMLProps(); }
+    // Tab inserts spaces
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = ta.selectionStart, end = ta.selectionEnd;
+      ta.value = ta.value.substring(0, s) + '  ' + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = s + 2;
+    }
+  });
+  ta.addEventListener('input', () => {
+    document.getElementById('props-yaml-err').textContent = '';
+  });
+}
+
+function applyYAMLProps() {
+  const ta = document.getElementById('props-yaml-ta');
+  const errEl = document.getElementById('props-yaml-err');
+  if (!ta || !errEl) return;
+  let parsed;
+  try {
+    parsed = jsyaml.load(ta.value);
+  } catch(e) {
+    errEl.textContent = '⚠ YAML inválido: ' + e.message.split('\n')[0];
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object') { errEl.textContent = '⚠ Conteúdo inválido'; return; }
+
+  const sel = getSelectedObject();
+  if (!sel) return;
+
+  // Basic validation per type
+  if (sel.type === 'room') {
+    if (typeof parsed.name !== 'string' || !parsed.name.trim()) { errEl.textContent = '⚠ Campo "name" obrigatório'; return; }
+    if (typeof parsed.width !== 'number' || parsed.width <= 0) { errEl.textContent = '⚠ "width" deve ser número positivo'; return; }
+    if (typeof parsed.height !== 'number' || parsed.height <= 0) { errEl.textContent = '⚠ "height" deve ser número positivo'; return; }
+  }
+
+  saveUndo();
+  const { id } = sel.obj; // preserve id
+  Object.keys(sel.obj).forEach(k => { if (k !== 'id') delete sel.obj[k]; });
+  Object.assign(sel.obj, parsed);
+  sel.obj.id = id; // restore id
+
+  errEl.textContent = '';
+  errEl.style.color = 'var(--accent)';
+  errEl.textContent = '✓ Aplicado';
+  setTimeout(() => { if (errEl) { errEl.textContent = ''; errEl.style.color = ''; } }, 1500);
+  render();
+}
+
 function renderProperties() {
   const el = document.getElementById('props-content');
+  const modeBtn = document.getElementById('btn-props-mode');
+
+  // Reset mode when selection changes
+  if (state.selectedId !== _lastPropsSelId) {
+    propsMode = 'basic';
+    _lastPropsSelId = state.selectedId;
+    if (modeBtn) { modeBtn.classList.remove('active'); modeBtn.setAttribute('data-tooltip','Editar como YAML'); }
+  }
+
+  // Show/hide the YAML toggle button based on whether something is selected
+  const hasSelection = !!state.selectedId;
+  if (modeBtn) modeBtn.style.display = hasSelection ? '' : 'none';
+
+  // Delegate to YAML mode if active
+  if (propsMode === 'yaml' && hasSelection) { renderYAMLProps(); return; }
 
   // symbol selected
   const sym = state.symbols.find(s => s.id === state.selectedId);
