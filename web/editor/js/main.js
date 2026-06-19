@@ -137,6 +137,24 @@ function getSharedWalls(rooms) {
   return shared;
 }
 
+// True while the user is actively dragging/panning/resizing. Used to skip the
+// expensive side-panel rebuilds (properties/layers/minimap/floor tabs) during
+// high-frequency mousemove renders — they get a final refresh on mouseup.
+function isInteracting() {
+  return !!(moveState || resizeState || openingDragState || isPanning);
+}
+
+// Coalesce renders triggered by high-frequency events (drag/resize/pan) into at
+// most one render per animation frame. Without this, render() runs once per
+// mousemove event — far more often than the browser can paint — rebuilding the
+// whole SVG each time and causing the canvas to freeze while moving a room.
+let _renderScheduled = false;
+function scheduleRender() {
+  if (_renderScheduled) return;
+  _renderScheduled = true;
+  requestAnimationFrame(() => { _renderScheduled = false; render(); });
+}
+
 function render() {
   const svg = document.getElementById('canvas-svg');
   const sc = state.scale * state.zoom;
@@ -538,10 +556,14 @@ function render() {
   const emptyEl = document.getElementById('canvas-empty');
   if (emptyEl) emptyEl.style.display = isEmpty ? 'flex' : 'none';
 
-  renderProperties();
-  renderLayers();
-  updateMinimap();
-  updateFloorTabs();
+  // Skip the heavy side-panel rebuilds while dragging/resizing/panning — they
+  // don't change the canvas geometry and are refreshed once on mouseup.
+  if (!isInteracting()) {
+    renderProperties();
+    renderLayers();
+    updateMinimap();
+    updateFloorTabs();
+  }
 }
 
 function openingOnWall(wall, rx, ry, rw, rh, off, wid) {
@@ -592,7 +614,7 @@ document.addEventListener('mousemove', e => {
   if (isPanning) {
     state.panX = e.clientX - panStart.x; state.panY = e.clientY - panStart.y;
     if (Math.abs(e.clientX - panStart.ox) > 2 || Math.abs(e.clientY - panStart.oy) > 2) hasDragged = true;
-    render(); return;
+    scheduleRender(); return;
   }
   // wall tool: track mouse for preview line
   if (state.tool === 'wall' && wallState.active) {
@@ -620,7 +642,11 @@ document.addEventListener('mousemove', e => {
     document.getElementById('status-coords').textContent = `x:${Math.round(svgPt.x/state.scale)} y:${Math.round(svgPt.y/state.scale)} cm`;
   }
 });
-document.addEventListener('mouseup', () => { isPanning = false; canvasWrap.classList.remove('panning'); });
+document.addEventListener('mouseup', () => {
+  const wasPanning = isPanning;
+  isPanning = false; canvasWrap.classList.remove('panning');
+  if (wasPanning) render(); // final full render to refresh side panels/minimap
+});
 
 // zoom
 canvasWrap.addEventListener('wheel', e => {
@@ -815,7 +841,7 @@ document.addEventListener('mousemove', e => {
 
     opening.offset = Math.round(Math.max(0, Math.min(rawOffset, maxOffset)) / snap) * snap;
     hasDragged = true;
-    render();
+    scheduleRender();
     return; // don't process move/resize while dragging opening
   }
   if (moveState) {
@@ -887,7 +913,7 @@ document.addEventListener('mousemove', e => {
       room.x = nx; room.y = ny;
       clampRoomToLot(room);
     }
-    if (moved) render();
+    if (moved) scheduleRender();
   }
   if (resizeState) {
     const dx = (e.clientX - resizeState.sx) / (state.scale * state.zoom);
@@ -908,7 +934,7 @@ document.addEventListener('mousemove', e => {
     room.width = Math.round(nw); room.height = Math.round(nh);
     clampRoomToLot(room);
     if (room.x !== resizeOrigin.x || room.y !== resizeOrigin.y || room.width !== resizeOrigin.w || room.height !== resizeOrigin.h) hasDragged = true;
-    render();
+    scheduleRender();
   }
 });
 
@@ -917,10 +943,11 @@ document.addEventListener('mouseup', e => {
     if (hasDragged) saveUndo();
     openingDragState = null;
     hasDragged = false;
+    render(); // final full render to refresh side panels skipped during drag
     return;
   }
-  if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; }
-  if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; }
+  if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; render(); }
+  if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; render(); }
   if (roomDrawState) {
     finishRoomDraw();
     return;
