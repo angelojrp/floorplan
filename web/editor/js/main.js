@@ -38,11 +38,21 @@ const MAX_UNDO = 50;
 function getFloor() { return state.floors.find(f => f.id === state.activeFloor) || state.floors[0]; }
 function ensureRooms() { const f = getFloor(); if (!f.rooms) f.rooms = []; return f; }
 
-function saveUndo() {
-  undoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor })));
+// A deep copy of everything undo/redo restores.
+function snapshot() {
+  return JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }));
+}
+
+// Pushes the state to return to. Callers that mutate immediately can just call
+// saveUndo() first; drag interactions must capture snapshot() on mousedown and
+// pass it here on mouseup, since by then the state is already modified.
+function pushUndo(snap) {
+  undoStack.push(snap || snapshot());
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
+
+function saveUndo() { pushUndo(); }
 
 function undo() { if (!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }))); const s = undoStack.pop(); state.floors = s.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: s.rooms || [], stairs: [] }]; state.symbols = s.symbols || []; state.title = s.title; state.nextId = s.nextId || 1; state.nextSymId = s.nextSymId || 1; state.activeFloor = s.activeFloor || 'terreo'; state.selectedId = null; render(); toast('Desfeito'); }
 function redo() { if (!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }))); const s = redoStack.pop(); state.floors = s.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: s.rooms || [], stairs: [] }]; state.symbols = s.symbols || []; state.title = s.title; state.nextId = s.nextId || 1; state.nextSymId = s.nextSymId || 1; state.activeFloor = s.activeFloor || 'terreo'; state.selectedId = null; render(); toast('Refeito'); }
@@ -422,7 +432,7 @@ function render() {
             ev.stopPropagation();
             ev.preventDefault();
             hasDragged = false;
-            openingDragState = { roomId: room.id, type: 'door', index: i };
+            openingDragState = { roomId: room.id, type: 'door', index: i, undoSnap: snapshot() };
           });
           doorG.appendChild(handle);
         }
@@ -467,7 +477,7 @@ function render() {
             ev.stopPropagation();
             ev.preventDefault();
             hasDragged = false;
-            openingDragState = { roomId: room.id, type: 'window', index: i };
+            openingDragState = { roomId: room.id, type: 'window', index: i, undoSnap: snapshot() };
           });
           winG.appendChild(handle);
         }
@@ -885,7 +895,8 @@ canvasWrap.addEventListener('mousedown', e => {
     state.selectedId = elId; state.selectedIds.clear(); state.selectedIds.add(elId);
   }
   state.selectedId = elId;
-  moveState = { ids: [elId], sx: e.clientX, sy: e.clientY, origins: {} };
+  // Snapshot before the drag mutates anything; pushed on mouseup if it moved.
+  moveState = { ids: [elId], sx: e.clientX, sy: e.clientY, origins: {}, undoSnap: snapshot() };
   if (room) {
     for (const id of moveState.ids) {
       const r = (floor.rooms || []).find(rr => rr.id === id);
@@ -910,7 +921,8 @@ function startResize(roomId, handleType, e) {
     id: roomId,
     sx: e.clientX, sy: e.clientY,
     ox: room.x, oy: room.y, ow: room.width, oh: room.height,
-    handle: handleType
+    handle: handleType,
+    undoSnap: snapshot() // captured before the resize mutates the room
   };
   resizeOrigin = { x: room.x, y: room.y, w: room.width, h: room.height };
   e.preventDefault(); e.stopPropagation();
@@ -1046,15 +1058,17 @@ document.addEventListener('mousemove', e => {
 });
 
 document.addEventListener('mouseup', e => {
+  // Push the pre-drag snapshot taken on mousedown — the live state has already
+  // been mutated by the drag, so snapshotting it here would make undo a no-op.
   if (openingDragState) {
-    if (hasDragged) saveUndo();
+    if (hasDragged) pushUndo(openingDragState.undoSnap);
     openingDragState = null;
     hasDragged = false;
     render(); // final full render to refresh side panels skipped during drag
     return;
   }
-  if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; render(); }
-  if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; render(); }
+  if (moveState) { if (hasDragged) pushUndo(moveState.undoSnap); moveState = null; moveOrigin = null; render(); }
+  if (resizeState) { if (hasDragged) pushUndo(resizeState.undoSnap); resizeState = null; resizeOrigin = null; render(); }
   if (roomDrawState) {
     finishRoomDraw();
     return;
@@ -2470,19 +2484,27 @@ function updateMinimap() {
     `<rect x="${viewBox.x}" y="${viewBox.y}" width="${viewBox.w}" height="${viewBox.h}" class="viewport"/>`;
 }
 
+// Clicking the mini-map centres the canvas on the point clicked.
 function focusMinimap(e) {
   const mm = document.getElementById('minimap-svg');
   if (!mm) return;
-  const rect = mm.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
   const vb = mm.viewBox.baseVal;
-  const svg = svgEl;
-  if (svg && vb) {
-    const cvb = svg.viewBox.baseVal;
-    state.panX = (vb.x + x * vb.width - cvb.width/2) * state.zoom;
-    state.panY = (vb.y + y * vb.height - cvb.height/2) * state.zoom;
-  }
+  if (!vb || !vb.width) return; // mini-map is empty (no rooms)
+  const rect = mm.getBoundingClientRect();
+  // The mini-map uses the default preserveAspectRatio, so its viewBox is
+  // letterboxed inside the element — map through the fitted box, not the
+  // element box, or the click lands off-target on non-matching aspect ratios.
+  const s = Math.min(rect.width / vb.width, rect.height / vb.height);
+  const fitW = vb.width * s, fitH = vb.height * s;
+  const px = (e.clientX - rect.left - (rect.width - fitW) / 2) / s;
+  const py = (e.clientY - rect.top - (rect.height - fitH) / 2) / s;
+
+  // World point under the cursor, then centre the canvas viewBox on it.
+  // render() derives the viewBox as -pan/zoom, so pan is the negated offset.
+  const wx = vb.x + px, wy = vb.y + py;
+  state.panX = -(wx - viewBox.w / 2) * state.zoom;
+  state.panY = -(wy - viewBox.h / 2) * state.zoom;
+  render();
 }
 
 // ── distance indicator ──
