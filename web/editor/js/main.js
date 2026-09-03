@@ -1298,6 +1298,80 @@ function getSelectedObject() {
   return null;
 }
 
+// ═══════════════════════════════════════════════════
+//  ROTAÇÃO EM 90°
+// ═══════════════════════════════════════════════════
+// Cômodos e escadas são retângulos alinhados aos eixos em todo o motor
+// (x/y/width/height, com portas/janelas em paredes cardeais), então girar é
+// trocar largura↔profundidade e remapear as paredes — nunca aplicar um ângulo.
+// Assim a planta continua exportável para SVG/DXF/YAML sem perder nada.
+// dir: 1 = horário, -1 = anti-horário.
+
+const WALL_CW  = { north: 'east', east: 'south', south: 'west', west: 'north' };
+const WALL_CCW = { north: 'west', west: 'south', south: 'east', east: 'north' };
+
+// Move uma porta/janela para a parede correspondente após girar o cômodo.
+// `roomW`/`roomH` são as dimensões ANTES do giro.
+function rotateOpening(op, dir, roomW, roomH) {
+  const horiz = op.wall === 'north' || op.wall === 'south';
+  const wallLen = horiz ? roomW : roomH;
+  // Metade das paredes muda de sentido ao girar (o começo do vão vira o fim),
+  // e nessas o offset é medido a partir da outra ponta — e o lado da dobradiça
+  // inverte junto, para a porta continuar abrindo pelo mesmo canto físico.
+  const reversed = dir > 0 ? !horiz : horiz;
+  op.wall = (dir > 0 ? WALL_CW : WALL_CCW)[op.wall];
+  if (reversed) {
+    op.offset = Math.round(wallLen - op.offset - op.width);
+    if (op.swing === 'left') op.swing = 'right';
+    else if (op.swing === 'right') op.swing = 'left';
+  }
+}
+
+function rotateRoom(room, dir) {
+  const w = room.width, h = room.height;
+  for (const d of room.doors || []) rotateOpening(d, dir, w, h);
+  for (const win of room.windows || []) rotateOpening(win, dir, w, h);
+  // Gira em torno do próprio centro: o centro fica parado e as dimensões trocam.
+  room.x = Math.round(room.x + w / 2 - h / 2);
+  room.y = Math.round(room.y + h / 2 - w / 2);
+  room.width = h; room.height = w;
+  clampRoomToLot(room); // pode encolher o cômodo se ele não couber deitado
+  // Garante que nenhum vão passe do fim da sua nova parede.
+  for (const op of [...(room.doors || []), ...(room.windows || [])]) {
+    const len = (op.wall === 'north' || op.wall === 'south') ? room.width : room.height;
+    op.offset = Math.max(0, Math.min(op.offset, Math.max(0, len - op.width)));
+  }
+}
+
+function rotateStair(stair) {
+  const w = stair.width, h = stair.height;
+  stair.x = Math.max(0, Math.round(stair.x + w / 2 - h / 2));
+  stair.y = Math.max(0, Math.round(stair.y + h / 2 - w / 2));
+  stair.width = h; stair.height = w;
+}
+
+function rotateSelected(dir) {
+  const sel = getSelectedObject();
+  if (!sel) return;
+  saveUndo();
+  if (sel.type === 'room') rotateRoom(sel.obj, dir);
+  else if (sel.type === 'stair') rotateStair(sel.obj);
+  // Símbolos não são retângulos da planta — giram por ângulo, como já faziam.
+  else if (sel.type === 'symbol') sel.obj.rotation = (((sel.obj.rotation || 0) + dir * 90) % 360 + 360) % 360;
+  render();
+  toast(dir > 0 ? '⟳ Girado 90° à direita' : '⟲ Girado 90° à esquerda');
+}
+
+// Botões ⟲/⟳ usados nos painéis de cômodo, escada e símbolo.
+function rotateButtons() {
+  return `<div class="prop-group"><label>🔄 Rotação</label>
+    <div class="rot-row">
+      <button class="rot-btn" onclick="rotateSelected(-1)" title="Girar 90° à esquerda"><span class="rot-icon">⟲</span> 90°</button>
+      <button class="rot-btn" onclick="rotateSelected(1)" title="Girar 90° à direita"><span class="rot-icon">⟳</span> 90°</button>
+    </div>
+  </div>`;
+}
+
 function renderYAMLProps() {
   const el = document.getElementById('props-content');
   const sel = getSelectedObject();
@@ -1450,6 +1524,7 @@ function renderProperties() {
       <div class="half"><label>Altura</label><input type=number value="${sym.h}" onchange="updateSymbolProp('h',+this.value)"></div></div>
       <label>Rotação (°)</label><input type=number value="${sym.rotation||0}" onchange="updateSymbolProp('rotation',+this.value)">
     </div>`;
+    html += rotateButtons();
     el.innerHTML = html;
     return;
   }
@@ -1464,6 +1539,7 @@ function renderProperties() {
       <div class="prop-row"><div class="half"><label>Largura</label><input type=number value="${stair.width}" onchange="updateStairProp('width',+this.value)"></div>
       <div class="half"><label>Altura</label><input type=number value="${stair.height}" onchange="updateStairProp('height',+this.value)"></div></div>
     </div>`;
+    html += rotateButtons();
     html += `<div class="prop-group"><label>Direção</label>
       <select onchange="updateStairProp('direction',this.value)">
         <option value="up" ${stair.direction==='up'?'selected':''}>Up (Sobe)</option>
@@ -1485,6 +1561,8 @@ function renderProperties() {
 
   let html = `<div class="prop-group"><label>Nome</label><input value="${escAttr(room.name)}" onchange="updateProp('name',this.value)"></div>`;
   html += `<div class="prop-group"><label>Dimensões (cm)</label><div class="prop-row"><div class="half"><label>X (cm)</label><input type=number value="${room.x}" onchange="updateProp('x',+this.value)"></div><div class="half"><label>Y (cm)</label><input type=number value="${room.y}" onchange="updateProp('y',+this.value)"></div></div><div class="prop-row"><div class="half"><label>Largura (cm)</label><input type=number value="${room.width}" onchange="updateProp('width',+this.value)"></div><div class="half"><label>Profundidade (cm)</label><input type=number value="${room.height}" onchange="updateProp('height',+this.value)"></div></div></div>`;
+
+  html += rotateButtons();
 
   // doors
   html += `<div class="prop-group"><label>🚪 Portas (${room.doors.length})</label>`;
@@ -2618,5 +2696,5 @@ render();
 
 // expõe handlers referenciados em atributos on* do HTML
 Object.assign(window, {
-  addDoor, addFloor, addWindow, alignSelected, applyPastedYAML, applyYAMLProps, closeExportMenu, copySelected, deleteSelected, doPrint, exportDXF, exportPNG, exportSVG, exportYAML, filterPalette, focusMinimap, hideContextMenu, hidePasteModal, hidePrintModal, hideShortcuts, importYAML, loadTemplateFromSelect, newProject, onPaletteDrag, onSymbolDrag, pasteSelected, redo, removeFloor, removeOpening, setGridSize, setTool, showPasteModal, showPrintModal, switchFloor, toggleCotas, updateLotProp, updateMeta, toggleExportMenu, toggleGrid, toggleLayer, togglePropsMode, toggleShortcuts, toggleSidebar, toggleTheme, undo, updateDoor, updateProp, updateStairProp, updateSymbolProp, updateTitle, updateWindow, zoomIn, zoomOut, zoomReset,
+  addDoor, addFloor, addWindow, alignSelected, rotateSelected, applyPastedYAML, applyYAMLProps, closeExportMenu, copySelected, deleteSelected, doPrint, exportDXF, exportPNG, exportSVG, exportYAML, filterPalette, focusMinimap, hideContextMenu, hidePasteModal, hidePrintModal, hideShortcuts, importYAML, loadTemplateFromSelect, newProject, onPaletteDrag, onSymbolDrag, pasteSelected, redo, removeFloor, removeOpening, setGridSize, setTool, showPasteModal, showPrintModal, switchFloor, toggleCotas, updateLotProp, updateMeta, toggleExportMenu, toggleGrid, toggleLayer, togglePropsMode, toggleShortcuts, toggleSidebar, toggleTheme, undo, updateDoor, updateProp, updateStairProp, updateSymbolProp, updateTitle, updateWindow, zoomIn, zoomOut, zoomReset,
 });
