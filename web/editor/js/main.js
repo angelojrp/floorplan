@@ -38,11 +38,21 @@ const MAX_UNDO = 50;
 function getFloor() { return state.floors.find(f => f.id === state.activeFloor) || state.floors[0]; }
 function ensureRooms() { const f = getFloor(); if (!f.rooms) f.rooms = []; return f; }
 
-function saveUndo() {
-  undoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor })));
+// A deep copy of everything undo/redo restores.
+function snapshot() {
+  return JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }));
+}
+
+// Pushes the state to return to. Callers that mutate immediately can just call
+// saveUndo() first; drag interactions must capture snapshot() on mousedown and
+// pass it here on mouseup, since by then the state is already modified.
+function pushUndo(snap) {
+  undoStack.push(snap || snapshot());
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
+
+function saveUndo() { pushUndo(); }
 
 function undo() { if (!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }))); const s = undoStack.pop(); state.floors = s.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: s.rooms || [], stairs: [] }]; state.symbols = s.symbols || []; state.title = s.title; state.nextId = s.nextId || 1; state.nextSymId = s.nextSymId || 1; state.activeFloor = s.activeFloor || 'terreo'; state.selectedId = null; render(); toast('Desfeito'); }
 function redo() { if (!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify({ floors: state.floors, symbols: state.symbols, title: state.title, nextId: state.nextId, nextSymId: state.nextSymId, activeFloor: state.activeFloor }))); const s = redoStack.pop(); state.floors = s.floors || [{ id: 'terreo', name: 'Térreo', level: 0, rooms: s.rooms || [], stairs: [] }]; state.symbols = s.symbols || []; state.title = s.title; state.nextId = s.nextId || 1; state.nextSymId = s.nextSymId || 1; state.activeFloor = s.activeFloor || 'terreo'; state.selectedId = null; render(); toast('Refeito'); }
@@ -144,45 +154,127 @@ function isInteracting() {
   return !!(moveState || resizeState || openingDragState || isPanning);
 }
 
-// Coalesce renders triggered by high-frequency events (drag/resize/pan) into at
-// most one render per animation frame. Without this, render() runs once per
-// mousemove event — far more often than the browser can paint — rebuilding the
-// whole SVG each time and causing the canvas to freeze while moving a room.
-let _renderScheduled = false;
-function scheduleRender() {
-  if (_renderScheduled) return;
-  _renderScheduled = true;
-  requestAnimationFrame(() => { _renderScheduled = false; render(); });
+// Coalesce work triggered by high-frequency events (drag/resize/pan/wheel) into
+// at most one run per animation frame. Without this, render() runs once per
+// mousemove/wheel event — far more often than the browser can paint — rebuilding
+// the whole SVG each time and causing the canvas to freeze while moving a room.
+function rafCoalesce(fn) {
+  let pending = false;
+  return () => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; fn(); });
+  };
+}
+// Late-bound on purpose: `render` is wrapped further down (auto-save + previews).
+const scheduleRender = rafCoalesce(() => render());
+const schedulePreview = rafCoalesce(() => renderPreview());
+const scheduleRoomPreview = rafCoalesce(() => renderRoomPreview());
+const scheduleStairPreview = rafCoalesce(() => renderStairPreview());
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+// ── cached DOM refs ────────────────────────────────
+// render() runs on every animation frame while dragging; getElementById on each
+// of these per frame is pure overhead.
+const svgEl = document.getElementById('canvas-svg');
+const statusRoomsEl = document.getElementById('status-rooms');
+const statusAreaEl = document.getElementById('status-area');
+const statusCoordsEl = document.getElementById('status-coords');
+const globalTitleEl = document.getElementById('global-title');
+const canvasEmptyEl = document.getElementById('canvas-empty');
+
+// ── canvas size cache ──────────────────────────────
+// clientWidth/clientHeight force a synchronous layout. They only change when the
+// canvas is resized, so read them once and let a ResizeObserver invalidate.
+let _canvasW = 0, _canvasH = 0, _canvasSizeDirty = true;
+new ResizeObserver(() => {
+  _canvasSizeDirty = true;
+  scheduleRender(); // keep the viewBox in sync with the viewport
+}).observe(svgEl);
+
+// Current viewBox in user units, recomputed by render(). Reading it from
+// svg.viewBox.baseVal right after setAttribute() forces a style/layout flush.
+const viewBox = { x: 0, y: 0, w: 0, h: 0 };
+
+// ── static defs ────────────────────────────────────
+// Built once and re-inserted on every render instead of re-parsing the pattern
+// markup each frame. Only the grid pattern is dynamic (grid size).
+const HATCH_DEFS = '<pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="stair-hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f5f0e8"/><line x1="0" y1="5" x2="10" y2="5" stroke="#d4c9b8" stroke-width="1.5"/></pattern><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#6d5d4b"/></marker>';
+
+const defsEl = document.createElementNS(SVGNS, 'defs');
+defsEl.innerHTML = HATCH_DEFS;
+// The grid used to be one <circle> per intersection — thousands of nodes rebuilt
+// every frame, and quadratically more as you zoom out. A tiled pattern draws the
+// same dots as a single <rect>, at constant cost.
+const gridPatternEl = document.createElementNS(SVGNS, 'pattern');
+gridPatternEl.setAttribute('id', 'grid-dots');
+gridPatternEl.setAttribute('patternUnits', 'userSpaceOnUse');
+// Tile origin offset by -r so each dot lands centred on a grid intersection.
+gridPatternEl.setAttribute('x', -0.5);
+gridPatternEl.setAttribute('y', -0.5);
+gridPatternEl.innerHTML = '<circle cx="0.5" cy="0.5" r="0.5" fill="#bbb"/>';
+defsEl.appendChild(gridPatternEl);
+let _gridPatternSize = null;
+
+// ── symbol template cache ──────────────────────────
+// def.svg is a markup string; parsing it per symbol per frame is expensive.
+// Parse once, then cloneNode for each instance.
+const _symbolTemplates = new Map();
+function symbolNode(type, markup) {
+  let tpl = _symbolTemplates.get(type);
+  if (!tpl) {
+    tpl = document.createElementNS(SVGNS, 'g');
+    tpl.innerHTML = markup;
+    _symbolTemplates.set(type, tpl);
+  }
+  return tpl.cloneNode(true);
+}
+
+// Elements fully outside the viewBox are invisible (the viewBox clips them), so
+// skip building their DOM entirely. The margin covers walls, selection handles
+// and dimension text that stick out past an element's own box.
+const CULL_MARGIN = 60;
+function inView(x, y, w, h, margin) {
+  const m = margin || 0;
+  return x - m < viewBox.x + viewBox.w && x + w + m > viewBox.x
+      && y - m < viewBox.y + viewBox.h && y + h + m > viewBox.y;
 }
 
 function render() {
-  const svg = document.getElementById('canvas-svg');
-  const sc = state.scale * state.zoom;
+  const svg = svgEl;
   const wt = state.wallThickness * state.scale;
 
-  svg.innerHTML = '';
-  svg.setAttribute('viewBox', `${-state.panX/state.zoom} ${-state.panY/state.zoom} ${svg.clientWidth/state.zoom} ${svg.clientHeight/state.zoom}`);
+  if (_canvasSizeDirty) {
+    _canvasW = svg.clientWidth;
+    _canvasH = svg.clientHeight;
+    _canvasSizeDirty = false;
+  }
+  viewBox.x = -state.panX / state.zoom;
+  viewBox.y = -state.panY / state.zoom;
+  viewBox.w = _canvasW / state.zoom;
+  viewBox.h = _canvasH / state.zoom;
+  svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
 
-  // pattern defs for hatches
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  defs.innerHTML = '<pattern id="hatch-diagonal" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-cross" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#fafafa"/><line x1="0" y1="0" x2="8" y2="8" stroke="#e0e0e0" stroke-width="1"/><line x1="8" y1="0" x2="0" y2="8" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-dots" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><circle cx="3" cy="3" r="1" fill="#e0e0e0"/></pattern><pattern id="hatch-horizontal" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="0" y1="3" x2="6" y2="3" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="hatch-vertical" patternUnits="userSpaceOnUse" width="6" height="6"><rect width="6" height="6" fill="#fafafa"/><line x1="3" y1="0" x2="3" y2="6" stroke="#e0e0e0" stroke-width="1"/></pattern><pattern id="stair-hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f5f0e8"/><line x1="0" y1="5" x2="10" y2="5" stroke="#d4c9b8" stroke-width="1.5"/></pattern><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#6d5d4b"/></marker>';
-  svg.appendChild(defs);
+  const g = document.createElementNS(SVGNS,'g');
+  // viewBox already handles zoom + pan; group is identity.
+  // The tree is built detached and swapped in at the end of render() so the
+  // browser lays out and paints once instead of after every appendChild.
 
-  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    // viewBox already handles zoom + pan; group is identity
-    svg.appendChild(g);
-
-  // grid
+  // grid — one pattern-filled rect covering the viewport
   if (state.gridVisible) {
     const gs = state.gridSize;
-    const vb = svg.viewBox.baseVal;
-    for (let x = Math.floor(vb.x/gs)*gs; x < vb.x+vb.width+gs; x += gs) {
-      for (let y = Math.floor(vb.y/gs)*gs; y < vb.y+vb.height+gs; y += gs) {
-        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-        c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 0.5);
-        c.setAttribute('fill','#bbb'); g.appendChild(c);
-      }
+    if (_gridPatternSize !== gs) {
+      gridPatternEl.setAttribute('width', gs);
+      gridPatternEl.setAttribute('height', gs);
+      _gridPatternSize = gs;
     }
+    const gr = document.createElementNS(SVGNS,'rect');
+    gr.setAttribute('x', viewBox.x); gr.setAttribute('y', viewBox.y);
+    gr.setAttribute('width', viewBox.w); gr.setAttribute('height', viewBox.h);
+    gr.setAttribute('fill', 'url(#grid-dots)');
+    gr.setAttribute('pointer-events', 'none');
+    g.appendChild(gr);
   }
 
   // terreno (lot) — borda tracejada ancorada na origem (0,0); desenhada atrás da planta
@@ -232,6 +324,9 @@ function render() {
     const rx = room.x * state.scale, ry = room.y * state.scale;
     const rw = room.width * state.scale, rh = room.height * state.scale;
     totalArea += room.width * room.height;
+
+    // Off-screen rooms are clipped by the viewBox anyway — don't build them.
+    if (!inView(rx, ry, rw, rh, wt + CULL_MARGIN)) continue;
 
     const hw = wt / 2;
     // wall style colors
@@ -337,7 +432,7 @@ function render() {
             ev.stopPropagation();
             ev.preventDefault();
             hasDragged = false;
-            openingDragState = { roomId: room.id, type: 'door', index: i };
+            openingDragState = { roomId: room.id, type: 'door', index: i, undoSnap: snapshot() };
           });
           doorG.appendChild(handle);
         }
@@ -382,7 +477,7 @@ function render() {
             ev.stopPropagation();
             ev.preventDefault();
             hasDragged = false;
-            openingDragState = { roomId: room.id, type: 'window', index: i };
+            openingDragState = { roomId: room.id, type: 'window', index: i, undoSnap: snapshot() };
           });
           winG.appendChild(handle);
         }
@@ -456,6 +551,7 @@ function render() {
   for (const stair of (floor.stairs || [])) {
     const sx = stair.x * state.scale, sy = stair.y * state.scale;
     const sw = stair.width * state.scale, sh = stair.height * state.scale;
+    if (!inView(sx, sy, sw, sh, CULL_MARGIN)) continue;
     const dir = stair.direction || 'up';
     const sg = document.createElementNS('http://www.w3.org/2000/svg','g');
     sg.setAttribute('data-id', stair.id);
@@ -516,16 +612,17 @@ function render() {
       if (!def) continue;
       const sx = sym.x * state.scale, sy = sym.y * state.scale;
       const sw = sym.w * state.scale, sh = sym.h * state.scale;
+      // A rotated symbol can extend past its box — use the diagonal as margin.
+      if (!inView(sx, sy, sw, sh, sym.rotation ? Math.hypot(sw, sh) : CULL_MARGIN)) continue;
       const group = document.createElementNS('http://www.w3.org/2000/svg','g');
       group.setAttribute('data-id', sym.id);
       group.style.cursor = state.tool === 'select' ? 'move' : 'default';
       const isSelected = state.selectedIds.has(sym.id);
       if (isSelected) group.setAttribute('filter','drop-shadow(0 0 3px rgba(37,99,235,0.5))');
-      const inner = document.createElementNS('http://www.w3.org/2000/svg','g');
       const scX = sw / def.w, scY = sh / def.h;
       const rot = sym.rotation ? ` rotate(${sym.rotation} ${def.w/2} ${def.h/2})` : '';
+      const inner = symbolNode(sym.type, def.svg);
       inner.setAttribute('transform', `translate(${sx},${sy}) scale(${scX},${scY})${rot}`);
-      inner.innerHTML = def.svg;
       group.appendChild(inner);
       if (isSelected) {
         const selG = document.createElementNS('http://www.w3.org/2000/svg','g');
@@ -546,15 +643,24 @@ function render() {
     }
   }
 
-  // status
-  document.getElementById('status-rooms').textContent = `Cômodos: ${rooms.length} | Símbolos: ${state.symbols.length}`;
-  document.getElementById('status-area').textContent = `Área: ${(totalArea/10000).toFixed(1)} m²`;
-  document.getElementById('global-title').value = state.title;
+  // Single DOM mutation: replaces the previous scene (and any leftover preview
+  // layers) with the freshly built, still-detached tree.
+  svg.replaceChildren(defsEl, g);
+
+  // status — only write when the text actually changed; touching .value on the
+  // title input unconditionally would also fight the caret while typing.
+  const roomsText = `Cômodos: ${rooms.length} | Símbolos: ${state.symbols.length}`;
+  if (statusRoomsEl.textContent !== roomsText) statusRoomsEl.textContent = roomsText;
+  const areaText = `Área: ${(totalArea/10000).toFixed(1)} m²`;
+  if (statusAreaEl.textContent !== areaText) statusAreaEl.textContent = areaText;
+  if (globalTitleEl.value !== state.title) globalTitleEl.value = state.title;
 
   // canvas empty state
   const isEmpty = rooms.length === 0 && (state.symbols || []).length === 0;
-  const emptyEl = document.getElementById('canvas-empty');
-  if (emptyEl) emptyEl.style.display = isEmpty ? 'flex' : 'none';
+  if (canvasEmptyEl) {
+    const disp = isEmpty ? 'flex' : 'none';
+    if (canvasEmptyEl.style.display !== disp) canvasEmptyEl.style.display = disp;
+  }
 
   // Skip the heavy side-panel rebuilds while dragging/resizing/panning — they
   // don't change the canvas geometry and are refreshed once on mouseup.
@@ -620,7 +726,7 @@ document.addEventListener('mousemove', e => {
   if (state.tool === 'wall' && wallState.active) {
     const pt = svgPoint(e.clientX, e.clientY);
     wallState.mouseX = pt.x; wallState.mouseY = pt.y;
-    renderPreview();
+    schedulePreview();
     return;
   }
   // room tool: update preview
@@ -633,15 +739,26 @@ document.addEventListener('mousemove', e => {
     updateStairDraw(e);
     return;
   }
-  // update coords
-  const svg = document.getElementById('canvas-svg');
-  if (svg) {
-    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
-    const ctm = svg.getScreenCTM(); if (!ctm) return;
-    const svgPt = pt.matrixTransform(ctm.inverse());
-    document.getElementById('status-coords').textContent = `x:${Math.round(svgPt.x/state.scale)} y:${Math.round(svgPt.y/state.scale)} cm`;
-  }
+  updateCoords(e.clientX, e.clientY);
 });
+
+// Coordinate readout. getScreenCTM() forces a layout flush, so run it at most
+// once per frame with the latest pointer position rather than per mousemove.
+let _coordPos = null;
+const _flushCoords = rafCoalesce(() => {
+  const p = _coordPos;
+  if (!p || !statusCoordsEl) return;
+  const ctm = svgEl.getScreenCTM();
+  if (!ctm) return;
+  const pt = svgEl.createSVGPoint(); pt.x = p.x; pt.y = p.y;
+  const svgPt = pt.matrixTransform(ctm.inverse());
+  const text = `x:${Math.round(svgPt.x/state.scale)} y:${Math.round(svgPt.y/state.scale)} cm`;
+  if (statusCoordsEl.textContent !== text) statusCoordsEl.textContent = text;
+});
+function updateCoords(clientX, clientY) {
+  _coordPos = { x: clientX, y: clientY };
+  _flushCoords();
+}
 document.addEventListener('mouseup', () => {
   const wasPanning = isPanning;
   isPanning = false; canvasWrap.classList.remove('panning');
@@ -654,7 +771,7 @@ canvasWrap.addEventListener('wheel', e => {
   const delta = e.deltaY > 0 ? -0.1 : 0.1;
   state.zoom = Math.max(0.2, Math.min(3, state.zoom + delta));
   updateZoomLabel();
-  render();
+  scheduleRender(); // wheel fires far faster than the browser can paint
 }, {passive:false});
 
 function zoomIn() { state.zoom = Math.min(3, state.zoom + 0.15); updateZoomLabel(); render(); }
@@ -778,7 +895,8 @@ canvasWrap.addEventListener('mousedown', e => {
     state.selectedId = elId; state.selectedIds.clear(); state.selectedIds.add(elId);
   }
   state.selectedId = elId;
-  moveState = { ids: [elId], sx: e.clientX, sy: e.clientY, origins: {} };
+  // Snapshot before the drag mutates anything; pushed on mouseup if it moved.
+  moveState = { ids: [elId], sx: e.clientX, sy: e.clientY, origins: {}, undoSnap: snapshot() };
   if (room) {
     for (const id of moveState.ids) {
       const r = (floor.rooms || []).find(rr => rr.id === id);
@@ -803,7 +921,8 @@ function startResize(roomId, handleType, e) {
     id: roomId,
     sx: e.clientX, sy: e.clientY,
     ox: room.x, oy: room.y, ow: room.width, oh: room.height,
-    handle: handleType
+    handle: handleType,
+    undoSnap: snapshot() // captured before the resize mutates the room
   };
   resizeOrigin = { x: room.x, y: room.y, w: room.width, h: room.height };
   e.preventDefault(); e.stopPropagation();
@@ -819,7 +938,7 @@ document.addEventListener('mousemove', e => {
     if (!opening) { openingDragState = null; return; }
 
     // Convert mouse to SVG coordinates
-    const svg = document.getElementById('canvas-svg');
+    const svg = svgEl;
     const pt = svg.createSVGPoint();
     pt.x = e.clientX; pt.y = e.clientY;
     const ctm = svg.getScreenCTM();
@@ -939,15 +1058,17 @@ document.addEventListener('mousemove', e => {
 });
 
 document.addEventListener('mouseup', e => {
+  // Push the pre-drag snapshot taken on mousedown — the live state has already
+  // been mutated by the drag, so snapshotting it here would make undo a no-op.
   if (openingDragState) {
-    if (hasDragged) saveUndo();
+    if (hasDragged) pushUndo(openingDragState.undoSnap);
     openingDragState = null;
     hasDragged = false;
     render(); // final full render to refresh side panels skipped during drag
     return;
   }
-  if (moveState) { if (hasDragged) saveUndo(); moveState = null; moveOrigin = null; render(); }
-  if (resizeState) { if (hasDragged) saveUndo(); resizeState = null; resizeOrigin = null; render(); }
+  if (moveState) { if (hasDragged) pushUndo(moveState.undoSnap); moveState = null; moveOrigin = null; render(); }
+  if (resizeState) { if (hasDragged) pushUndo(resizeState.undoSnap); resizeState = null; resizeOrigin = null; render(); }
   if (roomDrawState) {
     finishRoomDraw();
     return;
@@ -972,7 +1093,7 @@ canvasWrap.addEventListener('drop', e => {
     const def = SYMBOLS[data.type];
     if (!def) return;
     saveUndo();
-    const svg = document.getElementById('canvas-svg');
+    const svg = svgEl;
     const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
     const ctm = svg.getScreenCTM(); if (!ctm) return;
     const svgPt = pt.matrixTransform(ctm.inverse());
@@ -988,7 +1109,7 @@ canvasWrap.addEventListener('drop', e => {
 
   if (!data.name) return;
   saveUndo();
-  const svg = document.getElementById('canvas-svg');
+  const svg = svgEl;
   const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
   const ctm = svg.getScreenCTM(); if (!ctm) return;
   const svgPt = pt.matrixTransform(ctm.inverse());
@@ -1008,7 +1129,7 @@ function addOpening(roomId, e) {
   const floor = getFloor();
   const room = (floor.rooms || []).find(r => r.id === roomId);
   if (!room) return;
-  const svg = document.getElementById('canvas-svg');
+  const svg = svgEl;
   const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
   const ctm = svg.getScreenCTM(); if (!ctm) return;
   const p = pt.matrixTransform(ctm.inverse());
@@ -1618,7 +1739,7 @@ function updateStairDraw(e) {
   if (!stairDrawState) return;
   const pt = svgPoint(e.clientX, e.clientY);
   stairDrawState.ex = pt.x; stairDrawState.ey = pt.y;
-  renderStairPreview();
+  scheduleStairPreview();
 }
 
 function finishStairDraw() {
@@ -1641,7 +1762,7 @@ function finishStairDraw() {
 }
 
 function renderStairPreview() {
-  const svg = document.getElementById('canvas-svg');
+  const svg = svgEl;
   svg.querySelectorAll('.stair-preview-layer').forEach(el => el.remove());
   if (!stairDrawState) return;
   const pg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1700,7 +1821,7 @@ function finishWallDraw() {
 }
 
 function renderPreview() {
-  const svg = document.getElementById('canvas-svg');
+  const svg = svgEl;
   // remove previous preview elements
   svg.querySelectorAll('.preview-layer').forEach(el => el.remove());
 
@@ -1756,7 +1877,7 @@ function updateRoomDraw(e) {
   if (!roomDrawState) return;
   const pt = svgPoint(e.clientX, e.clientY);
   roomDrawState.ex = pt.x; roomDrawState.ey = pt.y;
-  renderRoomPreview();
+  scheduleRoomPreview();
 }
 
 function finishRoomDraw() {
@@ -1784,7 +1905,7 @@ function finishRoomDraw() {
 }
 
 function renderRoomPreview() {
-  const svg = document.getElementById('canvas-svg');
+  const svg = svgEl;
   svg.querySelectorAll('.room-preview-layer').forEach(el => el.remove());
   if (!roomDrawState) return;
 
@@ -1815,7 +1936,7 @@ function renderRoomPreview() {
 }
 
 function svgPoint(cx, cy) {
-  const svg = document.getElementById('canvas-svg');
+  const svg = svgEl;
   const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy;
   const ctm = svg.getScreenCTM(); if (!ctm) return {x:0, y:0};
   return pt.matrixTransform(ctm.inverse());
@@ -2353,30 +2474,37 @@ function updateMinimap() {
   }
   const pad = 50, vw=maxX-minX+pad*2, vh=maxY-minY+pad*2;
   mm.setAttribute('viewBox',`${minX-pad} ${minY-pad} ${vw} ${vh}`);
-  mm.innerHTML = rooms.map(r =>
+  // Build the markup once — `innerHTML +=` would re-serialize and re-parse the
+  // whole minimap a second time.
+  const roomsHtml = rooms.map(r =>
     `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" fill="#bbb" stroke="#999" stroke-width="1" rx="2"/>`
   ).join('');
-  // viewport indicator
-  const svg = document.getElementById('canvas-svg');
-  if (svg) {
-    const vb = svg.viewBox.baseVal;
-    mm.innerHTML += `<rect x="${vb.x}" y="${vb.y}" width="${vb.width}" height="${vb.height}" class="viewport"/>`;
-  }
+  // viewport indicator (from the cached viewBox — no layout read needed)
+  mm.innerHTML = roomsHtml +
+    `<rect x="${viewBox.x}" y="${viewBox.y}" width="${viewBox.w}" height="${viewBox.h}" class="viewport"/>`;
 }
 
+// Clicking the mini-map centres the canvas on the point clicked.
 function focusMinimap(e) {
   const mm = document.getElementById('minimap-svg');
   if (!mm) return;
-  const rect = mm.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
   const vb = mm.viewBox.baseVal;
-  const svg = document.getElementById('canvas-svg');
-  if (svg && vb) {
-    const cvb = svg.viewBox.baseVal;
-    state.panX = (vb.x + x * vb.width - cvb.width/2) * state.zoom;
-    state.panY = (vb.y + y * vb.height - cvb.height/2) * state.zoom;
-  }
+  if (!vb || !vb.width) return; // mini-map is empty (no rooms)
+  const rect = mm.getBoundingClientRect();
+  // The mini-map uses the default preserveAspectRatio, so its viewBox is
+  // letterboxed inside the element — map through the fitted box, not the
+  // element box, or the click lands off-target on non-matching aspect ratios.
+  const s = Math.min(rect.width / vb.width, rect.height / vb.height);
+  const fitW = vb.width * s, fitH = vb.height * s;
+  const px = (e.clientX - rect.left - (rect.width - fitW) / 2) / s;
+  const py = (e.clientY - rect.top - (rect.height - fitH) / 2) / s;
+
+  // World point under the cursor, then centre the canvas viewBox on it.
+  // render() derives the viewBox as -pan/zoom, so pan is the negated offset.
+  const wx = vb.x + px, wy = vb.y + py;
+  state.panX = -(wx - viewBox.w / 2) * state.zoom;
+  state.panY = -(wy - viewBox.h / 2) * state.zoom;
+  render();
 }
 
 // ── distance indicator ──
@@ -2396,7 +2524,7 @@ canvasWrap.addEventListener('touchmove', e => {
     e.preventDefault();
     const newDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
     state.zoom = Math.max(0.2, Math.min(3, touchState.zoom * (newDist / touchState.dist)));
-    updateZoomLabel(); render();
+    updateZoomLabel(); scheduleRender();
   }
 }, {passive: false});
 canvasWrap.addEventListener('touchend', () => { touchState = null; });
