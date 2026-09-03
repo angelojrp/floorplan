@@ -417,6 +417,10 @@ body.dark #canvas-wrap{
 .del-btn:hover{background:var(--danger-bg);color:var(--danger)}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px;font-size:11px;font-weight:500;border:1px dashed var(--border2);background:transparent;color:var(--accent);border-radius:var(--radius-sm);cursor:pointer;margin-top:4px;transition:all var(--transition);font-family:inherit}
 .add-btn:hover{background:var(--accent-bg);border-color:var(--accent)}
+.rot-row{display:flex;gap:6px}
+.rot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:6px;font-size:11px;font-weight:500;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:var(--radius-sm);cursor:pointer;transition:all var(--transition);font-family:inherit}
+.rot-btn:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.rot-btn .rot-icon{font-size:13px;line-height:1}
 /* ── PROPS MODE TOGGLE ── */
 .rp-header{display:flex;align-items:center;justify-content:space-between}
 .rp-mode-btn{
