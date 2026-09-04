@@ -1,5 +1,5 @@
 // Floorplan Editor — UI sobre a engine canônica (src/)
-import { render as engineRender, resolveLayout, parseFloorPlan, exportDXF as engineExportDXF } from '../../../src/index';
+import { render as engineRender, resolveLayout, parseFloorPlan, exportDXF as engineExportDXF, planStats } from '../../../src/index';
 import { SYMBOLS, SYMBOL_CATEGORIES } from '../../shared/symbols.js';
 
 // ═══════════════════════════════════════════════════
@@ -2342,12 +2342,11 @@ function exportDXF() {
   toast('📐 DXF exportado!');
 }
 
+// Área de toda a planta (todos os pavimentos), pela mesma conta que o Worker
+// usa para derivar `area_m2` na gravação — planStats() da engine.
 function calculateTotalArea() {
-  let total = 0;
-  for (const f of state.floors) {
-    for (const r of (f.rooms || [])) { total += r.width * r.height; }
-  }
-  return (total / 10000).toFixed(1);
+  const rooms = state.floors.flatMap(f => f.rooms || []);
+  return planStats({ rooms }).areaM2.toFixed(1);
 }
 
 // ── Template library ──
