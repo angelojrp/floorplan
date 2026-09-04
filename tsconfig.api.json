@@ -1,0 +1,15 @@
+{
+  "//": "Typecheck do Worker e dos testes de API. O tsconfig.json principal emite o pacote npm a partir de src/ em CommonJS; o Worker é ESM e roda com os tipos do runtime da Cloudflare. O include cobre só api/ e tests/api/ — o TS segue os imports para dentro de src/ sozinho, sem arrastar o CLI (que é Node, não Worker).",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers/types"],
+    "rootDir": ".",
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": ["api/**/*", "tests/api/**/*"]
+}

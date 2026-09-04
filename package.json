@@ -12,12 +12,14 @@
     "build": "vite build",
     "build:lib": "tsc",
     "start": "node dist/cli.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy:worker": "wrangler deploy api/worker.ts --name floorplan-api",
+    "deploy:worker": "wrangler deploy --config api/wrangler.toml",
     "prepublishOnly": "npm run build:lib",
-    "prepare": "npm run build:lib"
+    "prepare": "npm run build:lib",
+    "db:migrate": "wrangler d1 migrations apply floorplan --config api/wrangler.toml --remote",
+    "db:migrate:local": "wrangler d1 migrations apply floorplan --config api/wrangler.toml --local"
   },
   "keywords": [
     "floorplan",
@@ -47,9 +49,12 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260904.1",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
     "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "wrangler": "^4.129.0"
   }
 }

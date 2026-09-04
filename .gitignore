@@ -4,3 +4,6 @@ dist-web/
 *.log
 .DS_Store
 .claude/
+
+# Wrangler / Miniflare state local
+.wrangler/
