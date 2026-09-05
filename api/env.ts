@@ -5,9 +5,19 @@
  * `wrangler secret put <NOME> --config api/wrangler.toml`; em dev local,
  * por um `.dev.vars` na raiz de api/ (não versionado).
  */
+import type { RateLimiterBinding } from './ratelimit';
+
 export interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;
+
+  /**
+   * Buckets de limite de taxa por IP (`[[ratelimits]]` em api/wrangler.toml).
+   * Opcionais: sem eles o Worker roda igual a antes, sem limite — é assim que
+   * os testes da engine e o `wrangler dev` sem config continuam funcionando.
+   */
+  RL_RENDER?: RateLimiterBinding;
+  RL_PUBLIC?: RateLimiterBinding;
 
   /** Chave secreta do Clerk (sk_...). */
   CLERK_SECRET_KEY?: string;

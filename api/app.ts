@@ -3,7 +3,8 @@ import { render } from '../src/index';
 import type { Env } from './env';
 import { Db } from './db';
 import { anonymousClerkPort, createClerkPort, resolveUser, type ClerkPort } from './auth';
-import { apiError, corsHeaders, json, noContent } from './http';
+import { apiError, corsHeaders, json, noContent, tooManyRequests } from './http';
+import { enforceRateLimit } from './ratelimit';
 import {
   createProject, deriveFromYaml, FREE_PROJECT_LIMIT, newShareSlug,
   projectInputSchema, publicProjectView, shareInputSchema, ValidationError,
@@ -63,7 +64,19 @@ export async function handle(request: Request, env: Env, deps: Deps): Promise<Re
     });
   }
 
-  if (method === 'POST' && path === '/render') return handleRender(request, cors);
+  if (method === 'POST' && path === '/render') {
+    const rl = await enforceRateLimit(request, env, env?.RL_RENDER, 'render');
+    if (!rl.allowed) return tooManyRequests(rl.retryAfterSeconds, cors);
+    return handleRender(request, cors);
+  }
+
+  // Tudo que vem abaixo toca D1 ou o Clerk; o limite por IP entra antes,
+  // para que uma enxurrada de requisições não vire custo de banco nem
+  // verificação de sessão a cada acerto.
+  if (isApi) {
+    const rl = await enforceRateLimit(request, env, env?.RL_PUBLIC, 'api');
+    if (!rl.allowed) return tooManyRequests(rl.retryAfterSeconds, cors);
+  }
 
   // ── leitura pública de um projeto compartilhado, sem sessão ──
   const shared = path.match(/^\/api\/p\/([A-Za-z0-9_-]{1,64})$/);
@@ -213,7 +226,18 @@ function issueList(error: z.ZodError): string[] {
   return error.issues.map((i) => `${i.path.join('.') || '(raiz)'}: ${i.message}`);
 }
 
+/**
+ * Teto do YAML aceito em `/render`. Uma planta real cabe em poucos KB; o
+ * limite existe para que ninguém gaste CPU do Worker mandando megabytes.
+ */
+export const MAX_RENDER_BYTES = 64 * 1024;
+
 async function handleRender(request: Request, cors: Record<string, string>): Promise<Response> {
+  const declaredLength = Number(request.headers.get('Content-Length') ?? '');
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_RENDER_BYTES) {
+    return apiError(`Corpo maior que o limite de ${MAX_RENDER_BYTES} bytes`, 413, cors);
+  }
+
   const contentType = request.headers.get('Content-Type') || '';
   if (
     !contentType.includes('text/plain') &&
@@ -231,6 +255,10 @@ async function handleRender(request: Request, cors: Record<string, string>): Pro
   }
   if (!yamlText || yamlText.trim().length === 0) {
     return apiError('Corpo da requisição vazio', 400, cors);
+  }
+  // Content-Length pode faltar (chunked) ou mentir; o texto lido é a medida real.
+  if (new TextEncoder().encode(yamlText).length > MAX_RENDER_BYTES) {
+    return apiError(`Corpo maior que o limite de ${MAX_RENDER_BYTES} bytes`, 413, cors);
   }
 
   try {

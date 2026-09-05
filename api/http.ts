@@ -51,3 +51,14 @@ export function apiError(
 ): Response {
   return json(details ? { error: message, details } : { error: message }, status, headers);
 }
+
+/** 429 com `Retry-After`, para o cliente saber quando voltar. */
+export function tooManyRequests(
+  retryAfterSeconds: number,
+  headers: Record<string, string> = {},
+): Response {
+  return apiError('Muitas requisições. Tente novamente em instantes.', 429, {
+    ...headers,
+    'Retry-After': String(retryAfterSeconds),
+  });
+}
