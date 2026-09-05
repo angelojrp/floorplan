@@ -218,6 +218,7 @@ footer a:hover{color:var(--accent)}
     <a class="nav-link" href="#features">Funcionalidades</a>
     <a class="nav-link" href="#ia">Gerar com IA</a>
     <a class="nav-link" href="playground/">Playground</a>
+    <button class="nav-link" id="nav-auth" hidden></button>
     <a class="nav-cta" href="editor/">Abrir Editor →</a>
   </div>
 </nav>
@@ -293,6 +294,13 @@ footer a:hover{color:var(--accent)}
       <div class="section-tag">Projetos</div>
       <h2 class="section-title">Continue de onde parou</h2>
       <p class="section-sub">Seu projeto é salvo automaticamente no navegador. Escolha um template para começar do zero.</p>
+    </div>
+
+    <!-- Projetos na nuvem. Some inteiro quando não há login configurado ou
+         o usuário está deslogado — o card do navegador abaixo é o padrão. -->
+    <div id="cloud-section" class="fade-up" style="margin-top:40px" hidden>
+      <p style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:16px">Na sua conta</p>
+      <div id="cloud-projects"></div>
     </div>
 
     <!-- Saved project from localStorage -->
@@ -1279,6 +1287,48 @@ function copyPrompt(id, btn) {
     }, 2500);
   });
 }
+</script>
+<!-- Conta e projetos na nuvem. Módulo à parte porque o script acima é
+     clássico e não pode usar import. Inerte sem login configurado. -->
+<script type="module">
+import * as auth from './shared/auth.js';
+
+const navBtn = document.getElementById('nav-auth');
+const section = document.getElementById('cloud-section');
+const list = document.getElementById('cloud-projects');
+
+function card(p) {
+  const meta = `${p.room_count ?? 0} cômodo(s) · ${(p.area_m2 ?? 0).toFixed(1)} m² · ${new Date(p.updated_at).toLocaleDateString('pt-BR')}`;
+  return `<div class="saved-card" style="margin-bottom:10px">
+    <div class="saved-card-info">
+      <div class="saved-icon">☁️</div>
+      <div>
+        <div class="saved-title">${p.title.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'))}</div>
+        <div class="saved-meta">${meta}</div>
+      </div>
+    </div>
+    <a href="editor/" class="btn-primary" style="white-space:nowrap;padding:10px 20px;font-size:14px">Abrir editor →</a>
+  </div>`;
+}
+
+auth.onAuthChange(async (user) => {
+  if (!auth.isEnabled()) return;          // nada aparece sem login configurado
+  navBtn.hidden = false;
+  navBtn.textContent = user ? 'Sair' : 'Entrar';
+  navBtn.onclick = () => (user ? auth.signOut() : auth.signIn());
+
+  if (!user) { section.hidden = true; return; }
+  section.hidden = false;
+  list.innerHTML = '<p class="saved-empty">Carregando…</p>';
+  try {
+    const projects = await auth.projects.list();
+    list.innerHTML = projects.length
+      ? projects.map(card).join('')
+      : '<p class="saved-empty">Nenhum projeto na conta ainda. Salve um pelo editor.</p>';
+  } catch (e) {
+    list.innerHTML = `<p class="saved-empty">Não foi possível carregar seus projetos.</p>`;
+  }
+});
 </script>
 </body>
 </html>

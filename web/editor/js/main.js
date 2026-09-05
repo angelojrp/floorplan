@@ -1,6 +1,7 @@
 // Floorplan Editor — UI sobre a engine canônica (src/)
-import { render as engineRender, resolveLayout, parseFloorPlan, exportDXF as engineExportDXF } from '../../../src/index';
+import { render as engineRender, resolveLayout, parseFloorPlan, exportDXF as engineExportDXF, planStats } from '../../../src/index';
 import { SYMBOLS, SYMBOL_CATEGORIES } from '../../shared/symbols.js';
+import * as auth from '../../shared/auth.js';
 
 // ═══════════════════════════════════════════════════
 //  DATA MODEL
@@ -2262,8 +2263,12 @@ function closeExportMenu() {
   document.getElementById('export-menu').classList.remove('open');
 }
 
-function exportYAML() {
-  const out = {
+/**
+ * Documento YAML da planta inteira. Extraído de exportYAML() para que o
+ * download e a gravação na nuvem produzam exatamente o mesmo conteúdo.
+ */
+function buildExportDoc() {
+  return {
     version: 1, title: state.title || 'Planta Baixa',
     scale: state.scale, wallThickness: state.wallThickness,
     grid: state.gridVisible ? state.gridSize : false,
@@ -2284,7 +2289,10 @@ function exportYAML() {
     })),
     symbols: state.symbols.length ? state.symbols.map(s => ({id:s.id,type:s.type,x:s.x,y:s.y,w:s.w,h:s.h,rotation:s.rotation||0})) : undefined
   };
-  downloadFile('planta.yaml', jsyaml.dump(out, {lineWidth:-1, noCompatMode:true}), 'text/yaml');
+}
+
+function exportYAML() {
+  downloadFile('planta.yaml', jsyaml.dump(buildExportDoc(), {lineWidth:-1, noCompatMode:true}), 'text/yaml');
   toast('📤 YAML exportado!');
 }
 
@@ -2342,12 +2350,11 @@ function exportDXF() {
   toast('📐 DXF exportado!');
 }
 
+// Área de toda a planta (todos os pavimentos), pela mesma conta que o Worker
+// usa para derivar `area_m2` na gravação — planStats() da engine.
 function calculateTotalArea() {
-  let total = 0;
-  for (const f of state.floors) {
-    for (const r of (f.rooms || [])) { total += r.width * r.height; }
-  }
-  return (total / 10000).toFixed(1);
+  const rooms = state.floors.flatMap(f => f.rooms || []);
+  return planStats({ rooms }).areaM2.toFixed(1);
 }
 
 // ── Template library ──
@@ -2694,7 +2701,166 @@ if (_urlYaml) {
 }
 render();
 
+// ═══════════════════════════════════════════════════
+//  CONTA E PROJETOS NA NUVEM
+// ═══════════════════════════════════════════════════
+// Camada estritamente aditiva. Sem login configurado, ou com o usuário
+// deslogado, o editor se comporta exatamente como antes: o autosave no
+// localStorage segue sendo o caminho principal e nada aqui bloqueia edição,
+// exportação ou impressão.
+
+const CLOUD_ID_KEY = 'floorplan-cloud-id';       // projeto da nuvem aberto agora
+const IMPORT_ASKED_KEY = 'floorplan-import-asked'; // convite de importação já feito?
+let cloudUser = null;
+
+function cloudProjectId() { try { return localStorage.getItem(CLOUD_ID_KEY); } catch { return null; } }
+function setCloudProjectId(id) {
+  try { id ? localStorage.setItem(CLOUD_ID_KEY, id) : localStorage.removeItem(CLOUD_ID_KEY); } catch {}
+}
+
+function currentYaml() {
+  // Mesma serialização do "Exportar YAML", para a nuvem guardar exatamente o
+  // que a engine renderiza.
+  return jsyaml.dump(buildExportDoc(), { lineWidth: -1, noCompatMode: true });
+}
+
+function renderAuthUI() {
+  const slot = document.getElementById('auth-slot');
+  if (!slot || !auth.isEnabled()) return;   // auth desligada → UI nunca aparece
+  slot.hidden = false;
+  const btn = document.getElementById('btn-auth');
+  const cloud = document.getElementById('btn-cloud');
+  const save = document.getElementById('btn-save-cloud');
+  if (cloudUser) {
+    btn.textContent = '⎋ Sair';
+    btn.setAttribute('data-tooltip', cloudUser.primaryEmailAddress?.emailAddress || 'Sair da conta');
+    cloud.hidden = false;
+    save.hidden = false;
+  } else {
+    btn.textContent = '⇥ Entrar';
+    btn.setAttribute('data-tooltip', 'Entrar para salvar na nuvem');
+    cloud.hidden = true;
+    save.hidden = true;
+  }
+}
+
+function toggleAuth() { cloudUser ? auth.signOut() : auth.signIn(); }
+
+async function saveToCloud() {
+  if (!cloudUser) { auth.signIn(); return; }
+  const rooms = getFloor().rooms || [];
+  if (!rooms.length) { toast('⬜ Adicione ao menos um cômodo antes de salvar'); return; }
+
+  const title = state.title || 'Planta sem título';
+  const id = cloudProjectId();
+  try {
+    if (id) {
+      await auth.projects.update(id, title, currentYaml());
+      toast('☁️ Salvo na nuvem');
+    } else {
+      const created = await auth.projects.create(title, currentYaml());
+      setCloudProjectId(created.id);
+      toast('☁️ Projeto criado na nuvem');
+    }
+  } catch (e) {
+    // O projeto continua salvo no navegador — a nuvem é um extra.
+    if (e.status === 404) { setCloudProjectId(null); toast('☁️ Projeto removido na nuvem; salve de novo para recriar'); return; }
+    toast('❌ ' + (e.details?.[0] || e.message));
+  }
+}
+
+async function openCloudProjects() {
+  if (!cloudUser) { auth.signIn(); return; }
+  const modal = document.getElementById('cloud-modal');
+  const list = document.getElementById('cloud-list');
+  list.innerHTML = '<div class="cloud-empty">Carregando…</div>';
+  modal.classList.add('show');
+  try {
+    const items = await auth.projects.list();
+    if (!items.length) {
+      list.innerHTML = '<div class="cloud-empty">Nenhum projeto na nuvem ainda. Use “Salvar” para enviar este.</div>';
+      return;
+    }
+    list.innerHTML = items.map((p) => `
+      <div class="cloud-item" data-open="${p.id}">
+        <div class="cloud-item-main">
+          <div class="cloud-item-title">${escAttr(p.title)}</div>
+          <div class="cloud-item-meta">${p.room_count ?? 0} cômodo(s) · ${(p.area_m2 ?? 0).toFixed(1)} m² · ${new Date(p.updated_at).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <div class="del-btn" data-del="${p.id}" title="Remover da nuvem">×</div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="cloud-empty">❌ ${escAttr(e.message)}</div>`;
+  }
+}
+
+function hideCloudModal() { document.getElementById('cloud-modal').classList.remove('show'); }
+
+document.getElementById('cloud-list')?.addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    e.stopPropagation();
+    if (!confirm('Remover este projeto da nuvem? O que está aberto no editor não é afetado.')) return;
+    try {
+      await auth.projects.remove(del.getAttribute('data-del'));
+      if (cloudProjectId() === del.getAttribute('data-del')) setCloudProjectId(null);
+      openCloudProjects();
+    } catch (err) { toast('❌ ' + err.message); }
+    return;
+  }
+  const open = e.target.closest('[data-open]');
+  if (!open) return;
+  const id = open.getAttribute('data-open');
+  try {
+    const p = await auth.projects.get(id);
+    saveUndo();
+    loadYAMLString(p.yaml, p.title);
+    setCloudProjectId(id);
+    hideCloudModal();
+    toast('☁️ Projeto carregado');
+  } catch (err) { toast('❌ ' + err.message); }
+});
+
+document.getElementById('cloud-modal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'cloud-modal') hideCloudModal();
+});
+
+/**
+ * Migração suave: na primeira vez que o usuário entra, oferece subir o projeto
+ * que já estava no navegador. Só pergunta uma vez, e recusar não perde nada —
+ * o projeto continua no localStorage.
+ */
+async function offerLocalImport() {
+  if (cloudProjectId()) return;                       // já é um projeto da nuvem
+  try { if (localStorage.getItem(IMPORT_ASKED_KEY)) return; } catch { return; }
+  const rooms = getFloor().rooms || [];
+  if (!rooms.length) return;                          // nada que valha importar
+
+  try { localStorage.setItem(IMPORT_ASKED_KEY, '1'); } catch {}
+  const existing = await auth.projects.list().catch(() => []);
+  if (existing.length) return;                        // já tem projetos na nuvem
+
+  const title = state.title || 'Planta sem título';
+  if (!confirm(`Importar “${title}” do navegador para a sua conta?\n\nO projeto continua salvo aqui de qualquer forma.`)) return;
+  try {
+    const created = await auth.projects.create(title, currentYaml());
+    setCloudProjectId(created.id);
+    toast('☁️ Projeto importado para a sua conta');
+  } catch (e) {
+    toast('❌ Não foi possível importar: ' + (e.details?.[0] || e.message));
+  }
+}
+
+auth.onAuthChange(async (user) => {
+  cloudUser = user;
+  renderAuthUI();
+  if (!user) { setCloudProjectId(null); return; }
+  try { await auth.apiFetch('/api/auth/callback', { method: 'POST' }); } catch {}
+  offerLocalImport();
+});
+
 // expõe handlers referenciados em atributos on* do HTML
 Object.assign(window, {
-  addDoor, addFloor, addWindow, alignSelected, rotateSelected, applyPastedYAML, applyYAMLProps, closeExportMenu, copySelected, deleteSelected, doPrint, exportDXF, exportPNG, exportSVG, exportYAML, filterPalette, focusMinimap, hideContextMenu, hidePasteModal, hidePrintModal, hideShortcuts, importYAML, loadTemplateFromSelect, newProject, onPaletteDrag, onSymbolDrag, pasteSelected, redo, removeFloor, removeOpening, setGridSize, setTool, showPasteModal, showPrintModal, switchFloor, toggleCotas, updateLotProp, updateMeta, toggleExportMenu, toggleGrid, toggleLayer, togglePropsMode, toggleShortcuts, toggleSidebar, toggleTheme, undo, updateDoor, updateProp, updateStairProp, updateSymbolProp, updateTitle, updateWindow, zoomIn, zoomOut, zoomReset,
+  addDoor, addFloor, addWindow, alignSelected, rotateSelected,
+  toggleAuth, saveToCloud, openCloudProjects, hideCloudModal, applyPastedYAML, applyYAMLProps, closeExportMenu, copySelected, deleteSelected, doPrint, exportDXF, exportPNG, exportSVG, exportYAML, filterPalette, focusMinimap, hideContextMenu, hidePasteModal, hidePrintModal, hideShortcuts, importYAML, loadTemplateFromSelect, newProject, onPaletteDrag, onSymbolDrag, pasteSelected, redo, removeFloor, removeOpening, setGridSize, setTool, showPasteModal, showPrintModal, switchFloor, toggleCotas, updateLotProp, updateMeta, toggleExportMenu, toggleGrid, toggleLayer, togglePropsMode, toggleShortcuts, toggleSidebar, toggleTheme, undo, updateDoor, updateProp, updateStairProp, updateSymbolProp, updateTitle, updateWindow, zoomIn, zoomOut, zoomReset,
 });

@@ -1,0 +1,35 @@
+# Config do Worker de API (separada da config de Pages na raiz, que só publica
+# o site estático e não aceita bindings de Worker).
+#
+# Deploy:  npm run deploy:worker
+# Migrations: npm run db:migrate:local  /  npm run db:migrate
+name = "floorplan-api"
+main = "worker.ts"
+compatibility_date = "2026-06-16"
+compatibility_flags = ["nodejs_compat"]
+
+# Banco dos projetos/usuários. `database_id` é preenchido por quem faz o deploy
+# (`wrangler d1 create floorplan` imprime o id); em dev local o Miniflare ignora.
+[[d1_databases]]
+binding = "DB"
+database_name = "floorplan"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../migrations"
+
+# Thumbnails dos projetos e, no futuro, imagens de render.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "floorplan-assets"
+
+# Limite de taxa por IP nas rotas públicas (contagem na borda, sem custo de D1).
+# `namespace_id` é um número livre, único por Worker; a janela (`period`) só
+# aceita 10 ou 60 segundos.
+[[ratelimits]]
+name = "RL_RENDER"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+[[ratelimits]]
+name = "RL_PUBLIC"
+namespace_id = "1002"
+simple = { limit = 120, period = 60 }

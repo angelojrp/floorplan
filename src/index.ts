@@ -22,5 +22,7 @@ export { resolveLayout } from './layout';
 export { renderSvg } from './renderer';
 export { exportDXF } from './dxf';
 export { renderPDFHtml } from './pdf';
+export { planStats } from './stats';
+export type { PlanStats } from './stats';
 export type { PDFOptions } from './pdf';
 export * from './types';

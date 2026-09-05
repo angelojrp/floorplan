@@ -4,3 +4,11 @@ dist-web/
 *.log
 .DS_Store
 .claude/
+
+# Wrangler / Miniflare state local
+.wrangler/
+
+# Segredos locais do Worker
+api/.dev.vars
+.env
+.env.local
