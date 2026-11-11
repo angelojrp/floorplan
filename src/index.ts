@@ -24,3 +24,4 @@ export { exportDXF } from './dxf';
 export { renderPDFHtml } from './pdf';
 export type { PDFOptions } from './pdf';
 export * from './types';
+export * from './tools';
